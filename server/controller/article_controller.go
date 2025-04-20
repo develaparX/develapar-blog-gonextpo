@@ -8,13 +8,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type CategoryController struct {
-	service service.CategoryService
+type ArticleController struct {
+	service service.ArticleService
 	rg      *gin.RouterGroup
 }
 
-func (c *CategoryController) CreateCategoryHandler(ctx *gin.Context) {
-	var payload model.Category
+func (c *ArticleController) CreateArticleHandler(ctx *gin.Context) {
+	var payload model.Article
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid payload: " + err.Error(),
@@ -22,7 +22,7 @@ func (c *CategoryController) CreateCategoryHandler(ctx *gin.Context) {
 		return
 	}
 
-	data, err := c.service.CreateCategory(payload)
+	data, err := c.service.CreateArticle(payload)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to create category: " + err.Error(),
@@ -36,7 +36,7 @@ func (c *CategoryController) CreateCategoryHandler(ctx *gin.Context) {
 	})
 }
 
-func (c *CategoryController) GetAllCategoryHandler(ctx *gin.Context) {
+func (c *ArticleController) GetAllArticleHandler(ctx *gin.Context) {
 	data, err := c.service.FindAll()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -51,15 +51,15 @@ func (c *CategoryController) GetAllCategoryHandler(ctx *gin.Context) {
 	})
 }
 
-func (c *CategoryController) Route() {
-	router := c.rg.Group("/category")
-	router.GET("/", c.GetAllCategoryHandler)
-	router.POST("/", c.CreateCategoryHandler)
+func (c *ArticleController) Route() {
+	router := c.rg.Group("/article")
+	router.GET("/", c.GetAllArticleHandler)
+	router.POST("/", c.CreateArticleHandler)
 }
 
-func NewCategoryController(cS service.CategoryService, rg *gin.RouterGroup) *CategoryController {
-	return &CategoryController{
-		service: cS,
+func NewArticleController(aS service.ArticleService, rg *gin.RouterGroup) *ArticleController {
+	return &ArticleController{
+		service: aS,
 		rg:      rg,
 	}
 }
