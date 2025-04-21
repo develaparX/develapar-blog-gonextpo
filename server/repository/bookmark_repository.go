@@ -19,7 +19,6 @@ type bookmarkRepository struct {
 func (b *bookmarkRepository) GetByUserId(userId string) ([]model.Bookmark, error) {
 	var bookmarks []model.Bookmark
 
-	// Query untuk mengambil artikel yang dibookmark oleh user tertentu, bersama dengan data user dan kategori
 	query := `
 	SELECT 
 		b.id, b.article_id, b.user_id, b.created_at, 
@@ -40,7 +39,6 @@ func (b *bookmarkRepository) GetByUserId(userId string) ([]model.Bookmark, error
 	}
 	defer rows.Close()
 
-	// Loop untuk mengambil setiap baris data dan mengisinya ke dalam slice bookmarks
 	for rows.Next() {
 		var bookmark model.Bookmark
 		var article model.Article

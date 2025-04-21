@@ -17,6 +17,7 @@ type Server struct {
 	cS      service.CategoryService
 	aS      service.ArticleService
 	bS      service.BookmarkService
+	tS      service.TagService
 	engine  *gin.Engine
 	portApp string
 }
@@ -27,6 +28,7 @@ func (s *Server) initiateRoute() {
 	controller.NewCategoryController(s.cS, routerGroup).Route()
 	controller.NewArticleController(s.aS, routerGroup).Route()
 	controller.NewBookmarkController(s.bS, routerGroup).Route()
+	controller.NewTagController(s.tS, routerGroup).Route()
 }
 
 func (s *Server) Start() {
@@ -50,17 +52,20 @@ func NewServer() *Server {
 	categoryRepo := repository.NewCategoryRepository(db)
 	articleRepo := repository.NewArticleRepository(db)
 	bookmarkRepo := repository.NewBookmarkRepository(db)
+	tagRepo := repository.NewTagRepository(db)
 
 	userService := service.NewUserservice(userRepo)
 	categoryService := service.NewCategoryService(categoryRepo)
 	articleService := service.NewArticleService(articleRepo)
 	bookmarkService := service.NewBookmarkService(bookmarkRepo)
+	tagService := service.NewTagService(tagRepo)
 
 	return &Server{
 		cS:      categoryService,
 		uS:      userService,
 		aS:      articleService,
 		bS:      bookmarkService,
+		tS:      tagService,
 		portApp: portApp,
 		engine:  gin.Default(),
 	}
