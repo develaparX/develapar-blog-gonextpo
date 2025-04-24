@@ -20,6 +20,7 @@ type Server struct {
 	tS      service.TagService
 	atS     service.ArticleTagService
 	coS     service.CommentService
+	lS      service.LikeService
 	engine  *gin.Engine
 	portApp string
 }
@@ -33,6 +34,7 @@ func (s *Server) initiateRoute() {
 	controller.NewTagController(s.tS, routerGroup).Route()
 	controller.NewArticleTagController(s.atS, routerGroup).Route()
 	controller.NewCommentController(s.coS, routerGroup).Route()
+	controller.NewLikeController(s.lS, routerGroup).Route()
 }
 
 func (s *Server) Start() {
@@ -59,6 +61,7 @@ func NewServer() *Server {
 	tagRepo := repository.NewTagRepository(db)
 	articleTagRepo := repository.NewArticleTagRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
+	likeRepo := repository.NewLikeRepository(db)
 
 	userService := service.NewUserservice(userRepo)
 	categoryService := service.NewCategoryService(categoryRepo)
@@ -67,6 +70,7 @@ func NewServer() *Server {
 	tagService := service.NewTagService(tagRepo)
 	articleTagService := service.NewArticleTagService(articleTagRepo)
 	commentService := service.NewCommentService(commentRepo)
+	likeService := service.NewLikeService(likeRepo)
 
 	return &Server{
 		cS:      categoryService,
@@ -76,6 +80,7 @@ func NewServer() *Server {
 		tS:      tagService,
 		atS:     articleTagService,
 		coS:     commentService,
+		lS:      likeService,
 		portApp: portApp,
 		engine:  gin.Default(),
 	}
