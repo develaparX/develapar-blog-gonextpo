@@ -20,7 +20,7 @@ type likeRepository struct {
 // CreateLike implements LikeRepository.
 func (l *likeRepository) CreateLike(payload model.Likes) (model.Likes, error) {
 	var like model.Likes
-	err := l.db.QueryRow(`INSERT INTO likes (article_id, user_id, created_at) VALUES($1,$2,$3) RETURNING id, article_id, user_id, content, created_at `, payload.Article.Id, payload.User.Id, time.Now()).Scan(
+	err := l.db.QueryRow(`INSERT INTO likes(article_id, user_id, created_at) VALUES($1,$2,$3) RETURNING id, article_id, user_id, created_at `, payload.Article.Id, payload.User.Id, time.Now()).Scan(
 		&like.Id, &like.Article.Id, &like.User.Id, &like.CreatedAt,
 	)
 

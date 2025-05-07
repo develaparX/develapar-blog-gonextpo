@@ -8,10 +8,62 @@ import (
 
 type UserRepository interface {
 	CreateNewUser(payload model.User) (model.User, error)
+	GetUserById(id int) (model.User, error)
+	GetAllUser() ([]model.User, error)
 }
 
 type userRepository struct {
 	db *sql.DB
+}
+
+// GetAllUser implements UserRepository.
+func (u *userRepository) GetAllUser() ([]model.User, error) {
+	var listUser []model.User
+
+	rows, err := u.db.Query(`SELECT id, name, email, password, role, created_at, updated_at FROM users`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user model.User
+
+		err := rows.Scan(
+			&user.Id,
+			&user.Name,
+			&user.Email,
+			&user.Password,
+			&user.Role,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		listUser = append(listUser, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return listUser, nil
+}
+
+// GetUserById implements UserRepository.
+func (u *userRepository) GetUserById(id int) (model.User, error) {
+	var user model.User
+
+	err := u.db.QueryRow(`SELECT id, name, email, password, created_at, updated_at FROM users WHERE id=$1`, id).Scan(&user.Id, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt)
+
+	if err != nil {
+		return model.User{}, nil
+	}
+
+	return user, nil
 }
 
 func (u *userRepository) CreateNewUser(payload model.User) (model.User, error) {

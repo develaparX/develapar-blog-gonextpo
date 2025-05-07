@@ -46,7 +46,7 @@ func (c *CategoryController) GetAllCategoryHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Create New User",
+		"message": "Success Get All Category",
 		"data":    data,
 	})
 }
