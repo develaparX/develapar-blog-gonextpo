@@ -2,8 +2,10 @@ package controller
 
 import (
 	"develapar-server/model"
+	"develapar-server/model/dto"
 	"develapar-server/service"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -51,10 +53,37 @@ func (c *ArticleController) GetAllArticleHandler(ctx *gin.Context) {
 	})
 }
 
+func (c *ArticleController) UpdateArticleHandler(ctx *gin.Context) {
+	idStr := ctx.Param("article_id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
+		return
+	}
+
+	var req dto.UpdateArticleRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	article, err := c.service.UpdateArticle(id, req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Article updated successfully",
+		"data":    article,
+	})
+}
+
 func (c *ArticleController) Route() {
 	router := c.rg.Group("/article")
 	router.GET("/", c.GetAllArticleHandler)
 	router.POST("/", c.CreateArticleHandler)
+	router.PUT("/:article_id", c.UpdateArticleHandler)
 }
 
 func NewArticleController(aS service.ArticleService, rg *gin.RouterGroup) *ArticleController {

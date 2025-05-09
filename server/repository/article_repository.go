@@ -8,10 +8,65 @@ import (
 type ArticleRepository interface {
 	GetAll() ([]model.Article, error)
 	CreateArticle(payload model.Article) (model.Article, error)
+	UpdateArticle(article model.Article) (model.Article, error)
+	GetArticleById(id int) (model.Article, error)
+	GetArticleByUserId(userId int) ([]model.Article, error)
+	DeleteArticle(id int) error
 }
 
 type articleRepository struct {
 	db *sql.DB
+}
+
+// DeleteArticle implements ArticleRepository.
+func (a *articleRepository) DeleteArticle(id int) error {
+	panic("unimplemented")
+}
+
+// GetArticleById implements ArticleRepository.
+func (a *articleRepository) GetArticleById(id int) (model.Article, error) {
+	query := `
+		SELECT id, title, slug, content, views, user_id, category_id, created_at, updated_at
+		FROM articles
+		WHERE id = $1
+	`
+	var arc model.Article
+	err := a.db.QueryRow(query, id).Scan(
+		&arc.Id, &arc.Title, &arc.Slug, &arc.Content, &arc.Views,
+		&arc.User.Id, &arc.Category.Id, &arc.CreatedAt, &arc.UpdatedAt,
+	)
+	return arc, err
+}
+
+// GetArticleByUserId implements ArticleRepository.
+func (a *articleRepository) GetArticleByUserId(userId int) ([]model.Article, error) {
+	panic("unimplemented")
+}
+
+// UpdateArticle implements ArticleRepository.
+func (a *articleRepository) UpdateArticle(article model.Article) (model.Article, error) {
+	query := `
+	UPDATE articles
+	SET title = $1, slug = $2, content = $3, category_id=$4, updated_at = NOW()
+	WHERE id = $5
+ 	RETURNING id, title, slug, content, category_id, created_at, updated_at
+	`
+	row := a.db.QueryRow(query, article.Title, article.Slug, article.Content, article.Category.Id, article.Id)
+	var updated model.Article
+	err := row.Scan(
+		&updated.Id,
+		&updated.Title,
+		&updated.Slug,
+		&updated.Content,
+		&updated.Category.Id,
+		&updated.CreatedAt,
+		&updated.UpdatedAt,
+	)
+	if err != nil {
+		return model.Article{}, err
+	}
+
+	return updated, nil
 }
 
 // GetAll implements ArticleRepository.
