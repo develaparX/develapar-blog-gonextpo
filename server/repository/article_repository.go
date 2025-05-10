@@ -11,11 +11,45 @@ type ArticleRepository interface {
 	UpdateArticle(article model.Article) (model.Article, error)
 	GetArticleById(id int) (model.Article, error)
 	GetArticleByUserId(userId int) ([]model.Article, error)
+	GetArticleBySlug(slug string) (model.Article, error)
 	DeleteArticle(id int) error
 }
 
 type articleRepository struct {
 	db *sql.DB
+}
+
+// GetArticleBySlug implements ArticleRepository.
+func (a *articleRepository) GetArticleBySlug(slug string) (model.Article, error) {
+	query := `
+	SELECT 
+		a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
+		u.id, u.name, u.email,
+		c.id, c.name
+	FROM articles a
+	JOIN users u ON a.user_id = u.id
+	JOIN categories c ON a.category_id = c.id
+	WHERE a.slug = $1;
+	`
+
+	row := a.db.QueryRow(query, slug)
+
+	var article model.Article
+	var user model.User
+	var category model.Category
+
+	err := row.Scan(
+		&article.Id, &article.Title, &article.Slug, &article.Content, &article.Views, &article.CreatedAt, &article.UpdatedAt,
+		&user.Id, &user.Name, &user.Email,
+		&category.Id, &category.Name,
+	)
+	if err != nil {
+		return model.Article{}, err
+	}
+
+	article.User = user
+	article.Category = category
+	return article, nil
 }
 
 // DeleteArticle implements ArticleRepository.

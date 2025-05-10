@@ -79,11 +79,27 @@ func (c *ArticleController) UpdateArticleHandler(ctx *gin.Context) {
 	})
 }
 
+func (c *ArticleController) GetBySlugHandler(ctx *gin.Context) {
+	slug := ctx.Param("slug")
+
+	article, err := c.service.FindBySlug(slug)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Success get article by slug",
+		"data":    article,
+	})
+}
+
 func (c *ArticleController) Route() {
 	router := c.rg.Group("/article")
 	router.GET("/", c.GetAllArticleHandler)
 	router.POST("/", c.CreateArticleHandler)
 	router.PUT("/:article_id", c.UpdateArticleHandler)
+	router.GET("/:slug", c.GetBySlugHandler)
 }
 
 func NewArticleController(aS service.ArticleService, rg *gin.RouterGroup) *ArticleController {

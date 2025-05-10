@@ -4,16 +4,24 @@ import (
 	"develapar-server/model"
 	"develapar-server/model/dto"
 	"develapar-server/repository"
+	"develapar-server/utils"
+	"time"
 )
 
 type ArticleService interface {
 	CreateArticle(payload model.Article) (model.Article, error)
 	FindAll() ([]model.Article, error)
 	UpdateArticle(id int, req dto.UpdateArticleRequest) (model.Article, error)
+	FindBySlug(slug string) (model.Article, error)
 }
 
 type articleService struct {
 	repo repository.ArticleRepository
+}
+
+// FindBySlug implements ArticleService.
+func (a *articleService) FindBySlug(slug string) (model.Article, error) {
+	return a.repo.GetArticleBySlug(slug)
 }
 
 // UpdateArticle implements ArticleService.
@@ -28,7 +36,8 @@ func (a *articleService) UpdateArticle(id int, req dto.UpdateArticleRequest) (mo
 		article.Title = *req.Title
 	}
 	if req.Slug != nil {
-		article.Slug = *req.Slug
+		slug := utils.GenerateSlug(*req.Slug)
+		article.Slug = slug
 	}
 	if req.Content != nil {
 		article.Content = *req.Content
@@ -37,13 +46,25 @@ func (a *articleService) UpdateArticle(id int, req dto.UpdateArticleRequest) (mo
 		article.Category.Id = *req.CategoryID
 	}
 
-	// Step 3: Simpan ke DB
 	return a.repo.UpdateArticle(article)
 }
 
 // CreateArticle implements ArticleService.
 func (a *articleService) CreateArticle(payload model.Article) (model.Article, error) {
-	return a.repo.CreateArticle(payload)
+	slug := utils.GenerateSlug(payload.Slug)
+	article := model.Article{
+
+		Title:     payload.Title,
+		Slug:      slug,
+		Content:   payload.Content,
+		User:      payload.User,
+		Category:  payload.Category,
+		Views:     payload.Views,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	return a.repo.CreateArticle(article)
 }
 
 // FindAll implements ArticleService.
