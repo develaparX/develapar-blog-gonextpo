@@ -13,10 +13,28 @@ type ArticleService interface {
 	FindAll() ([]model.Article, error)
 	UpdateArticle(id int, req dto.UpdateArticleRequest) (model.Article, error)
 	FindBySlug(slug string) (model.Article, error)
+	FindByUserId(userId int) ([]model.Article, error)
+	FindByCategory(catId string) ([]model.Article, error)
+	DeleteArticle(id int) error
 }
 
 type articleService struct {
 	repo repository.ArticleRepository
+}
+
+// FindByCategory implements ArticleService.
+func (a *articleService) FindByCategory(catId string) ([]model.Article, error) {
+	return a.repo.GetArticleByCategory(catId)
+}
+
+// DeleteArticle implements ArticleService.
+func (a *articleService) DeleteArticle(id int) error {
+	return a.repo.DeleteArticle(id)
+}
+
+// FindByUserId implements ArticleService.
+func (a *articleService) FindByUserId(userId int) ([]model.Article, error) {
+	return a.repo.GetArticleByUserId(userId)
 }
 
 // FindBySlug implements ArticleService.

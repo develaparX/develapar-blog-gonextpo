@@ -12,11 +12,55 @@ type ArticleRepository interface {
 	GetArticleById(id int) (model.Article, error)
 	GetArticleByUserId(userId int) ([]model.Article, error)
 	GetArticleBySlug(slug string) (model.Article, error)
+	GetArticleByCategory(cat string) ([]model.Article, error)
 	DeleteArticle(id int) error
 }
 
 type articleRepository struct {
 	db *sql.DB
+}
+
+// GetArticleByCategory implements ArticleRepository.
+func (a *articleRepository) GetArticleByCategory(cat string) ([]model.Article, error) {
+	query := `
+	SELECT 
+		a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
+		u.id, u.name, u.email,
+		c.id, c.name
+	FROM articles a
+	JOIN users u ON a.user_id = u.id
+	JOIN categories c ON a.category_id = c.id
+	WHERE c.name = $1;
+	`
+	rows, err := a.db.Query(query, cat)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var articles []model.Article
+
+	for rows.Next() {
+		var a model.Article
+		var u model.User
+		var c model.Category
+
+		err := rows.Scan(
+			&a.Id, &a.Title, &a.Slug, &a.Content, &a.Views, &a.CreatedAt, &a.UpdatedAt,
+			&u.Id, &u.Name, &u.Email,
+			&c.Id, &c.Name,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		a.User = u
+		a.Category = c
+		articles = append(articles, a)
+	}
+
+	return articles, nil
+
 }
 
 // GetArticleBySlug implements ArticleRepository.
@@ -54,7 +98,12 @@ func (a *articleRepository) GetArticleBySlug(slug string) (model.Article, error)
 
 // DeleteArticle implements ArticleRepository.
 func (a *articleRepository) DeleteArticle(id int) error {
-	panic("unimplemented")
+	_, err := a.db.Exec(`DELETE FROM articles WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetArticleById implements ArticleRepository.
@@ -74,7 +123,46 @@ func (a *articleRepository) GetArticleById(id int) (model.Article, error) {
 
 // GetArticleByUserId implements ArticleRepository.
 func (a *articleRepository) GetArticleByUserId(userId int) ([]model.Article, error) {
-	panic("unimplemented")
+	query := `
+	SELECT 
+		a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
+		u.id, u.name, u.email,
+		c.id, c.name
+	FROM articles a
+	JOIN users u ON a.user_id = u.id
+	JOIN categories c ON a.category_id = c.id
+	WHERE a.user_id = $1
+	ORDER BY a.created_at DESC;
+	`
+
+	rows, err := a.db.Query(query, userId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var articles []model.Article
+
+	for rows.Next() {
+		var a model.Article
+		var u model.User
+		var c model.Category
+
+		err := rows.Scan(
+			&a.Id, &a.Title, &a.Slug, &a.Content, &a.Views, &a.CreatedAt, &a.UpdatedAt,
+			&u.Id, &u.Name, &u.Email,
+			&c.Id, &c.Name,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		a.User = u
+		a.Category = c
+		articles = append(articles, a)
+	}
+
+	return articles, nil
 }
 
 // UpdateArticle implements ArticleRepository.

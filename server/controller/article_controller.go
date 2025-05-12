@@ -94,12 +94,68 @@ func (c *ArticleController) GetBySlugHandler(ctx *gin.Context) {
 	})
 }
 
+func (ac *ArticleController) GetByUserIdHandler(ctx *gin.Context) {
+	userIdParam := ctx.Param("user_id")
+	userId, err := strconv.Atoi(userIdParam)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	articles, err := ac.service.FindByUserId(userId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Success get articles by user ID",
+		"data":    articles,
+	})
+}
+
+func (ac *ArticleController) GetByCategory(ctx *gin.Context) {
+	categoryName := ctx.Param("cat_name")
+	articles, err := ac.service.FindByCategory(categoryName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Success get articles by Category",
+		"data":    articles,
+	})
+}
+
+func (ac *ArticleController) DeleteArticleHandler(ctx *gin.Context) {
+	Id := ctx.Param("article_id")
+	arcId, err := strconv.Atoi(Id)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	erro := ac.service.DeleteArticle(arcId)
+	if erro != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Success Delete Article",
+	})
+
+}
+
 func (c *ArticleController) Route() {
 	router := c.rg.Group("/article")
 	router.GET("/", c.GetAllArticleHandler)
 	router.POST("/", c.CreateArticleHandler)
 	router.PUT("/:article_id", c.UpdateArticleHandler)
 	router.GET("/:slug", c.GetBySlugHandler)
+	router.GET("/u/:user_id", c.GetByUserIdHandler)
+	router.GET("/c/:cat_name", c.GetByCategory)
+	router.DELETE("/:article_id", c.DeleteArticleHandler)
 }
 
 func NewArticleController(aS service.ArticleService, rg *gin.RouterGroup) *ArticleController {
