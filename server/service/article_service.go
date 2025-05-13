@@ -47,7 +47,6 @@ func (a *articleService) UpdateArticle(id int, req dto.UpdateArticleRequest) (mo
 	article, err := a.repo.GetArticleById(id)
 	if err != nil {
 		return model.Article{}, err
-
 	}
 
 	if req.Title != nil {
