@@ -10,11 +10,17 @@ type ArticleTagService interface {
 	AsignTagsByName(articleId int, tagNames []string) error
 	FindTagByArticleId(articleId int) ([]model.Tags, error)
 	FindArticleByTagId(tagId int) ([]model.Article, error)
+	RemoveTagFromArticle(articleId, tagId int) error
 }
 
 type articleTagService struct {
 	articleTagRepo repository.ArticleTagRepository
 	tagRepo        repository.TagRepository
+}
+
+// RemoveTagFromArticle implements ArticleTagService.
+func (a *articleTagService) RemoveTagFromArticle(articleId int, tagId int) error {
+	return a.articleTagRepo.RemoveTagFromArticle(articleId, tagId)
 }
 
 // AsignTagsByName implements ArticleTagService.

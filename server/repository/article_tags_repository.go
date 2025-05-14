@@ -9,10 +9,18 @@ type ArticleTagRepository interface {
 	AssignTags(articleId int, tagId []int) error
 	GetTagsByArticleId(articleId int) ([]model.Tags, error)
 	GetArticleByTagId(tagId int) ([]model.Article, error)
+	RemoveTagFromArticle(articleId, tagId int) error
 }
 
 type articleTagRepository struct {
 	db *sql.DB
+}
+
+// RemoveTagFromArticle implements ArticleTagRepository.
+func (a *articleTagRepository) RemoveTagFromArticle(articleId int, tagId int) error {
+	_, err := a.db.Exec(`DELETE FROM article_tags WHERE article_id= $1 AND tag_id = $2`, articleId, tagId)
+
+	return err
 }
 
 // AssignTags implements ArticleTagRepository.

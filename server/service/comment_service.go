@@ -9,10 +9,22 @@ type CommentService interface {
 	CreateComment(payload model.Comment) (model.Comment, error)
 	FindCommentByArticleId(articleId int) ([]model.Comment, error)
 	FindCommentByUserId(userId int) ([]model.Comment, error)
+	EditComment(commentId int, content string) error
+	DeleteComment(commentId int) error
 }
 
 type commentService struct {
 	repo repository.CommentRepository
+}
+
+// DeleteComment implements CommentService.
+func (c *commentService) DeleteComment(commentId int) error {
+	return c.repo.DeleteComment(commentId)
+}
+
+// EditComment implements CommentService.
+func (c *commentService) EditComment(commentId int, content string) error {
+	return c.repo.UpdateComment(commentId, content)
 }
 
 // CreateComment implements CommentService.

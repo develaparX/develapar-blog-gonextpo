@@ -83,11 +83,37 @@ func (c *ArticleTagController) GetArticlesByTagIDHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"data": articles})
 }
 
+func (c *ArticleTagController) RemoveTagFromArticleHandler(ctx *gin.Context) {
+	articleId, err := strconv.Atoi(ctx.Param("article_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Article ID"})
+		return
+	}
+
+	tagId, err := strconv.Atoi(ctx.Param("tag_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tag Id"})
+		return
+	}
+
+	err = c.service.RemoveTagFromArticle(articleId, tagId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove tag from article"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Tag removed from article successfully",
+	})
+}
+
 func (at *ArticleTagController) Route() {
 	router := at.rg.Group("/article-to-tag")
 	router.POST("/", at.AssignTagToArticleByNameHandler)
 	router.GET("/tags/:article_id", at.GetTagsByArticleIDHandler)
 	router.GET("/article/:tag_id", at.GetArticlesByTagIDHandler)
+	router.DELETE("/articles/:article_id/tags/:tag_id", at.RemoveTagFromArticleHandler)
+
 }
 
 func NewArticleTagController(s service.ArticleTagService, rg *gin.RouterGroup) *ArticleTagController {
