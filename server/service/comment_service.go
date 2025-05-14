@@ -2,13 +2,14 @@ package service
 
 import (
 	"develapar-server/model"
+	"develapar-server/model/dto"
 	"develapar-server/repository"
 )
 
 type CommentService interface {
 	CreateComment(payload model.Comment) (model.Comment, error)
 	FindCommentByArticleId(articleId int) ([]model.Comment, error)
-	FindCommentByUserId(userId int) ([]model.Comment, error)
+	FindCommentByUserId(userId int) ([]dto.CommentResponse, error)
 	EditComment(commentId int, content string) error
 	DeleteComment(commentId int) error
 }
@@ -38,7 +39,7 @@ func (c *commentService) FindCommentByArticleId(articleId int) ([]model.Comment,
 }
 
 // FindCommentByUserId implements CommentService.
-func (c *commentService) FindCommentByUserId(userId int) ([]model.Comment, error) {
+func (c *commentService) FindCommentByUserId(userId int) ([]dto.CommentResponse, error) {
 	return c.repo.GetCommentByUserId(userId)
 }
 

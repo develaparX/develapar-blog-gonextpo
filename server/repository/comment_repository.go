@@ -3,13 +3,14 @@ package repository
 import (
 	"database/sql"
 	"develapar-server/model"
+	"develapar-server/model/dto"
 	"time"
 )
 
 type CommentRepository interface {
 	CreateComment(payload model.Comment) (model.Comment, error)
 	GetCommentByArticleId(articleId int) ([]model.Comment, error)
-	GetCommentByUserId(userId int) ([]model.Comment, error)
+	GetCommentByUserId(userId int) ([]dto.CommentResponse, error)
 	UpdateComment(commentId int, content string) error
 	DeleteComment(commentId int) error
 }
@@ -100,30 +101,39 @@ func (c *commentRepository) GetCommentByArticleId(articleId int) ([]model.Commen
 }
 
 // GetCommentByUserId implements CommentRepository.
-func (c *commentRepository) GetCommentByUserId(userId int) ([]model.Comment, error) {
-	var comments []model.Comment
+func (c *commentRepository) GetCommentByUserId(userId int) ([]dto.CommentResponse, error) {
+	var comments []dto.CommentResponse
 
-	query := `SELECT id, article_id, user_id, content,created_at FROM comments WHERE user_id = $1 `
+	query := `
+	SELECT 
+		c.id, c.content, c.created_at,
+		u.id, u.name, u.email,
+		a.id, a.title, a.slug
+	FROM comments c
+	JOIN users u ON c.user_id = u.id
+	JOIN articles a ON c.article_id = a.id
+	WHERE c.user_id = $1
+	`
 
 	rows, err := c.db.Query(query, userId)
 	if err != nil {
 		return nil, err
 	}
-
 	defer rows.Close()
 
 	for rows.Next() {
-		var comment model.Comment
+		var comment dto.CommentResponse
 
 		err := rows.Scan(
-			&comment.Id, &comment.Article.Id, &comment.User.Id, &comment.Content, &comment.CreatedAt,
+			&comment.Id, &comment.Content, &comment.CreatedAt,
+			&comment.User.Id, &comment.User.Name, &comment.User.Email,
+			&comment.Article.Id, &comment.Article.Title, &comment.Article.Slug,
 		)
 		if err != nil {
 			return nil, err
 		}
 
 		comments = append(comments, comment)
-
 	}
 
 	if err := rows.Err(); err != nil {
