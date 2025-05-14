@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"develapar-server/model/dto"
 	"develapar-server/service"
 	"net/http"
 	"strconv"
@@ -18,7 +19,23 @@ type AssignTagRequest struct {
 	TagIDs    []int `json:"tag_ids"`
 }
 
-func (c *ArticleTagController) AssignTagToArticleHandler(ctx *gin.Context) {
+func (c *ArticleTagController) AssignTagToArticleByNameHandler(ctx *gin.Context) {
+	var req dto.AssignTagsByNameDTO
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := c.service.AsignTagsByName(req.ArticleID, req.Tags)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Tags assigned successfully"})
+}
+
+func (c *ArticleTagController) AssignTagToArticleByIdHandler(ctx *gin.Context) {
 	var req AssignTagRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -68,7 +85,7 @@ func (c *ArticleTagController) GetArticlesByTagIDHandler(ctx *gin.Context) {
 
 func (at *ArticleTagController) Route() {
 	router := at.rg.Group("/article-to-tag")
-	router.POST("/", at.AssignTagToArticleHandler)
+	router.POST("/", at.AssignTagToArticleByNameHandler)
 	router.GET("/tags/:article_id", at.GetTagsByArticleIDHandler)
 	router.GET("/article/:tag_id", at.GetArticlesByTagIDHandler)
 }

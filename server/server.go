@@ -68,7 +68,7 @@ func NewServer() *Server {
 	articleService := service.NewArticleService(articleRepo)
 	bookmarkService := service.NewBookmarkService(bookmarkRepo)
 	tagService := service.NewTagService(tagRepo)
-	articleTagService := service.NewArticleTagService(articleTagRepo)
+	articleTagService := service.NewArticleTagService(tagRepo, articleTagRepo)
 	commentService := service.NewCommentService(commentRepo)
 	likeService := service.NewLikeService(likeRepo)
 

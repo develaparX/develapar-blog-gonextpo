@@ -9,10 +9,23 @@ type TagRepository interface {
 	CreateTag(payload model.Tags) (model.Tags, error)
 	GetAllTag() ([]model.Tags, error)
 	GetTagById(id int) (model.Tags, error)
+	GetTagByName(name string) (model.Tags, error)
 }
 
 type tagRepository struct {
 	db *sql.DB
+}
+
+// GetTagByName implements TagRepository.
+func (t *tagRepository) GetTagByName(name string) (model.Tags, error) {
+	var tag model.Tags
+
+	err := t.db.QueryRow(`SELECT id, name FROM tags WHERE name = $1`, name).Scan(&tag.Id, &tag.Name)
+	if err != nil {
+		return model.Tags{}, err
+	}
+
+	return tag, nil
 }
 
 // CreateTag implements TagRepository.
