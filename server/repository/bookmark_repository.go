@@ -9,10 +9,30 @@ import (
 type BookmarkRepository interface {
 	CreateBookmark(payload model.Bookmark) (model.Bookmark, error)
 	GetByUserId(userId string) ([]model.Bookmark, error)
+	DeleteBookmark(userId, articleId int) error
+	IsBookmarked(userId, articleId int) (bool, error)
 }
 
 type bookmarkRepository struct {
 	db *sql.DB
+}
+
+// DeleteBookmark implements BookmarkRepository.
+func (b *bookmarkRepository) DeleteBookmark(userId int, articleId int) error {
+	query := `DELETE FROM bookmarks WHERE user_id = $1 AND article_id = $2`
+	_, err := b.db.Exec(query, userId, articleId)
+	return err
+}
+
+// IsBookmarked implements BookmarkRepository.
+func (r *bookmarkRepository) IsBookmarked(userId, articleId int) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND article_id = $2)`
+	err := r.db.QueryRow(query, userId, articleId).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 // GetByUserId implements BookmarkRepository.

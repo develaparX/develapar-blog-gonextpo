@@ -94,12 +94,35 @@ func (l *LikeController) DeleteLikeHandler(ctx *gin.Context) {
 	})
 }
 
+func (c *LikeController) CheckLikeHandler(ctx *gin.Context) {
+	userId, err := strconv.Atoi(ctx.Query("user_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+		return
+	}
+
+	articleId, err := strconv.Atoi(ctx.Query("article_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article_id"})
+		return
+	}
+
+	liked, err := c.service.IsLiked(userId, articleId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"liked": liked})
+}
+
 func (l *LikeController) Route() {
 	router := l.rg.Group("/likes")
 	router.POST("/", l.AddLikeHandler)
 	router.GET("/article/:article_id", l.GetLikeByArticleIdHandler)
 	router.GET("/user/:user_id", l.GetLikeByUserIdHandler)
-	router.DELETE("/del", l.DeleteLikeHandler)
+	router.DELETE("/", l.DeleteLikeHandler)
+	router.GET("/check", l.CheckLikeHandler)
 }
 
 func NewLikeController(lS service.LikeService, rg *gin.RouterGroup) *LikeController {

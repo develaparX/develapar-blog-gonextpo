@@ -10,10 +10,16 @@ type LikeService interface {
 	FindLikeByArticleId(articleId int) ([]model.Likes, error)
 	FindLikeByUserId(userId int) ([]model.Likes, error)
 	DeleteLike(userId, articleId int) error
+	IsLiked(userId, articleId int) (bool, error)
 }
 
 type likeService struct {
 	repo repository.LikeRepository
+}
+
+// IsLiked implements LikeService.
+func (l *likeService) IsLiked(userId int, articleId int) (bool, error) {
+	return l.repo.IsLiked(userId, articleId)
 }
 
 // CreateLike implements LikeService.

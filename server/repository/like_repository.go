@@ -11,10 +11,22 @@ type LikeRepository interface {
 	GetLikeByArticleId(articleId int) ([]model.Likes, error)
 	GetLikeByUserId(userId int) ([]model.Likes, error)
 	DeleteLike(userId, articleId int) error
+	IsLiked(userId, articleId int) (bool, error)
 }
 
 type likeRepository struct {
 	db *sql.DB
+}
+
+// isLiked implements LikeRepository.
+func (r *likeRepository) IsLiked(userId int, articleId int) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND article_id = $2)`
+	err := r.db.QueryRow(query, userId, articleId).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 // CreateLike implements LikeRepository.

@@ -8,10 +8,22 @@ import (
 type BookmarkService interface {
 	CreateBookmark(payload model.Bookmark) (model.Bookmark, error)
 	FindByUserId(userId string) ([]model.Bookmark, error)
+	DeleteBookmark(userId, articleId int) error
+	IsBookmarked(userId, articleId int) (bool, error)
 }
 
 type bookmarkService struct {
 	repo repository.BookmarkRepository
+}
+
+// IsBookmarked implements BookmarkService.
+func (b *bookmarkService) IsBookmarked(userId int, articleId int) (bool, error) {
+	return b.repo.IsBookmarked(userId, articleId)
+}
+
+// DeleteBookmark implements BookmarkService.
+func (b *bookmarkService) DeleteBookmark(userId int, articleId int) error {
+	return b.repo.DeleteBookmark(userId, articleId)
 }
 
 // CreateBookmark implements BookmarkService.
