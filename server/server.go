@@ -21,6 +21,7 @@ type Server struct {
 	atS     service.ArticleTagService
 	coS     service.CommentService
 	lS      service.LikeService
+	jS      service.JwtService
 	engine  *gin.Engine
 	portApp string
 }
@@ -63,7 +64,8 @@ func NewServer() *Server {
 	commentRepo := repository.NewCommentRepository(db)
 	likeRepo := repository.NewLikeRepository(db)
 
-	userService := service.NewUserservice(userRepo)
+	jwtService := service.NewJwtService(co.SecurityConfig)
+	userService := service.NewUserservice(userRepo, jwtService)
 	categoryService := service.NewCategoryService(categoryRepo)
 	articleService := service.NewArticleService(articleRepo)
 	bookmarkService := service.NewBookmarkService(bookmarkRepo)

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"develapar-server/model"
+	"develapar-server/model/dto"
 	"develapar-server/service"
 	"net/http"
 
@@ -11,6 +12,27 @@ import (
 type UserController struct {
 	service service.UserService
 	rg      *gin.RouterGroup
+}
+
+func (u *UserController) loginHandler(ctx *gin.Context) {
+	var payload dto.LoginDto
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response, err := u.service.Login(payload)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK, gin.H{
+			"message": "Success Login",
+			"data":    response,
+		},
+	)
 }
 
 func (u *UserController) registerUser(ctx *gin.Context) {
@@ -68,6 +90,7 @@ func (u *UserController) Route() {
 	router.GET("/", u.findAllUserHandler)
 	router.POST("/register", u.registerUser)
 	router.GET("/:user_id", u.findUserByIdHandler)
+	router.POST("/login", u.loginHandler)
 }
 
 func NewUserController(uS service.UserService, rg *gin.RouterGroup) *UserController {

@@ -104,6 +104,7 @@ func (c *BookmarkController) Route() {
 	router := c.rg.Group("/bookmark")
 	router.GET("/:user_id", c.GetBookmarkByUserId)
 	router.POST("/", c.CreateBookmarkHandler)
+	router.DELETE("/", c.DeleteBookmarkHandler)
 	router.GET("/check", c.CheckBookmarkHandler)
 }
 

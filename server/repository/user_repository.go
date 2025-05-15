@@ -9,11 +9,25 @@ import (
 type UserRepository interface {
 	CreateNewUser(payload model.User) (model.User, error)
 	GetUserById(id int) (model.User, error)
+	GetByEmail(email string) (model.User, error)
 	GetAllUser() ([]model.User, error)
 }
 
 type userRepository struct {
 	db *sql.DB
+}
+
+// GetByEmail implements UserRepository.
+func (u *userRepository) GetByEmail(email string) (model.User, error) {
+	var user model.User
+
+	err := u.db.QueryRow(`SELECT id, name, email, password, created_at, updated_at FROM users WHERE email=$1`, email).Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return user, nil
 }
 
 // GetAllUser implements UserRepository.
