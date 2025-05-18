@@ -86,11 +86,17 @@ func (u *UserController) findAllUserHandler(ctx *gin.Context) {
 
 func (u *UserController) Route() {
 	router := u.rg.Group("/users")
+	{
+		router.GET("/", u.findAllUserHandler)
+		router.GET("/:user_id", u.findUserByIdHandler)
+	}
 
-	router.GET("/", u.findAllUserHandler)
-	router.POST("/register", u.registerUser)
-	router.GET("/:user_id", u.findUserByIdHandler)
-	router.POST("/login", u.loginHandler)
+	r := u.rg.Group("/auth")
+	{
+		r.POST("/login", u.loginHandler)
+		r.POST("/register", u.registerUser)
+	}
+
 }
 
 func NewUserController(uS service.UserService, rg *gin.RouterGroup) *UserController {
