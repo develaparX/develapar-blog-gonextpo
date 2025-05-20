@@ -148,7 +148,9 @@ func (ac *ArticleController) DeleteArticleHandler(ctx *gin.Context) {
 }
 
 func (c *ArticleController) Route() {
+
 	router := c.rg.Group("/article")
+
 	router.GET("/", c.GetAllArticleHandler)
 	router.POST("/", c.CreateArticleHandler)
 	router.PUT("/:article_id", c.UpdateArticleHandler)

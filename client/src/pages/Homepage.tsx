@@ -1,6 +1,8 @@
 import React from "react";
 
-const Homepage = () => {
+type Props = {};
+
+const Homepage = (props: Props) => {
   return <div>Homepage</div>;
 };
 
