@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { getAllArticles } from '../services/articleService';
 
 export interface Article {
     id: number;
@@ -24,19 +23,14 @@ export interface Article {
 
 interface ArticleState {
     articles: Article[];
-    fetchArticles: () => Promise<void>;
-    notification?: string
+    notification?: string;
+    setArticles: (articles: Article[]) => void;
+    setNotification: (message: string) => void;
 }
 
 export const useArticleStore = create<ArticleState>((set) => ({
     articles: [],
     notification: undefined,
-    fetchArticles: async () => {
-        try {
-            const { articles, message } = await getAllArticles();
-            set({ articles, notification: message });
-        } catch (error) {
-            console.error("Error fetchArticles:", error);
-        }
-    },
+    setArticles: (articles) => set({ articles }),
+    setNotification: (message) => set({ notification: message }),
 }));

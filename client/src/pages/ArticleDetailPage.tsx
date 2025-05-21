@@ -1,8 +1,6 @@
 import { useParams } from "react-router-dom";
 
-type Props = {};
-
-const ArticleDetailPage = (props: Props) => {
+const ArticleDetailPage = () => {
   const { slug } = useParams();
 
   return <div>ArticleDetailPage : {slug}</div>;
