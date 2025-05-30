@@ -5,7 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ArticleList from "./pages/articles/index";
 import MainLayout from "./components/layout/MainLayout";
-import { articlesLoader } from "./routes/articles";
+import { articlesLoader } from "./routes/articleRouter";
 
 const router = createBrowserRouter(
   [
