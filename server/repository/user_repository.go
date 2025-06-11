@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"develapar-server/model"
+	"errors"
 	"time"
 )
 
@@ -11,10 +12,81 @@ type UserRepository interface {
 	GetUserById(id int) (model.User, error)
 	GetByEmail(email string) (model.User, error)
 	GetAllUser() ([]model.User, error)
+	SaveRefreshToken(userId int, token string, expiresAt time.Time) error
+	ValidateRefreshToken(token string) (int, error)
+	DeleteRefreshToken(token string) error
+	DeleteAllRefreshTOkensByUser(userId int) error
+	FindRefreshToken(token string) (model.RefreshToken, error)
+	UpdateRefreshToken(oldToken string, newToken string, expiresAt time.Time) error
 }
 
 type userRepository struct {
 	db *sql.DB
+}
+
+func (r *userRepository) FindRefreshToken(token string) (model.RefreshToken, error) {
+	var rt model.RefreshToken
+	query := `SELECT id, user_id, token, expires_at, created_at, updated_at FROM refresh_tokens WHERE token = $1`
+	row := r.db.QueryRow(query, token)
+
+	err := row.Scan(&rt.ID, &rt.UserID, &rt.Token, &rt.ExpiresAt, &rt.CreatedAt, &rt.UpdatedAt)
+	if err != nil {
+		return model.RefreshToken{}, err
+	}
+
+	return rt, nil
+}
+
+
+func (r *userRepository) UpdateRefreshToken(oldToken, newToken string, expiresAt time.Time) error {
+	query := `UPDATE refresh_tokens SET token = $1, expires_at = $2, updated_at = NOW() WHERE token = $3`
+	_, err := r.db.Exec(query, newToken, expiresAt, oldToken)
+	return err
+}
+
+
+
+// DeleteAllRefreshTOkensByUser implements UserRepository.
+func (u *userRepository) DeleteAllRefreshTOkensByUser(userId int) error {
+	query := `DELETE FROM refresh_tokens WHERE user_id = $1`
+	_, err := u.db.Exec(query, userId)
+	return err
+}
+
+// DeleteRefreshToken implements UserRepository.
+func (u *userRepository) DeleteRefreshToken(token string) error {
+	query := `DELETE FROM refresh_tokens WHERE token = $1`
+	_, err := u.db.Exec(query, token)
+	return err
+}
+
+// SaveRefreshToken implements UserRepository.
+func (u *userRepository) SaveRefreshToken(userId int, token string, expiresAt time.Time) error {
+	query := `INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`
+	_, err := u.db.Exec(query, userId, token, expiresAt)
+	return err
+}
+
+// ValidateRefreshToken implements UserRepository.
+func (u *userRepository) ValidateRefreshToken(token string) (int, error) {
+	var userId int
+	var expiresAt time.Time
+	query := `SELECT user_id, expires_at FROM refresh_tokens WHERE token = $1`
+	err := u.db.QueryRow(query, token).Scan(&userId, &expiresAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, errors.New("refresh token not found")
+		}
+		return 0, err
+	}
+
+	if time.Now().After(expiresAt) {
+		_ = u.DeleteRefreshToken(token)
+		return 0, errors.New("refresh token expired")
+
+	}
+
+	return userId, nil
 }
 
 // GetByEmail implements UserRepository.

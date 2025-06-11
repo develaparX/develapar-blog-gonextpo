@@ -1,9 +1,11 @@
 package service
 
 import (
+	"crypto/rand"
 	"develapar-server/config"
 	"develapar-server/model"
 	"develapar-server/model/dto"
+	"encoding/base64"
 	"errors"
 	"time"
 
@@ -13,10 +15,21 @@ import (
 type JwtService interface {
 	GenerateToken(payload model.User) (dto.LoginResponseDto, error)
 	VerifyToken(tokenString string) (jwt.MapClaims, error)
-}
 
+	GenerateRefreshToken() (string, error)
+}
 type jwtService struct {
 	config config.SecurityConfig
+}
+
+// GenerateRefreshToken implements JwtService.
+func (j *jwtService) GenerateRefreshToken() (string, error) {
+		b := make([]byte, 32) // 256 bit
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 // GenerateToken implements JwtService.
@@ -32,11 +45,20 @@ func (j *jwtService) GenerateToken(payload model.User) (dto.LoginResponseDto, er
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(j.config.Key))
+	accessToken, err := token.SignedString([]byte(j.config.Key))
 	if err != nil {
 		return dto.LoginResponseDto{}, err
 	}
-	return dto.LoginResponseDto{Token: ss}, nil
+// 2. Refresh Token
+	refreshToken, err := j.GenerateRefreshToken()
+	if err != nil {
+		return dto.LoginResponseDto{}, err
+	}
+
+	return dto.LoginResponseDto{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 // VerifyToken implements JwtService.

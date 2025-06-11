@@ -12,6 +12,7 @@ type ArticleService interface {
 	CreateArticle(payload model.Article) (model.Article, error)
 	FindAll() ([]model.Article, error)
 	UpdateArticle(id int, req dto.UpdateArticleRequest) (model.Article, error)
+	FindById(id int) (model.Article, error)
 	FindBySlug(slug string) (model.Article, error)
 	FindByUserId(userId int) ([]model.Article, error)
 	FindByCategory(catId string) ([]model.Article, error)
@@ -20,6 +21,11 @@ type ArticleService interface {
 
 type articleService struct {
 	repo repository.ArticleRepository
+}
+
+// FindById implements ArticleService.
+func (a *articleService) FindById(id int) (model.Article, error) {
+	return a.repo.GetArticleById(id)
 }
 
 // FindByCategory implements ArticleService.

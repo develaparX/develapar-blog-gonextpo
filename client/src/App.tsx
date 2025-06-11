@@ -3,46 +3,37 @@ import Homepage from "./pages/Homepage";
 import ArticleDetailPage from "./pages/ArticleDetailPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import ArticleList from "./pages/articles/index";
 import MainLayout from "./components/layout/MainLayout";
-import { articlesLoader } from "./routes/articleRouter";
+import ArticleList from "./pages/ArticleList";
 
-const router = createBrowserRouter(
-  [
-    {
-      path: "/",
-      element: <MainLayout />,
-      children: [
-        {
-          index: true,
-          element: <Homepage />,
-        },
-        {
-          path: "articles",
-          element: <ArticleList />,
-          loader: articlesLoader,
-        },
-        {
-          path: "article/:slug",
-          element: <ArticleDetailPage />,
-        },
-      ],
-    },
-    {
-      path: "/login",
-      element: <LoginPage />,
-    },
-    {
-      path: "*",
-      element: <NotFoundPage />,
-    },
-  ],
+const router = createBrowserRouter([
   {
-    future: {
-      v7_partialHydration: true,
-    } as any,
-  }
-);
+    path: "/",
+    element: <MainLayout />,
+    children: [
+      {
+        index: true,
+        element: <Homepage />,
+      },
+      {
+        path: "articles",
+        element: <ArticleList />,
+      },
+      {
+        path: "article/:slug",
+        element: <ArticleDetailPage />,
+      },
+    ],
+  },
+  {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
+    path: "*",
+    element: <NotFoundPage />,
+  },
+]);
 
 function App() {
   return <RouterProvider router={router} />;

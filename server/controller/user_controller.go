@@ -84,6 +84,27 @@ func (u *UserController) findAllUserHandler(ctx *gin.Context) {
 	})
 }
 
+func RefreshTokenHandler(userService service.UserService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var body struct {
+			RefreshToken string `json:"refresh_token"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil || body.RefreshToken == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "refresh token required"})
+			return
+		}
+
+		tokenResp, err := userService.RefreshToken(body.RefreshToken)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, tokenResp)
+	}
+}
+
+
 func (u *UserController) Route() {
 	router := u.rg.Group("/users")
 	{
@@ -95,6 +116,7 @@ func (u *UserController) Route() {
 	{
 		r.POST("/login", u.loginHandler)
 		r.POST("/register", u.registerUser)
+		r.POST("/refresh", RefreshTokenHandler(u.service))
 	}
 
 }

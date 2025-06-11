@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"develapar-server/config"
 	"develapar-server/controller"
+	"develapar-server/middleware"
 	"develapar-server/repository"
 	"develapar-server/service"
 	"fmt"
@@ -23,6 +24,7 @@ type Server struct {
 	coS     service.CommentService
 	lS      service.LikeService
 	jS      service.JwtService
+	mD middleware.AuthMiddleware
 	engine  *gin.Engine
 	portApp string
 }
@@ -31,7 +33,7 @@ func (s *Server) initiateRoute() {
 	routerGroup := s.engine.Group("/api/v1")
 	controller.NewUserController(s.uS, routerGroup).Route()
 	controller.NewCategoryController(s.cS, routerGroup).Route()
-	controller.NewArticleController(s.aS, routerGroup).Route()
+	controller.NewArticleController(s.aS, s.mD, routerGroup).Route()
 	controller.NewBookmarkController(s.bS, routerGroup).Route()
 	controller.NewTagController(s.tS, routerGroup).Route()
 	controller.NewArticleTagController(s.atS, routerGroup).Route()
@@ -100,6 +102,8 @@ func NewServer() *Server {
 	commentService := service.NewCommentService(commentRepo)
 	likeService := service.NewLikeService(likeRepo)
 
+	authMiddleware := middleware.NewAuthMiddleware(jwtService)
+
 	
 	return &Server{
 		cS:      categoryService,
@@ -111,6 +115,7 @@ func NewServer() *Server {
 		atS:     articleTagService,
 		coS:     commentService,
 		lS:      likeService,
+		mD: authMiddleware,
 		portApp: portApp,
 		engine:  engine,
 	}

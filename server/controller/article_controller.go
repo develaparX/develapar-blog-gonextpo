@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"develapar-server/middleware"
 	"develapar-server/model"
 	"develapar-server/model/dto"
 	"develapar-server/service"
@@ -12,10 +13,24 @@ import (
 
 type ArticleController struct {
 	service service.ArticleService
+	md middleware.AuthMiddleware
 	rg      *gin.RouterGroup
 }
 
 func (c *ArticleController) CreateArticleHandler(ctx *gin.Context) {
+	userIdRaw, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+
+	userIdFloat, ok := userIdRaw.(float64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+	userId := int(userIdFloat)
+
 	var payload model.Article
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -24,16 +39,18 @@ func (c *ArticleController) CreateArticleHandler(ctx *gin.Context) {
 		return
 	}
 
+	payload.User.Id = userId // assign author ID from token
+
 	data, err := c.service.CreateArticle(payload)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to create category: " + err.Error(),
+			"message": "Failed to create article: " + err.Error(),
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Create New Category",
+		"message": "Success create article",
 		"data":    data,
 	})
 }
@@ -54,6 +71,20 @@ func (c *ArticleController) GetAllArticleHandler(ctx *gin.Context) {
 }
 
 func (c *ArticleController) UpdateArticleHandler(ctx *gin.Context) {
+	// Ambil user ID dari JWT context
+	userIdRaw, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	userIdFloat, ok := userIdRaw.(float64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+	userId := int(userIdFloat)
+
+	// Ambil ID artikel dari URL param
 	idStr := ctx.Param("article_id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -61,13 +92,26 @@ func (c *ArticleController) UpdateArticleHandler(ctx *gin.Context) {
 		return
 	}
 
+	// Cek apakah user adalah pemilik artikel
+	article, err := c.service.FindById(id)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "Article not found"})
+		return
+	}
+	if article.User.Id != userId {
+		ctx.JSON(http.StatusForbidden, gin.H{"message": "You do not own this article"})
+		return
+	}
+
+	// Bind data dari payload
 	var req dto.UpdateArticleRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	article, err := c.service.UpdateArticle(id, req)
+	// Update artikel
+	updatedArticle, err := c.service.UpdateArticle(id, req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -75,9 +119,10 @@ func (c *ArticleController) UpdateArticleHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Article updated successfully",
-		"data":    article,
+		"data":    updatedArticle,
 	})
 }
+
 
 func (c *ArticleController) GetBySlugHandler(ctx *gin.Context) {
 	slug := ctx.Param("slug")
@@ -129,40 +174,74 @@ func (ac *ArticleController) GetByCategory(ctx *gin.Context) {
 }
 
 func (ac *ArticleController) DeleteArticleHandler(ctx *gin.Context) {
-	Id := ctx.Param("article_id")
-	arcId, err := strconv.Atoi(Id)
+	// Ambil user ID dari JWT context
+	userIdRaw, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	userIdFloat, ok := userIdRaw.(float64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+	userId := int(userIdFloat)
+
+	// Ambil ID artikel dari param
+	idStr := ctx.Param("article_id")
+	articleId, err := strconv.Atoi(idStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
 		return
 	}
 
-	erro := ac.service.DeleteArticle(arcId)
-	if erro != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+	// Cek ownership
+	article, err := ac.service.FindById(articleId)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "Article not found"})
 		return
 	}
+	if article.User.Id != userId {
+		ctx.JSON(http.StatusForbidden, gin.H{"message": "You do not own this article"})
+		return
+	}
+
+	// Delete article
+	err = ac.service.DeleteArticle(articleId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete article"})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Delete Article",
+		"message": "Success delete article",
 	})
-
 }
 
-func (c *ArticleController) Route() {
 
+func (c *ArticleController) Route() {
 	router := c.rg.Group("/article")
 
+	// Public routes
 	router.GET("/", c.GetAllArticleHandler)
-	router.POST("/", c.CreateArticleHandler)
-	router.PUT("/:article_id", c.UpdateArticleHandler)
 	router.GET("/:slug", c.GetBySlugHandler)
 	router.GET("/u/:user_id", c.GetByUserIdHandler)
 	router.GET("/c/:cat_name", c.GetByCategory)
-	router.DELETE("/:article_id", c.DeleteArticleHandler)
+
+	// Protected routes
+	routerAuth := router.Group("/")
+
+	routerAuth.Use(c.md.CheckToken()) // hanya butuh login
+	routerAuth.POST("/", c.CreateArticleHandler)
+	routerAuth.PUT("/:article_id", c.UpdateArticleHandler)
+	routerAuth.DELETE("/:article_id", c.DeleteArticleHandler)
 }
 
-func NewArticleController(aS service.ArticleService, rg *gin.RouterGroup) *ArticleController {
+
+func NewArticleController(aS service.ArticleService, md middleware.AuthMiddleware, rg *gin.RouterGroup) *ArticleController {
 	return &ArticleController{
 		service: aS,
+		md:      md,
 		rg:      rg,
 	}
 }

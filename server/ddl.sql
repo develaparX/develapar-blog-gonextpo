@@ -71,3 +71,11 @@ CREATE TABLE bookmarks (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (article_id, user_id)
 );
+
+CREATE TABLE refresh_tokens (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
