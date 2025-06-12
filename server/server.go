@@ -24,7 +24,7 @@ type Server struct {
 	coS     service.CommentService
 	lS      service.LikeService
 	jS      service.JwtService
-	mD middleware.AuthMiddleware
+	mD      middleware.AuthMiddleware
 	engine  *gin.Engine
 	portApp string
 }
@@ -32,13 +32,13 @@ type Server struct {
 func (s *Server) initiateRoute() {
 	routerGroup := s.engine.Group("/api/v1")
 	controller.NewUserController(s.uS, routerGroup).Route()
-	controller.NewCategoryController(s.cS, routerGroup).Route()
+	controller.NewCategoryController(s.cS, routerGroup, s.mD).Route()
 	controller.NewArticleController(s.aS, s.mD, routerGroup).Route()
-	controller.NewBookmarkController(s.bS, routerGroup).Route()
-	controller.NewTagController(s.tS, routerGroup).Route()
-	controller.NewArticleTagController(s.atS, routerGroup).Route()
-	controller.NewCommentController(s.coS, routerGroup).Route()
-	controller.NewLikeController(s.lS, routerGroup).Route()
+	controller.NewBookmarkController(s.bS, routerGroup, s.mD).Route()
+	controller.NewTagController(s.tS, routerGroup, s.mD).Route()
+	controller.NewArticleTagController(s.atS, routerGroup, s.mD).Route()
+	controller.NewCommentController(s.coS, routerGroup, s.mD).Route()
+	controller.NewLikeController(s.lS, routerGroup, s.mD).Route()
 }
 
 func (s *Server) Start() {
@@ -48,20 +48,20 @@ func (s *Server) Start() {
 
 // CORSMiddleware adalah middleware yang akan menangani CORS
 func CORSMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        fmt.Println("CORS Middleware hit:", c.Request.Method, c.Request.URL.Path)
-        c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-        c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-        c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-        c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	return func(c *gin.Context) {
+		fmt.Println("CORS Middleware hit:", c.Request.Method, c.Request.URL.Path)
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
-        if c.Request.Method == "OPTIONS" {
-            c.AbortWithStatus(http.StatusNoContent)
-            return
-        }
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
 
-        c.Next()
-    }
+		c.Next()
+	}
 }
 
 func NewServer() *Server {
@@ -77,7 +77,7 @@ func NewServer() *Server {
 	}
 
 	engine := gin.Default()
-	
+
 	// PENTING: Pastikan middleware CORS dipasang sebelum router
 	engine.Use(CORSMiddleware())
 
@@ -104,7 +104,6 @@ func NewServer() *Server {
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 
-	
 	return &Server{
 		cS:      categoryService,
 		uS:      userService,
@@ -115,7 +114,7 @@ func NewServer() *Server {
 		atS:     articleTagService,
 		coS:     commentService,
 		lS:      likeService,
-		mD: authMiddleware,
+		mD:      authMiddleware,
 		portApp: portApp,
 		engine:  engine,
 	}

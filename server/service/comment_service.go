@@ -4,28 +4,49 @@ import (
 	"develapar-server/model"
 	"develapar-server/model/dto"
 	"develapar-server/repository"
+	"errors"
 )
 
 type CommentService interface {
 	CreateComment(payload model.Comment) (model.Comment, error)
 	FindCommentByArticleId(articleId int) ([]model.Comment, error)
 	FindCommentByUserId(userId int) ([]dto.CommentResponse, error)
-	EditComment(commentId int, content string) error
-	DeleteComment(commentId int) error
+	EditComment(commentId int, content string, userId int) error
+	DeleteComment(commentId int, userId int) error
 }
+
+var ErrUnauthorized = errors.New("unauthorized")
 
 type commentService struct {
 	repo repository.CommentRepository
 }
 
 // DeleteComment implements CommentService.
-func (c *commentService) DeleteComment(commentId int) error {
+func (c *commentService) DeleteComment(commentId int, userId int) error {
+	comment, err := c.repo.GetCommentById(commentId)
+	if err != nil {
+		return err
+	}
+
+	if comment.User.Id != userId {
+		return ErrUnauthorized
+	}
+
 	return c.repo.DeleteComment(commentId)
 }
 
 // EditComment implements CommentService.
-func (c *commentService) EditComment(commentId int, content string) error {
-	return c.repo.UpdateComment(commentId, content)
+func (c *commentService) EditComment(commentId int, content string, userId int) error {
+	comment, err := c.repo.GetCommentById(commentId)
+	if err != nil {
+		return err
+	}
+
+	if comment.User.Id != userId {
+		return ErrUnauthorized
+	}
+
+	return c.repo.UpdateComment(commentId, content, userId)
 }
 
 // CreateComment implements CommentService.

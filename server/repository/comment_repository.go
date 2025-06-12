@@ -11,12 +11,26 @@ type CommentRepository interface {
 	CreateComment(payload model.Comment) (model.Comment, error)
 	GetCommentByArticleId(articleId int) ([]model.Comment, error)
 	GetCommentByUserId(userId int) ([]dto.CommentResponse, error)
-	UpdateComment(commentId int, content string) error
+	GetCommentById(commentId int) (model.Comment, error)
+	UpdateComment(commentId int, content string, userId int) error
 	DeleteComment(commentId int) error
 }
 
 type commentRepository struct {
 	db *sql.DB
+}
+
+// GetCommentById implements CommentRepository.
+func (c *commentRepository) GetCommentById(commentId int) (model.Comment, error) {
+	var comment model.Comment
+	query := `SELECT id, article_id, user_id, content, created_at FROM comments WHERE id = $1`
+
+	err := c.db.QueryRow(query, commentId).Scan(&comment.Id, &comment.Article.Id, &comment.User.Id, &comment.Content, &comment.CreatedAt)
+	if err != nil {
+		return model.Comment{}, err
+	}
+
+	return comment, nil
 }
 
 // DeleteComment implements CommentRepository.
@@ -27,9 +41,9 @@ func (c *commentRepository) DeleteComment(commentId int) error {
 }
 
 // UpdateComment implements CommentRepository.
-func (c *commentRepository) UpdateComment(commentId int, content string) error {
-	query := `UPDATE comments SET content = $1, updated_at = NOW() WHERE id = $2`
-	_, err := c.db.Exec(query, content, commentId)
+func (c *commentRepository) UpdateComment(commentId int, content string, userId int) error {
+	query := `UPDATE comments SET content = $1, updated_at = NOW() WHERE id = $2 AND user_id=$3`
+	_, err := c.db.Exec(query, content, commentId, userId)
 	return err
 }
 

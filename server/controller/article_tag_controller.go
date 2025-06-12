@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"develapar-server/middleware"
 	"develapar-server/model/dto"
 	"develapar-server/service"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 type ArticleTagController struct {
 	service service.ArticleTagService
 	rg      *gin.RouterGroup
+	md      middleware.AuthMiddleware
 }
 
 type AssignTagRequest struct {
@@ -109,13 +111,16 @@ func (c *ArticleTagController) RemoveTagFromArticleHandler(ctx *gin.Context) {
 
 func (at *ArticleTagController) Route() {
 	router := at.rg.Group("/article-to-tag")
-	router.POST("/", at.AssignTagToArticleByNameHandler)
 	router.GET("/tags/:article_id", at.GetTagsByArticleIDHandler)
 	router.GET("/article/:tag_id", at.GetArticlesByTagIDHandler)
-	router.DELETE("/articles/:article_id/tags/:tag_id", at.RemoveTagFromArticleHandler)
+
+	routerAuth := router.Group("/")
+	routerAuth.Use(at.md.CheckToken())
+	routerAuth.POST("/", at.AssignTagToArticleByNameHandler)
+	routerAuth.DELETE("/articles/:article_id/tags/:tag_id", at.RemoveTagFromArticleHandler)
 
 }
 
-func NewArticleTagController(s service.ArticleTagService, rg *gin.RouterGroup) *ArticleTagController {
-	return &ArticleTagController{service: s, rg: rg}
+func NewArticleTagController(s service.ArticleTagService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *ArticleTagController {
+	return &ArticleTagController{service: s, rg: rg, md: md}
 }

@@ -5,6 +5,7 @@ import (
 	"develapar-server/model/dto"
 	"develapar-server/service"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,22 +18,32 @@ type UserController struct {
 func (u *UserController) loginHandler(ctx *gin.Context) {
 	var payload dto.LoginDto
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	response, err := u.service.Login(payload)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(
-		http.StatusOK, gin.H{
-			"message": "Success Login",
-			"data":    response,
-		},
+	// Set HttpOnly cookie untuk refresh token
+	ctx.SetCookie(
+		"refreshToken",
+		response.RefreshToken,
+		60*60*24*7, // 7 hari
+		"/",
+		"localhost", // ganti ke domain di production
+		false,       // secure: true jika HTTPS
+		true,        // httpOnly
 	)
+
+	// Jangan kirim refresh token ke frontend
+	ctx.JSON(http.StatusOK, gin.H{
+		"message":     "Success Login",
+		"accessToken": response.AccessToken,
+	})
 }
 
 func (u *UserController) registerUser(ctx *gin.Context) {
@@ -86,23 +97,31 @@ func (u *UserController) findAllUserHandler(ctx *gin.Context) {
 
 func RefreshTokenHandler(userService service.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var body struct {
-			RefreshToken string `json:"refresh_token"`
-		}
-		if err := c.ShouldBindJSON(&body); err != nil || body.RefreshToken == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "refresh token required"})
+		// Ambil dari cookie, bukan dari JSON body
+		cookie, err := c.Cookie("refreshToken")
+		if err != nil || cookie == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "refresh token not found in cookies"})
 			return
 		}
 
-		tokenResp, err := userService.RefreshToken(body.RefreshToken)
+		// Proses refresh
+		tokenResp, err := userService.RefreshToken(cookie)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, tokenResp)
+		// Set ulang refreshToken ke cookie (opsional: rotate token)
+		refreshExpiry := time.Now().Add(7 * 24 * time.Hour)
+		c.SetCookie("refreshToken", tokenResp.RefreshToken, int(refreshExpiry.Sub(time.Now()).Seconds()), "/", "", true, true)
+
+		// Return hanya access token ke frontend (refresh tetap di cookie)
+		c.JSON(http.StatusOK, gin.H{
+			"access_token": tokenResp.AccessToken,
+		})
 	}
 }
+
 
 
 func (u *UserController) Route() {

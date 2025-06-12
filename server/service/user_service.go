@@ -6,6 +6,7 @@ import (
 	"develapar-server/repository"
 	"develapar-server/utils"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 )
@@ -28,11 +29,11 @@ type userService struct {
 func (u *userService) Login(payload dto.LoginDto) (dto.LoginResponseDto, error) {
 	user, err := u.repo.GetByEmail(payload.Identifier)
 	if err != nil {
-		return dto.LoginResponseDto{}, fmt.Errorf("invalid email credentials")
+		return dto.LoginResponseDto{}, fmt.Errorf("invalid credentials")
 	}
 
 	if err := utils.ComparePasswordHash(user.Password, payload.Password); err != nil {
-		return dto.LoginResponseDto{}, fmt.Errorf("invalid password credentials")
+		return dto.LoginResponseDto{}, fmt.Errorf("invalid credentials")
 	}
 
 	user.Password = "-"
@@ -42,9 +43,10 @@ func (u *userService) Login(payload dto.LoginDto) (dto.LoginResponseDto, error) 
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour) // misalnya refresh token 7 hari
-err = u.repo.SaveRefreshToken(user.Id, token.RefreshToken, expiresAt)
+		err = u.repo.SaveRefreshToken(user.Id, token.RefreshToken, expiresAt)
 if err != nil {
-	return dto.LoginResponseDto{}, fmt.Errorf("failed to save refresh token")
+log.Printf("[Login] Failed saving refresh token: %v", err)
+	return dto.LoginResponseDto{}, fmt.Errorf("internal server error")
 }
 
 return token, nil

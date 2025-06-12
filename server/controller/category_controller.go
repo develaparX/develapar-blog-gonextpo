@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"develapar-server/middleware"
 	"develapar-server/model"
 	"develapar-server/model/dto"
 	"develapar-server/service"
@@ -13,6 +14,7 @@ import (
 type CategoryController struct {
 	service service.CategoryService
 	rg      *gin.RouterGroup
+	md      middleware.AuthMiddleware
 }
 
 func (c *CategoryController) CreateCategoryHandler(ctx *gin.Context) {
@@ -102,14 +104,17 @@ func (c *CategoryController) DeleteCategoryHandler(ctx *gin.Context) {
 func (c *CategoryController) Route() {
 	router := c.rg.Group("/category")
 	router.GET("/", c.GetAllCategoryHandler)
-	router.POST("/", c.CreateCategoryHandler)
-	router.PUT("/:cat_id", c.UpdateCategoryHandler)
-	router.DELETE("/:cat_id", c.DeleteCategoryHandler)
+
+	routerAuth := router.Group("/", c.md.CheckToken("admin"))
+	routerAuth.POST("/", c.CreateCategoryHandler)
+	routerAuth.PUT("/:cat_id", c.UpdateCategoryHandler)
+	routerAuth.DELETE("/:cat_id", c.DeleteCategoryHandler)
 }
 
-func NewCategoryController(cS service.CategoryService, rg *gin.RouterGroup) *CategoryController {
+func NewCategoryController(cS service.CategoryService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *CategoryController {
 	return &CategoryController{
 		service: cS,
 		rg:      rg,
+		md:      md,
 	}
 }

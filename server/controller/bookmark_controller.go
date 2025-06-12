@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"develapar-server/middleware"
 	"develapar-server/model"
 	"develapar-server/service"
 	"net/http"
@@ -12,10 +13,25 @@ import (
 type BookmarkController struct {
 	service service.BookmarkService
 	rg      *gin.RouterGroup
+	md      middleware.AuthMiddleware
 }
 
 func (b *BookmarkController) CreateBookmarkHandler(ctx *gin.Context) {
 	var payload model.Bookmark
+	userIdRaw, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	userIdFloat, ok := userIdRaw.(float64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+	userId := int(userIdFloat)
+
+	payload.User.Id = userId
+
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid payload: " + err.Error(),
@@ -54,11 +70,17 @@ func (b *BookmarkController) GetBookmarkByUserId(ctx *gin.Context) {
 }
 
 func (b *BookmarkController) DeleteBookmarkHandler(ctx *gin.Context) {
-	userId, exists := ctx.Get("user_id")
+	userIdRaw, exists := ctx.Get("userId")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
 	}
+	userIdFloat, ok := userIdRaw.(float64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+	userId := int(userIdFloat)
 
 	articleIdParam := ctx.Param("article_id")
 	articleId, err := strconv.Atoi(articleIdParam)
@@ -67,7 +89,7 @@ func (b *BookmarkController) DeleteBookmarkHandler(ctx *gin.Context) {
 		return
 	}
 
-	err = b.service.DeleteBookmark(userId.(int), articleId)
+	err = b.service.DeleteBookmark(userId, articleId)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -79,11 +101,17 @@ func (b *BookmarkController) DeleteBookmarkHandler(ctx *gin.Context) {
 }
 
 func (c *BookmarkController) CheckBookmarkHandler(ctx *gin.Context) {
-	userId, err := strconv.Atoi(ctx.Query("user_id"))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+	userIdRaw, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
 	}
+	userIdFloat, ok := userIdRaw.(float64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+	userId := int(userIdFloat)
 
 	articleId, err := strconv.Atoi(ctx.Query("article_id"))
 	if err != nil {
@@ -103,14 +131,18 @@ func (c *BookmarkController) CheckBookmarkHandler(ctx *gin.Context) {
 func (c *BookmarkController) Route() {
 	router := c.rg.Group("/bookmark")
 	router.GET("/:user_id", c.GetBookmarkByUserId)
-	router.POST("/", c.CreateBookmarkHandler)
-	router.DELETE("/", c.DeleteBookmarkHandler)
-	router.GET("/check", c.CheckBookmarkHandler)
+
+	routerAuth := router.Group("/")
+	routerAuth.Use(c.md.CheckToken())
+	routerAuth.POST("/", c.CreateBookmarkHandler)
+	routerAuth.DELETE("/", c.DeleteBookmarkHandler)
+	routerAuth.GET("/check", c.CheckBookmarkHandler)
 }
 
-func NewBookmarkController(bS service.BookmarkService, rg *gin.RouterGroup) *BookmarkController {
+func NewBookmarkController(bS service.BookmarkService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *BookmarkController {
 	return &BookmarkController{
 		service: bS,
 		rg:      rg,
+		md:      md,
 	}
 }

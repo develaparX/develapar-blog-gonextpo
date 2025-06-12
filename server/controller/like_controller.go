@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"develapar-server/middleware"
 	"develapar-server/model"
 	"develapar-server/service"
 	"net/http"
@@ -12,10 +13,25 @@ import (
 type LikeController struct {
 	service service.LikeService
 	rg      *gin.RouterGroup
+	md      middleware.AuthMiddleware
 }
 
 func (l *LikeController) AddLikeHandler(ctx *gin.Context) {
 	var payload model.Likes
+
+	userIdRaw, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	userIdFloat, ok := userIdRaw.(float64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+	userId := int(userIdFloat)
+
+	payload.User.Id = userId
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -82,6 +98,20 @@ func (l *LikeController) GetLikeByUserIdHandler(ctx *gin.Context) {
 func (l *LikeController) DeleteLikeHandler(ctx *gin.Context) {
 	var payload model.Likes
 
+	userIdRaw, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+	userIdFloat, ok := userIdRaw.(float64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+	userId := int(userIdFloat)
+
+	payload.User.Id = userId
+
 	err := l.service.DeleteLike(payload.User.Id, payload.Article.Id)
 
 	if err != nil {
@@ -95,11 +125,17 @@ func (l *LikeController) DeleteLikeHandler(ctx *gin.Context) {
 }
 
 func (c *LikeController) CheckLikeHandler(ctx *gin.Context) {
-	userId, err := strconv.Atoi(ctx.Query("user_id"))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+	userIdRaw, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
 		return
 	}
+	userIdFloat, ok := userIdRaw.(float64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+	userId := int(userIdFloat)
 
 	articleId, err := strconv.Atoi(ctx.Query("article_id"))
 	if err != nil {
@@ -118,16 +154,19 @@ func (c *LikeController) CheckLikeHandler(ctx *gin.Context) {
 
 func (l *LikeController) Route() {
 	router := l.rg.Group("/likes")
-	router.POST("/", l.AddLikeHandler)
 	router.GET("/article/:article_id", l.GetLikeByArticleIdHandler)
 	router.GET("/user/:user_id", l.GetLikeByUserIdHandler)
-	router.DELETE("/", l.DeleteLikeHandler)
-	router.GET("/check", l.CheckLikeHandler)
+
+	routerAuth := router.Group("/", l.md.CheckToken())
+	routerAuth.POST("/", l.AddLikeHandler)
+	routerAuth.DELETE("/", l.DeleteLikeHandler)
+	routerAuth.GET("/check", l.CheckLikeHandler)
 }
 
-func NewLikeController(lS service.LikeService, rg *gin.RouterGroup) *LikeController {
+func NewLikeController(lS service.LikeService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *LikeController {
 	return &LikeController{
 		service: lS,
 		rg:      rg,
+		md:      md,
 	}
 }

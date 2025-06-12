@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"develapar-server/middleware"
 	"develapar-server/model"
 	"develapar-server/service"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 type TagController struct {
 	service service.TagService
 	rg      *gin.RouterGroup
+	md      middleware.AuthMiddleware
 }
 
 func (t *TagController) CreateTagHandler(ctx *gin.Context) {
@@ -75,12 +77,15 @@ func (t *TagController) Route() {
 	router := t.rg.Group("/tags")
 	router.GET("/:tags_id", t.GetByTagIdHandler)
 	router.GET("/", t.GetAllTagHandler)
-	router.POST("/", t.CreateTagHandler)
+
+	routerAuth := router.Group("/", t.md.CheckToken())
+	routerAuth.POST("/", t.CreateTagHandler)
 }
 
-func NewTagController(tS service.TagService, rg *gin.RouterGroup) *TagController {
+func NewTagController(tS service.TagService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *TagController {
 	return &TagController{
 		service: tS,
 		rg:      rg,
+		md:      md,
 	}
 }
