@@ -26,10 +26,10 @@ type userRepository struct {
 
 func (r *userRepository) FindRefreshToken(token string) (model.RefreshToken, error) {
 	var rt model.RefreshToken
-	query := `SELECT id, user_id, token, expires_at, created_at, updated_at FROM refresh_tokens WHERE token = $1`
+	query := `SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens WHERE token = $1`
 	row := r.db.QueryRow(query, token)
 
-	err := row.Scan(&rt.ID, &rt.UserID, &rt.Token, &rt.ExpiresAt, &rt.CreatedAt, &rt.UpdatedAt)
+	err := row.Scan(&rt.ID, &rt.UserID, &rt.Token, &rt.ExpiresAt, &rt.CreatedAt)
 	if err != nil {
 		return model.RefreshToken{}, err
 	}
@@ -37,14 +37,11 @@ func (r *userRepository) FindRefreshToken(token string) (model.RefreshToken, err
 	return rt, nil
 }
 
-
 func (r *userRepository) UpdateRefreshToken(oldToken, newToken string, expiresAt time.Time) error {
-	query := `UPDATE refresh_tokens SET token = $1, expires_at = $2, updated_at = NOW() WHERE token = $3`
+	query := `UPDATE refresh_tokens SET token = $1, expires_at = $2 WHERE token = $3`
 	_, err := r.db.Exec(query, newToken, expiresAt, oldToken)
 	return err
 }
-
-
 
 // DeleteAllRefreshTOkensByUser implements UserRepository.
 func (u *userRepository) DeleteAllRefreshTOkensByUser(userId int) error {

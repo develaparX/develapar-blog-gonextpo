@@ -7,6 +7,7 @@ import (
 	"develapar-server/utils"
 	"fmt"
 	"log"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -17,7 +18,6 @@ type UserService interface {
 	FindAllUser() ([]model.User, error)
 	Login(payload dto.LoginDto) (dto.LoginResponseDto, error)
 	RefreshToken(refreshToken string) (dto.LoginResponseDto, error)
-
 }
 
 type userService struct {
@@ -43,13 +43,13 @@ func (u *userService) Login(payload dto.LoginDto) (dto.LoginResponseDto, error) 
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour) // misalnya refresh token 7 hari
-		err = u.repo.SaveRefreshToken(user.Id, token.RefreshToken, expiresAt)
-if err != nil {
-log.Printf("[Login] Failed saving refresh token: %v", err)
-	return dto.LoginResponseDto{}, fmt.Errorf("internal server error")
-}
+	err = u.repo.SaveRefreshToken(user.Id, token.RefreshToken, expiresAt)
+	if err != nil {
+		log.Printf("[Login] Failed saving refresh token: %v", err)
+		return dto.LoginResponseDto{}, fmt.Errorf("internal server error")
+	}
 
-return token, nil
+	return token, nil
 
 }
 
@@ -90,9 +90,16 @@ func (u *userService) CreateNewUser(payload model.User) (model.User, error) {
 
 func (u *userService) RefreshToken(refreshToken string) (dto.LoginResponseDto, error) {
 	// Cek refresh token di database
-	rt, err := u.repo.FindRefreshToken(refreshToken)
+	decodedToken, err := url.QueryUnescape(refreshToken)
+	if err != nil {
+		return dto.LoginResponseDto{}, fmt.Errorf("invalid refresh token format")
+	}
+	fmt.Println(refreshToken)
+	fmt.Println(decodedToken)
+	// Cek refresh token di database
+	rt, err := u.repo.FindRefreshToken(decodedToken)
 	if err != nil || rt.ExpiresAt.Before(time.Now()) {
-		return dto.LoginResponseDto{}, fmt.Errorf("invalid or expired refresh token")
+		return dto.LoginResponseDto{}, err
 	}
 
 	// Ambil user
@@ -116,7 +123,6 @@ func (u *userService) RefreshToken(refreshToken string) (dto.LoginResponseDto, e
 
 	return tokenResp, nil
 }
-
 
 func NewUserservice(repository repository.UserRepository, jS JwtService) UserService {
 	return &userService{repo: repository, jwtService: jS}
