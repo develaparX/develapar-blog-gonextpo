@@ -1,12 +1,17 @@
 import { Outlet, Link } from "react-router-dom";
+import logo from "../../assets/logo.png";
 
 const MainLayout = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Floating Navbar */}
+      <div className="fixed top-6 left-1/8 -translate-x-1/2 z-5 shadow-lg">
+        <img src={logo} alt="" width={150} className=" rounded-xl " />
+      </div>
+
       <header className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
-        <nav className="backdrop-blur-md bg-white/80 dark:bg-black/10 shadow-lg px-6 py-2 rounded-full flex gap-6 items-center text-sm font-medium border border-gray-200 dark:border-gray-300">
-          <Link to="/" className="hover:text-blue-600 transition">
+        <nav className="backdrop-blur-md bg-white/50 dark:bg-black/10 shadow-lg px-6 py-2 rounded-full flex gap-6 items-center text-xl font-normal border border-gray-100 dark:border-gray-300">
+          <Link to="/" className="hover:text-blue-600  transition">
             Home
           </Link>
           <Link to="/about" className="hover:text-blue-600 transition">
@@ -20,6 +25,17 @@ const MainLayout = () => {
           </Link>
         </nav>
       </header>
+
+      <div className="fixed top-6 right-1/25 -translate-x-1/2 z-5">
+        <nav className="backdrop-blur-md bg-white/50 dark:bg-black/10 shadow-lg px-6 py-2 rounded-full flex gap-6 items-center text-xl font-normal border border-gray-100 dark:border-gray-300">
+          <Link to="/" className="hover:text-blue-600  transition">
+            login
+          </Link>
+          <Link to="/about" className="hover:text-blue-600 transition">
+            logout
+          </Link>
+        </nav>
+      </div>
 
       {/* Main content */}
       <main className="flex-1 pt-24">

@@ -5,6 +5,9 @@ import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import MainLayout from "./components/layout/MainLayout";
 import ArticleList from "./pages/ArticleList";
+import Dashboard from "./pages/dashboard/Dashboard";
+import AdminLayout from "./components/layout/AdminLayout";
+import AddArticle from "./pages/AddArticle";
 
 const router = createBrowserRouter([
   {
@@ -22,6 +25,20 @@ const router = createBrowserRouter([
       {
         path: "articledetail",
         element: <ArticleDetailPage />,
+      },
+    ],
+  },
+  {
+    path: "/dashboard",
+    element: <AdminLayout />,
+    children: [
+      {
+        index: true,
+        element: <Dashboard />,
+      },
+      {
+        path: "add-article",
+        element: <AddArticle />,
       },
     ],
   },
