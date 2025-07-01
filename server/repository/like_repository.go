@@ -37,7 +37,7 @@ func (l *likeRepository) CreateLike(payload model.Likes) (model.Likes, error) {
 	)
 
 	if err != nil {
-		return model.Likes{}, nil
+		return model.Likes{}, err
 	}
 
 	return like, nil
@@ -59,7 +59,7 @@ func (l *likeRepository) GetLikeByArticleId(articleId int) ([]model.Likes, error
 	SELECT
 		l.id, l.article_id, l.user_id, l.created_at,
 		u.id, u.name, u.email
-	FROM like l
+	FROM likes l
 	JOIN users u ON l.user_id = u.id
 	WHERE l.article_id = $1
 
@@ -76,7 +76,7 @@ func (l *likeRepository) GetLikeByArticleId(articleId int) ([]model.Likes, error
 		var user model.User
 
 		err := rows.Scan(
-			&like.Id, &like.Article.Id, &like.CreatedAt, &user.Id, &user.Name, &user.Email,
+			&like.Id, &like.Article.Id, &like.User.Id, &like.CreatedAt, &user.Id, &user.Name, &user.Email,
 		)
 
 		if err != nil {
@@ -104,7 +104,7 @@ func (l *likeRepository) GetLikeByUserId(userId int) ([]model.Likes, error) {
 	SELECT
 		l.id, l.article_id, l.user_id, l.created_at,
 		a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at
-	FROM like l
+	FROM likes l
 	JOIN articles a ON l.article_id = a.id
 	WHERE l.user_id = $1
 
@@ -121,7 +121,7 @@ func (l *likeRepository) GetLikeByUserId(userId int) ([]model.Likes, error) {
 		var article model.Article
 
 		err := rows.Scan(
-			&like.Id, &like.User.Id, &like.CreatedAt, &article.Id, &article.Title, &article.Slug, &article.Content, &article.Views, &article.CreatedAt, &article.UpdatedAt,
+			&like.Id, &like.Article.Id, &like.User.Id, &like.CreatedAt, &article.Id, &article.Title, &article.Slug, &article.Content, &article.Views, &article.CreatedAt, &article.UpdatedAt,
 		)
 
 		if err != nil {

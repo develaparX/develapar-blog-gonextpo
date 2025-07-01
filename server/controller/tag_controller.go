@@ -16,6 +16,18 @@ type TagController struct {
 	md      middleware.AuthMiddleware
 }
 
+// @Summary Create a new tag
+// @Description Create a new tag with a given name
+// @Tags Tags
+// @Accept json
+// @Produce json
+// @Param payload body model.Tags true "Tag creation details"
+// @Success 200 {object} object{message=string,data=model.Tags} "Tag successfully created"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /tags [post]
 func (t *TagController) CreateTagHandler(ctx *gin.Context) {
 	var payload model.Tags
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -39,6 +51,13 @@ func (t *TagController) CreateTagHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Get all tags
+// @Description Get a list of all tags
+// @Tags Tags
+// @Produce json
+// @Success 200 {object} object{message=string,data=[]model.Tags} "List of tags"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Router /tags [get]
 func (t *TagController) GetAllTagHandler(ctx *gin.Context) {
 	data, err := t.service.FindAll()
 	if err != nil {
@@ -54,6 +73,15 @@ func (t *TagController) GetAllTagHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Get tag by ID
+// @Description Get tag details by its ID
+// @Tags Tags
+// @Produce json
+// @Param tags_id path int true "ID of the tag to retrieve"
+// @Success 200 {object} object{message=string,data=model.Tags} "Tag details"
+// @Failure 400 {object} object{error=string} "Invalid tag ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /tags/{tags_id} [get]
 func (t *TagController) GetByTagIdHandler(ctx *gin.Context) {
 	tagId, err := strconv.Atoi(ctx.Param("tags_id"))
 	if err != nil {

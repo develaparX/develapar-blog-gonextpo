@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Server struct {
@@ -39,6 +41,9 @@ func (s *Server) initiateRoute() {
 	controller.NewArticleTagController(s.atS, routerGroup, s.mD).Route()
 	controller.NewCommentController(s.coS, routerGroup, s.mD).Route()
 	controller.NewLikeController(s.lS, routerGroup, s.mD).Route()
+
+	// Swagger UI
+	s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
 
 func (s *Server) Start() {

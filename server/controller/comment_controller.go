@@ -17,6 +17,18 @@ type CommentController struct {
 	md      middleware.AuthMiddleware
 }
 
+// @Summary Create a new comment
+// @Description Create a new comment on an article
+// @Tags Comments
+// @Accept json
+// @Produce json
+// @Param payload body model.Comment true "Comment creation details"
+// @Success 200 {object} object{message=string,data=model.Comment} "Comment successfully created"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /comments [post]
 func (c *CommentController) CreateCommentHandler(ctx *gin.Context) {
 	var payload model.Comment
 
@@ -55,6 +67,15 @@ func (c *CommentController) CreateCommentHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Get comments by article ID
+// @Description Get a list of comments for a specific article ID
+// @Tags Comments
+// @Produce json
+// @Param article_id path int true "ID of the article to retrieve comments for"
+// @Success 200 {object} object{message=string,data=[]model.Comment} "List of comments for the article"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /comment/article/c{article_id} [get]
 func (c *CommentController) FindCommentByArticleIdHandler(ctx *gin.Context) {
 	articleId, err := strconv.Atoi(ctx.Param("article_id"))
 	if err != nil {
@@ -74,6 +95,15 @@ func (c *CommentController) FindCommentByArticleIdHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Get comments by user ID
+// @Description Get a list of comments by a specific user ID
+// @Tags Comments
+// @Produce json
+// @Param user_id path int true "ID of the user whose comments to retrieve"
+// @Success 200 {object} object{message=string,data=[]dto.CommentResponse} "List of comments by the user"
+// @Failure 400 {object} object{error=string} "Invalid user ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /comment/user/{user_id} [get]
 func (c *CommentController) FindCommentByUserIdHandler(ctx *gin.Context) {
 	user_id, err := strconv.Atoi(ctx.Param("user_id"))
 	if err != nil {
@@ -93,6 +123,20 @@ func (c *CommentController) FindCommentByUserIdHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Update a comment
+// @Description Update an existing comment by ID
+// @Tags Comments
+// @Accept json
+// @Produce json
+// @Param id path int true "ID of the comment to update"
+// @Param payload body object{content=string} true "Comment update details"
+// @Success 200 {object} object{message=string} "Comment updated successfully"
+// @Failure 400 {object} object{error=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 403 {object} object{error=string} "Forbidden (user does not own the comment)"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /comment/{id} [put]
 func (c *CommentController) UpdateCommentHandler(ctx *gin.Context) {
 	userId := ctx.GetInt("userId")
 	commentId, _ := strconv.Atoi(ctx.Param("id"))
@@ -118,6 +162,17 @@ func (c *CommentController) UpdateCommentHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "success"})
 }
 
+// @Summary Delete a comment
+// @Description Delete a comment by ID
+// @Tags Comments
+// @Produce json
+// @Param id path int true "ID of the comment to delete"
+// @Success 200 {object} object{message=string} "Comment deleted successfully"
+// @Failure 400 {object} object{error=string} "Invalid comment ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /comment/{id} [delete]
 func (c *CommentController) DeleteCommentHandler(ctx *gin.Context) {
 	userId := ctx.GetInt("userId")
 

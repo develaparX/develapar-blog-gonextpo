@@ -5,7 +5,6 @@ import {
   Settings,
   BarChart3,
   FileText,
-  Menu,
   X,
   ChevronDown,
   ChevronRight,

@@ -16,6 +16,18 @@ type LikeController struct {
 	md      middleware.AuthMiddleware
 }
 
+// @Summary Add a like to an article
+// @Description Add a like to a specific article by the authenticated user
+// @Tags Likes
+// @Accept json
+// @Produce json
+// @Param payload body model.Likes true "Like creation details"
+// @Success 200 {object} object{message=string,data=model.Likes} "Like successfully added"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /likes [post]
 func (l *LikeController) AddLikeHandler(ctx *gin.Context) {
 	var payload model.Likes
 
@@ -55,6 +67,14 @@ func (l *LikeController) AddLikeHandler(ctx *gin.Context) {
 
 }
 
+// @Summary Get likes by article ID
+// @Description Get a list of likes for a specific article ID
+// @Tags Likes
+// @Produce json
+// @Param article_id path int true "ID of the article to retrieve likes for"
+// @Success 200 {object} object{message=string,data=[]model.Likes} "List of likes for the article"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /likes/article/{article_id} [get]
 func (l *LikeController) GetLikeByArticleIdHandler(ctx *gin.Context) {
 	articleID, err := strconv.Atoi(ctx.Param("article_id"))
 	if err != nil {
@@ -75,6 +95,15 @@ func (l *LikeController) GetLikeByArticleIdHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Get likes by user ID
+// @Description Get a list of likes by a specific user ID
+// @Tags Likes
+// @Produce json
+// @Param user_id path int true "ID of the user whose likes to retrieve"
+// @Success 200 {object} object{message=string,data=[]model.Likes} "List of likes by the user"
+// @Failure 400 {object} object{error=string} "Invalid user ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /likes/user/{user_id} [get]
 func (l *LikeController) GetLikeByUserIdHandler(ctx *gin.Context) {
 	userID, err := strconv.Atoi(ctx.Param("user_id"))
 	if err != nil {
@@ -95,6 +124,18 @@ func (l *LikeController) GetLikeByUserIdHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Remove a like from an article
+// @Description Remove a like from a specific article by the authenticated user
+// @Tags Likes
+// @Accept json
+// @Produce json
+// @Param payload body object{article_id=int} true "Article ID to unlike"
+// @Success 200 {object} object{message=string} "Like deleted successfully"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /likes [delete]
 func (l *LikeController) DeleteLikeHandler(ctx *gin.Context) {
 	var payload model.Likes
 
@@ -124,6 +165,17 @@ func (l *LikeController) DeleteLikeHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Check if an article is liked by the current user
+// @Description Check if a specific article is liked by the authenticated user
+// @Tags Likes
+// @Produce json
+// @Param article_id query int true "ID of the article to check"
+// @Success 200 {object} object{liked=bool} "Like status"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /likes/check [get]
 func (c *LikeController) CheckLikeHandler(ctx *gin.Context) {
 	userIdRaw, exists := ctx.Get("userId")
 	if !exists {

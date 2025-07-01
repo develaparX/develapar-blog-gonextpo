@@ -17,6 +17,17 @@ type CategoryController struct {
 	md      middleware.AuthMiddleware
 }
 
+// @Summary Create a new category
+// @Description Create a new category with a given name
+// @Tags Categories
+// @Accept json
+// @Produce json
+// @Param payload body model.Category true "Category creation details"
+// @Success 200 {object} object{message=string,data=model.Category} "Category successfully created"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /category [post]
 func (c *CategoryController) CreateCategoryHandler(ctx *gin.Context) {
 	var payload model.Category
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -40,6 +51,13 @@ func (c *CategoryController) CreateCategoryHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Get all categories
+// @Description Get a list of all categories
+// @Tags Categories
+// @Produce json
+// @Success 200 {object} object{message=string,data=[]model.Category} "List of categories"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Router /category [get]
 func (c *CategoryController) GetAllCategoryHandler(ctx *gin.Context) {
 	data, err := c.service.FindAll()
 	if err != nil {
@@ -55,6 +73,18 @@ func (c *CategoryController) GetAllCategoryHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Update a category
+// @Description Update an existing category by ID
+// @Tags Categories
+// @Accept json
+// @Produce json
+// @Param cat_id path int true "ID of the category to update"
+// @Param payload body dto.UpdateCategoryRequest true "Category update details"
+// @Success 200 {object} object{message=string,data=model.Category} "Category updated successfully"
+// @Failure 400 {object} object{error=string} "Invalid category ID or payload"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /category/{cat_id} [put]
 func (c *CategoryController) UpdateCategoryHandler(ctx *gin.Context) {
 	idCat := ctx.Param("cat_id")
 	id, err := strconv.Atoi(idCat)
@@ -81,6 +111,16 @@ func (c *CategoryController) UpdateCategoryHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Delete a category
+// @Description Delete a category by ID
+// @Tags Categories
+// @Produce json
+// @Param cat_id path int true "ID of the category to delete"
+// @Success 200 {object} object{message=string} "Category deleted successfully"
+// @Failure 400 {object} object{error=string} "Invalid category ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /category/{cat_id} [delete]
 func (c *CategoryController) DeleteCategoryHandler(ctx *gin.Context) {
 	Id := ctx.Param("cat_id")
 

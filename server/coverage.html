@@ -1,0 +1,3926 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>config: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">develapar-server/config/config.go (75.0%)</option>
+				
+				<option value="file1">develapar-server/controller/article_controller.go (23.0%)</option>
+				
+				<option value="file2">develapar-server/controller/article_tag_controller.go (0.0%)</option>
+				
+				<option value="file3">develapar-server/controller/bookmark_controller.go (0.0%)</option>
+				
+				<option value="file4">develapar-server/controller/category_controller.go (0.0%)</option>
+				
+				<option value="file5">develapar-server/controller/comment_controller.go (0.0%)</option>
+				
+				<option value="file6">develapar-server/controller/like_controller.go (0.0%)</option>
+				
+				<option value="file7">develapar-server/controller/tag_controller.go (0.0%)</option>
+				
+				<option value="file8">develapar-server/controller/user_controller.go (100.0%)</option>
+				
+				<option value="file9">develapar-server/main.go (0.0%)</option>
+				
+				<option value="file10">develapar-server/middleware/auth_middleware.go (90.0%)</option>
+				
+				<option value="file11">develapar-server/repository/article_repository.go (95.3%)</option>
+				
+				<option value="file12">develapar-server/repository/article_tags_repository.go (90.2%)</option>
+				
+				<option value="file13">develapar-server/repository/bookmark_repository.go (94.3%)</option>
+				
+				<option value="file14">develapar-server/repository/category_repository.go (94.3%)</option>
+				
+				<option value="file15">develapar-server/repository/comment_repository.go (92.5%)</option>
+				
+				<option value="file16">develapar-server/repository/like_repository.go (91.8%)</option>
+				
+				<option value="file17">develapar-server/repository/tag_repository.go (0.0%)</option>
+				
+				<option value="file18">develapar-server/repository/user_repository.go (0.0%)</option>
+				
+				<option value="file19">develapar-server/server.go (19.6%)</option>
+				
+				<option value="file20">develapar-server/service/article_service.go (0.0%)</option>
+				
+				<option value="file21">develapar-server/service/article_tag_service.go (0.0%)</option>
+				
+				<option value="file22">develapar-server/service/bookmark_service.go (0.0%)</option>
+				
+				<option value="file23">develapar-server/service/category_service.go (0.0%)</option>
+				
+				<option value="file24">develapar-server/service/comment_service.go (0.0%)</option>
+				
+				<option value="file25">develapar-server/service/jwt_service.go (0.0%)</option>
+				
+				<option value="file26">develapar-server/service/jwt_service_mock.go (0.0%)</option>
+				
+				<option value="file27">develapar-server/service/like_service.go (0.0%)</option>
+				
+				<option value="file28">develapar-server/service/tag_service.go (0.0%)</option>
+				
+				<option value="file29">develapar-server/service/user_service.go (0.0%)</option>
+				
+				<option value="file30">develapar-server/utils/password_hash.go (80.0%)</option>
+				
+				<option value="file31">develapar-server/utils/slug_generator.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package config
+
+import (
+        "errors"
+        "fmt"
+        "os"
+        "strconv"
+        "time"
+
+        "github.com/joho/godotenv"
+        _ "github.com/lib/pq"
+)
+
+type DbConfig struct {
+        Host     string
+        Port     string
+        Name     string
+        User     string
+        Password string
+        Driver   string
+}
+
+type AppConfig struct {
+        AppPort string
+}
+
+type SecurityConfig struct {
+        Key    string
+        Durasi time.Duration
+        Issues string
+}
+
+type Config struct {
+        DbConfig
+        AppConfig
+        SecurityConfig
+}
+
+func (c *Config) readConfig() error <span class="cov8" title="1">{
+        err := godotenv.Load()
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+        }</span>
+
+        <span class="cov8" title="1">lifeTime, err := strconv.Atoi(os.Getenv("JWT_LIFE_TIME"))
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+
+        }</span>
+
+        <span class="cov8" title="1">c.SecurityConfig = SecurityConfig{
+                Key:    os.Getenv("JWT_KEY"),
+                Durasi: time.Duration(lifeTime),
+                Issues: os.Getenv("JWT_ISSUER_NAME"),
+        }
+
+        c.DbConfig = DbConfig{
+                Host:     os.Getenv("DB_HOST"),
+                Port:     os.Getenv("DB_PORT"),
+                Name:     os.Getenv("DB_NAME"),
+                User:     os.Getenv("DB_USER"),
+                Password: os.Getenv("DB_PASSWORD"),
+                Driver:   os.Getenv("DB_DRIVER"),
+        }
+
+        c.AppConfig = AppConfig{
+                AppPort: os.Getenv("PORT_APP"),
+        }
+
+        if c.DbConfig.Host == "" || c.DbConfig.Port == "" || c.DbConfig.Name == "" || c.DbConfig.User == "" || c.DbConfig.Password == "" || c.DbConfig.Driver == "" || c.SecurityConfig.Key == "" || c.SecurityConfig.Durasi &lt; 0 || c.SecurityConfig.Issues == "" </span><span class="cov0" title="0">{
+                return errors.New("environtment is empty")
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+
+}
+
+func NewConfig() (*Config, error) <span class="cov8" title="1">{
+
+        config := &amp;Config{}
+        if err := config.readConfig(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return config, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package controller
+
+import (
+        "develapar-server/middleware"
+        "develapar-server/model"
+        "develapar-server/model/dto"
+        "develapar-server/service"
+        "net/http"
+        "strconv"
+
+        "github.com/gin-gonic/gin"
+)
+
+type ArticleController struct {
+        service service.ArticleService
+        md middleware.AuthMiddleware
+        rg      *gin.RouterGroup
+}
+
+// @Summary Create a new article
+// @Description Create a new blog article
+// @Tags Articles
+// @Accept json
+// @Produce json
+// @Param payload body model.Article true "Article creation details"
+// @Success 200 {object} object{message=string,data=model.Article} "Article successfully created"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /article [post]
+func (c *ArticleController) CreateArticleHandler(ctx *gin.Context) <span class="cov8" title="1">{
+        userIdRaw, exists := ctx.Get("userId")
+        if !exists </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                return
+        }</span>
+
+        <span class="cov8" title="1">userIdFloat, ok := userIdRaw.(float64)
+        if !ok </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+                return
+        }</span>
+        <span class="cov8" title="1">userId := int(userIdFloat)
+
+        var payload model.Article
+        if err := ctx.ShouldBindJSON(&amp;payload); err != nil </span><span class="cov8" title="1">{
+                ctx.JSON(http.StatusBadRequest, gin.H{
+                        "message": "Invalid payload: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov8" title="1">payload.User.Id = userId // assign author ID from token
+
+        data, err := c.service.CreateArticle(payload)
+        if err != nil </span><span class="cov8" title="1">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{
+                        "message": "Failed to create article: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov8" title="1">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success create article",
+                "data":    data,
+        })</span>
+}
+
+// @Summary Get all articles
+// @Description Get a list of all blog articles
+// @Tags Articles
+// @Produce json
+// @Success 200 {object} object{message=string,data=[]model.Article} "List of articles"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Router /article [get]
+func (c *ArticleController) GetAllArticleHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        data, err := c.service.FindAll()
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{
+                        "message": err},
+                )
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Create New User",
+                "data":    data,
+        })</span>
+}
+
+// @Summary Update an article
+// @Description Update an existing article by ID
+// @Tags Articles
+// @Accept json
+// @Produce json
+// @Param article_id path int true "ID of the article to update"
+// @Param payload body dto.UpdateArticleRequest true "Article update details"
+// @Success 200 {object} object{message=string,data=model.Article} "Article updated successfully"
+// @Failure 400 {object} object{error=string} "Invalid article ID or payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 403 {object} object{message=string} "Forbidden (user does not own the article)"
+// @Failure 404 {object} object{message=string} "Article not found"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /article/{article_id} [put]
+func (c *ArticleController) UpdateArticleHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        // Ambil user ID dari JWT context
+        userIdRaw, exists := ctx.Get("userId")
+        if !exists </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                return
+        }</span>
+        <span class="cov0" title="0">userIdFloat, ok := userIdRaw.(float64)
+        if !ok </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+                return
+        }</span>
+        <span class="cov0" title="0">userId := int(userIdFloat)
+
+        // Ambil ID artikel dari URL param
+        idStr := ctx.Param("article_id")
+        id, err := strconv.Atoi(idStr)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
+                return
+        }</span>
+
+        // Cek apakah user adalah pemilik artikel
+        <span class="cov0" title="0">article, err := c.service.FindById(id)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusNotFound, gin.H{"message": "Article not found"})
+                return
+        }</span>
+        <span class="cov0" title="0">if article.User.Id != userId </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusForbidden, gin.H{"message": "You do not own this article"})
+                return
+        }</span>
+
+        // Bind data dari payload
+        <span class="cov0" title="0">var req dto.UpdateArticleRequest
+        if err := ctx.ShouldBindJSON(&amp;req); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        // Update artikel
+        <span class="cov0" title="0">updatedArticle, err := c.service.UpdateArticle(id, req)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Article updated successfully",
+                "data":    updatedArticle,
+        })</span>
+}
+
+
+// @Summary Get article by slug
+// @Description Get article details by its slug
+// @Tags Articles
+// @Produce json
+// @Param slug path string true "Slug of the article to retrieve"
+// @Success 200 {object} object{message=string,data=model.Article} "Article details"
+// @Failure 404 {object} object{error=string} "Article not found"
+// @Router /article/{slug} [get]
+func (c *ArticleController) GetBySlugHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        slug := ctx.Param("slug")
+
+        article, err := c.service.FindBySlug(slug)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success get article by slug",
+                "data":    article,
+        })</span>
+}
+
+// @Summary Get articles by user ID
+// @Description Get a list of articles by a specific user ID
+// @Tags Articles
+// @Produce json
+// @Param user_id path int true "ID of the user whose articles to retrieve"
+// @Success 200 {object} object{message=string,data=[]model.Article} "List of articles by user"
+// @Failure 400 {object} object{error=string} "Invalid user ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /article/u/{user_id} [get]
+func (ac *ArticleController) GetByUserIdHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        userIdParam := ctx.Param("user_id")
+        userId, err := strconv.Atoi(userIdParam)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">articles, err := ac.service.FindByUserId(userId)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success get articles by user ID",
+                "data":    articles,
+        })</span>
+}
+
+// @Summary Get articles by category name
+// @Description Get a list of articles by category name
+// @Tags Articles
+// @Produce json
+// @Param cat_name path string true "Name of the category to retrieve articles from"
+// @Success 200 {object} object{message=string,data=[]model.Article} "List of articles by category"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /article/c/{cat_name} [get]
+func (ac *ArticleController) GetByCategory(ctx *gin.Context) <span class="cov0" title="0">{
+        categoryName := ctx.Param("cat_name")
+        articles, err := ac.service.FindByCategory(categoryName)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success get articles by Category",
+                "data":    articles,
+        })</span>
+}
+
+// @Summary Delete an article
+// @Description Delete an article by ID
+// @Tags Articles
+// @Produce json
+// @Param article_id path int true "ID of the article to delete"
+// @Success 200 {object} object{message=string} "Article deleted successfully"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 403 {object} object{message=string} "Forbidden (user does not own the article)"
+// @Failure 404 {object} object{message=string} "Article not found"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /article/{article_id} [delete]
+func (ac *ArticleController) DeleteArticleHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        // Ambil user ID dari JWT context
+        userIdRaw, exists := ctx.Get("userId")
+        if !exists </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                return
+        }</span>
+        <span class="cov0" title="0">userIdFloat, ok := userIdRaw.(float64)
+        if !ok </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+                return
+        }</span>
+        <span class="cov0" title="0">userId := int(userIdFloat)
+
+        // Ambil ID artikel dari param
+        idStr := ctx.Param("article_id")
+        articleId, err := strconv.Atoi(idStr)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
+                return
+        }</span>
+
+        // Cek ownership
+        <span class="cov0" title="0">article, err := ac.service.FindById(articleId)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusNotFound, gin.H{"message": "Article not found"})
+                return
+        }</span>
+        <span class="cov0" title="0">if article.User.Id != userId </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusForbidden, gin.H{"message": "You do not own this article"})
+                return
+        }</span>
+
+        // Delete article
+        <span class="cov0" title="0">err = ac.service.DeleteArticle(articleId)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete article"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success delete article",
+        })</span>
+}
+
+
+func (c *ArticleController) Route() <span class="cov8" title="1">{
+        router := c.rg.Group("/article")
+
+        // Public routes
+        router.GET("/", c.GetAllArticleHandler)
+        router.GET("/:slug", c.GetBySlugHandler)
+        router.GET("/u/:user_id", c.GetByUserIdHandler)
+        router.GET("/c/:cat_name", c.GetByCategory)
+
+        // Protected routes
+        routerAuth := router.Group("/")
+
+        routerAuth.Use(c.md.CheckToken()) // hanya butuh login
+        routerAuth.POST("/", c.CreateArticleHandler)
+        routerAuth.PUT("/:article_id", c.UpdateArticleHandler)
+        routerAuth.DELETE("/:article_id", c.DeleteArticleHandler)
+}</span>
+
+
+func NewArticleController(aS service.ArticleService, md middleware.AuthMiddleware, rg *gin.RouterGroup) *ArticleController <span class="cov8" title="1">{
+        return &amp;ArticleController{
+                service: aS,
+                md:      md,
+                rg:      rg,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package controller
+
+import (
+        "develapar-server/middleware"
+        "develapar-server/model/dto"
+        "develapar-server/service"
+        "net/http"
+        "strconv"
+
+        "github.com/gin-gonic/gin"
+)
+
+type ArticleTagController struct {
+        service service.ArticleTagService
+        rg      *gin.RouterGroup
+        md      middleware.AuthMiddleware
+}
+
+type AssignTagRequest struct {
+        ArticleID int   `json:"article_id"`
+        TagIDs    []int `json:"tag_ids"`
+}
+
+// @Summary Assign tags to an article by tag names
+// @Description Assigns a list of tags (by name) to a specific article
+// @Tags Tags
+// @Accept json
+// @Produce json
+// @Param payload body dto.AssignTagsByNameDTO true "Article ID and list of tag names"
+// @Success 200 {object} object{message=string} "Tags assigned successfully"
+// @Failure 400 {object} object{error=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /article-to-tag [post]
+func (c *ArticleTagController) AssignTagToArticleByNameHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        var req dto.AssignTagsByNameDTO
+        if err := ctx.ShouldBindJSON(&amp;req); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">err := c.service.AsignTagsByName(req.ArticleID, req.Tags)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{"message": "Tags assigned successfully"})</span>
+}
+
+func (c *ArticleTagController) AssignTagToArticleByIdHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        var req AssignTagRequest
+        if err := ctx.ShouldBindJSON(&amp;req); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">err := c.service.AssignTags(req.ArticleID, req.TagIDs)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{"message": "Tags assigned successfully"})</span>
+}
+
+// @Summary Get tags by article ID
+// @Description Get a list of tags associated with a specific article ID
+// @Tags Tags
+// @Produce json
+// @Param article_id path int true "ID of the article to retrieve tags for"
+// @Success 200 {object} object{data=[]model.Tags} "List of tags for the article"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /article-to-tag/tags/{article_id} [get]
+func (c *ArticleTagController) GetTagsByArticleIDHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        articleID, err := strconv.Atoi(ctx.Param("article_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">tags, err := c.service.FindTagByArticleId(articleID)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{"data": tags})</span>
+}
+
+// @Summary Get articles by tag ID
+// @Description Get a list of articles associated with a specific tag ID
+// @Tags Articles
+// @Produce json
+// @Param tag_id path int true "ID of the tag to retrieve articles for"
+// @Success 200 {object} object{data=[]model.Article} "List of articles with the specified tag"
+// @Failure 400 {object} object{error=string} "Invalid tag ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /article-to-tag/article/{tag_id} [get]
+func (c *ArticleTagController) GetArticlesByTagIDHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        tagID, err := strconv.Atoi(ctx.Param("tag_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tag ID"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">articles, err := c.service.FindArticleByTagId(tagID)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{"data": articles})</span>
+}
+
+// @Summary Remove a tag from an article
+// @Description Remove a specific tag from an article by their IDs
+// @Tags Tags
+// @Produce json
+// @Param article_id path int true "ID of the article"
+// @Param tag_id path int true "ID of the tag to remove"
+// @Success 200 {object} object{message=string} "Tag removed from article successfully"
+// @Failure 400 {object} object{error=string} "Invalid article ID or tag ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /article-to-tag/articles/{article_id}/tags/{tag_id} [delete]
+func (c *ArticleTagController) RemoveTagFromArticleHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        articleId, err := strconv.Atoi(ctx.Param("article_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Article ID"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">tagId, err := strconv.Atoi(ctx.Param("tag_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tag Id"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">err = c.service.RemoveTagFromArticle(articleId, tagId)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove tag from article"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Tag removed from article successfully",
+        })</span>
+}
+
+func (at *ArticleTagController) Route() <span class="cov0" title="0">{
+        router := at.rg.Group("/article-to-tag")
+        router.GET("/tags/:article_id", at.GetTagsByArticleIDHandler)
+        router.GET("/article/:tag_id", at.GetArticlesByTagIDHandler)
+
+        routerAuth := router.Group("/")
+        routerAuth.Use(at.md.CheckToken())
+        routerAuth.POST("/", at.AssignTagToArticleByNameHandler)
+        routerAuth.DELETE("/articles/:article_id/tags/:tag_id", at.RemoveTagFromArticleHandler)
+
+}</span>
+
+func NewArticleTagController(s service.ArticleTagService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *ArticleTagController <span class="cov0" title="0">{
+        return &amp;ArticleTagController{service: s, rg: rg, md: md}
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package controller
+
+import (
+        "develapar-server/middleware"
+        "develapar-server/model"
+        "develapar-server/service"
+        "net/http"
+        "strconv"
+
+        "github.com/gin-gonic/gin"
+)
+
+type BookmarkController struct {
+        service service.BookmarkService
+        rg      *gin.RouterGroup
+        md      middleware.AuthMiddleware
+}
+
+// @Summary Create a new bookmark
+// @Description Create a new bookmark for an article
+// @Tags Bookmarks
+// @Accept json
+// @Produce json
+// @Param payload body model.Bookmark true "Bookmark creation details"
+// @Success 200 {object} object{message=string,data=model.Bookmark} "Bookmark successfully created"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /bookmark [post]
+func (b *BookmarkController) CreateBookmarkHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        var payload model.Bookmark
+        userIdRaw, exists := ctx.Get("userId")
+        if !exists </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                return
+        }</span>
+        <span class="cov0" title="0">userIdFloat, ok := userIdRaw.(float64)
+        if !ok </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+                return
+        }</span>
+        <span class="cov0" title="0">userId := int(userIdFloat)
+
+        payload.User.Id = userId
+
+        if err := ctx.ShouldBindJSON(&amp;payload); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{
+                        "message": "Invalid payload: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">data, err := b.service.CreateBookmark(payload)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{
+                        "message": "Failed to create bookmark: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Create New Category",
+                "data":    data,
+        })</span>
+}
+
+// @Summary Get bookmarks by user ID
+// @Description Get a list of bookmarks for a specific user ID
+// @Tags Bookmarks
+// @Produce json
+// @Param user_id path int true "ID of the user whose bookmarks to retrieve"
+// @Success 200 {object} object{message=string,data=[]model.Bookmark} "List of bookmarks for the user"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /bookmark/{user_id} [get]
+func (b *BookmarkController) GetBookmarkByUserId(ctx *gin.Context) <span class="cov0" title="0">{
+        userID := ctx.Param("user_id")
+
+        // Mendapatkan daftar bookmark
+        bookmarks, err := b.service.FindByUserId(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Get Bookmark",
+                "data":    bookmarks,
+        })</span>
+}
+
+// @Summary Delete a bookmark
+// @Description Delete a bookmark for an article by article ID
+// @Tags Bookmarks
+// @Accept json
+// @Produce json
+// @Param article_id body object{article_id=int} true "Article ID to unbookmark"
+// @Success 200 {object} object{message=string} "Bookmark deleted successfully"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /bookmark [delete]
+func (b *BookmarkController) DeleteBookmarkHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        userIdRaw, exists := ctx.Get("userId")
+        if !exists </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                return
+        }</span>
+        <span class="cov0" title="0">userIdFloat, ok := userIdRaw.(float64)
+        if !ok </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+                return
+        }</span>
+        <span class="cov0" title="0">userId := int(userIdFloat)
+
+        articleIdParam := ctx.Param("article_id")
+        articleId, err := strconv.Atoi(articleIdParam)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">err = b.service.DeleteBookmark(userId, articleId)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Bookmark deleted successfully",
+        })</span>
+}
+
+// @Summary Check if an article is bookmarked by the current user
+// @Description Check if a specific article is bookmarked by the authenticated user
+// @Tags Bookmarks
+// @Produce json
+// @Param article_id query int true "ID of the article to check"
+// @Success 200 {object} object{bookmarked=bool} "Bookmark status"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /bookmark/check [get]
+func (c *BookmarkController) CheckBookmarkHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        userIdRaw, exists := ctx.Get("userId")
+        if !exists </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                return
+        }</span>
+        <span class="cov0" title="0">userIdFloat, ok := userIdRaw.(float64)
+        if !ok </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+                return
+        }</span>
+        <span class="cov0" title="0">userId := int(userIdFloat)
+
+        articleId, err := strconv.Atoi(ctx.Query("article_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article_id"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">bookmarked, err := c.service.IsBookmarked(userId, articleId)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{"bookmarked": bookmarked})</span>
+}
+
+func (c *BookmarkController) Route() <span class="cov0" title="0">{
+        router := c.rg.Group("/bookmark")
+        router.GET("/:user_id", c.GetBookmarkByUserId)
+
+        routerAuth := router.Group("/")
+        routerAuth.Use(c.md.CheckToken())
+        routerAuth.POST("/", c.CreateBookmarkHandler)
+        routerAuth.DELETE("/", c.DeleteBookmarkHandler)
+        routerAuth.GET("/check", c.CheckBookmarkHandler)
+}</span>
+
+func NewBookmarkController(bS service.BookmarkService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *BookmarkController <span class="cov0" title="0">{
+        return &amp;BookmarkController{
+                service: bS,
+                rg:      rg,
+                md:      md,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package controller
+
+import (
+        "develapar-server/middleware"
+        "develapar-server/model"
+        "develapar-server/model/dto"
+        "develapar-server/service"
+        "net/http"
+        "strconv"
+
+        "github.com/gin-gonic/gin"
+)
+
+type CategoryController struct {
+        service service.CategoryService
+        rg      *gin.RouterGroup
+        md      middleware.AuthMiddleware
+}
+
+// @Summary Create a new category
+// @Description Create a new category with a given name
+// @Tags Categories
+// @Accept json
+// @Produce json
+// @Param payload body model.Category true "Category creation details"
+// @Success 200 {object} object{message=string,data=model.Category} "Category successfully created"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /category [post]
+func (c *CategoryController) CreateCategoryHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        var payload model.Category
+        if err := ctx.ShouldBindJSON(&amp;payload); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{
+                        "message": "Invalid payload: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">data, err := c.service.CreateCategory(payload)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{
+                        "message": "Failed to create category: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Create New Category",
+                "data":    data,
+        })</span>
+}
+
+// @Summary Get all categories
+// @Description Get a list of all categories
+// @Tags Categories
+// @Produce json
+// @Success 200 {object} object{message=string,data=[]model.Category} "List of categories"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Router /category [get]
+func (c *CategoryController) GetAllCategoryHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        data, err := c.service.FindAll()
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{
+                        "message": err},
+                )
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Get All Category",
+                "data":    data,
+        })</span>
+}
+
+// @Summary Update a category
+// @Description Update an existing category by ID
+// @Tags Categories
+// @Accept json
+// @Produce json
+// @Param cat_id path int true "ID of the category to update"
+// @Param payload body dto.UpdateCategoryRequest true "Category update details"
+// @Success 200 {object} object{message=string,data=model.Category} "Category updated successfully"
+// @Failure 400 {object} object{error=string} "Invalid category ID or payload"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /category/{cat_id} [put]
+func (c *CategoryController) UpdateCategoryHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        idCat := ctx.Param("cat_id")
+        id, err := strconv.Atoi(idCat)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Category ID"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">var req dto.UpdateCategoryRequest
+        if err := ctx.ShouldBindJSON(&amp;req); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">cat, err := c.service.UpdateCategory(id, req)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Category updated successfully",
+                "data":    cat,
+        })</span>
+}
+
+// @Summary Delete a category
+// @Description Delete a category by ID
+// @Tags Categories
+// @Produce json
+// @Param cat_id path int true "ID of the category to delete"
+// @Success 200 {object} object{message=string} "Category deleted successfully"
+// @Failure 400 {object} object{error=string} "Invalid category ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /category/{cat_id} [delete]
+func (c *CategoryController) DeleteCategoryHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        Id := ctx.Param("cat_id")
+
+        catId, err := strconv.Atoi(Id)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Category ID"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">err2 := c.service.DeleteCategory(catId)
+        if err2 != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to Delete Category"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Delete Category",
+        })</span>
+}
+
+func (c *CategoryController) Route() <span class="cov0" title="0">{
+        router := c.rg.Group("/category")
+        router.GET("/", c.GetAllCategoryHandler)
+
+        routerAuth := router.Group("/", c.md.CheckToken("admin"))
+        routerAuth.POST("/", c.CreateCategoryHandler)
+        routerAuth.PUT("/:cat_id", c.UpdateCategoryHandler)
+        routerAuth.DELETE("/:cat_id", c.DeleteCategoryHandler)
+}</span>
+
+func NewCategoryController(cS service.CategoryService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *CategoryController <span class="cov0" title="0">{
+        return &amp;CategoryController{
+                service: cS,
+                rg:      rg,
+                md:      md,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package controller
+
+import (
+        "develapar-server/middleware"
+        "develapar-server/model"
+        "develapar-server/service"
+        "errors"
+        "net/http"
+        "strconv"
+
+        "github.com/gin-gonic/gin"
+)
+
+type CommentController struct {
+        service service.CommentService
+        rg      *gin.RouterGroup
+        md      middleware.AuthMiddleware
+}
+
+// @Summary Create a new comment
+// @Description Create a new comment on an article
+// @Tags Comments
+// @Accept json
+// @Produce json
+// @Param payload body model.Comment true "Comment creation details"
+// @Success 200 {object} object{message=string,data=model.Comment} "Comment successfully created"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /comments [post]
+func (c *CommentController) CreateCommentHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        var payload model.Comment
+
+        userIdRaw, exists := ctx.Get("userId")
+        if !exists </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                return
+        }</span>
+        <span class="cov0" title="0">userIdFloat, ok := userIdRaw.(float64)
+        if !ok </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+                return
+        }</span>
+        <span class="cov0" title="0">userId := int(userIdFloat)
+
+        payload.User.Id = userId
+
+        if err := ctx.ShouldBindJSON(&amp;payload); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{
+                        "message": "Invalid payload: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">data, err := c.service.CreateComment(payload)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{
+                        "message": "Failed to create comment: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Create New Comment",
+                "data":    data,
+        })</span>
+}
+
+// @Summary Get comments by article ID
+// @Description Get a list of comments for a specific article ID
+// @Tags Comments
+// @Produce json
+// @Param article_id path int true "ID of the article to retrieve comments for"
+// @Success 200 {object} object{message=string,data=[]model.Comment} "List of comments for the article"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /comment/article/c{article_id} [get]
+func (c *CommentController) FindCommentByArticleIdHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        articleId, err := strconv.Atoi(ctx.Param("article_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">comments, err := c.service.FindCommentByArticleId(articleId)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Get Comments",
+                "data":    comments,
+        })</span>
+}
+
+// @Summary Get comments by user ID
+// @Description Get a list of comments by a specific user ID
+// @Tags Comments
+// @Produce json
+// @Param user_id path int true "ID of the user whose comments to retrieve"
+// @Success 200 {object} object{message=string,data=[]dto.CommentResponse} "List of comments by the user"
+// @Failure 400 {object} object{error=string} "Invalid user ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /comment/user/{user_id} [get]
+func (c *CommentController) FindCommentByUserIdHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        user_id, err := strconv.Atoi(ctx.Param("user_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">comments, err := c.service.FindCommentByUserId(user_id)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Get Comments",
+                "data":    comments,
+        })</span>
+}
+
+// @Summary Update a comment
+// @Description Update an existing comment by ID
+// @Tags Comments
+// @Accept json
+// @Produce json
+// @Param id path int true "ID of the comment to update"
+// @Param payload body object{content=string} true "Comment update details"
+// @Success 200 {object} object{message=string} "Comment updated successfully"
+// @Failure 400 {object} object{error=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 403 {object} object{error=string} "Forbidden (user does not own the comment)"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /comment/{id} [put]
+func (c *CommentController) UpdateCommentHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        userId := ctx.GetInt("userId")
+        commentId, _ := strconv.Atoi(ctx.Param("id"))
+
+        var req struct {
+                Content string `json:"content" binding:"required"`
+        }
+        if err := ctx.ShouldBindJSON(&amp;req); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">err := c.service.EditComment(commentId, req.Content, userId)
+        if err != nil </span><span class="cov0" title="0">{
+                if errors.Is(err, service.ErrUnauthorized) </span><span class="cov0" title="0">{
+                        ctx.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+                        return
+                }</span>
+                <span class="cov0" title="0">ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update comment"})
+                return</span>
+        }
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{"message": "success"})</span>
+}
+
+// @Summary Delete a comment
+// @Description Delete a comment by ID
+// @Tags Comments
+// @Produce json
+// @Param id path int true "ID of the comment to delete"
+// @Success 200 {object} object{message=string} "Comment deleted successfully"
+// @Failure 400 {object} object{error=string} "Invalid comment ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /comment/{id} [delete]
+func (c *CommentController) DeleteCommentHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        userId := ctx.GetInt("userId")
+
+        commentId, err := strconv.Atoi(ctx.Param("id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid comment ID"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">if err := c.service.DeleteComment(commentId, userId); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{"message": "Comment deleted successfully"})</span>
+}
+
+func (c *CommentController) Route() <span class="cov0" title="0">{
+        router := c.rg.Group("/comment")
+        router.GET("/article/c:article_id", c.FindCommentByArticleIdHandler)
+        router.GET("/user/:user_id", c.FindCommentByUserIdHandler)
+
+        routerAuth := router.Group("/", c.md.CheckToken())
+
+        routerAuth.POST("/", c.CreateCommentHandler)
+        routerAuth.PUT("/:id", c.UpdateCommentHandler)
+        routerAuth.DELETE("/:id", c.DeleteCommentHandler)
+}</span>
+
+func NewCommentController(cS service.CommentService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *CommentController <span class="cov0" title="0">{
+        return &amp;CommentController{
+                service: cS,
+                rg:      rg,
+                md:      md,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package controller
+
+import (
+        "develapar-server/middleware"
+        "develapar-server/model"
+        "develapar-server/service"
+        "net/http"
+        "strconv"
+
+        "github.com/gin-gonic/gin"
+)
+
+type LikeController struct {
+        service service.LikeService
+        rg      *gin.RouterGroup
+        md      middleware.AuthMiddleware
+}
+
+// @Summary Add a like to an article
+// @Description Add a like to a specific article by the authenticated user
+// @Tags Likes
+// @Accept json
+// @Produce json
+// @Param payload body model.Likes true "Like creation details"
+// @Success 200 {object} object{message=string,data=model.Likes} "Like successfully added"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /likes [post]
+func (l *LikeController) AddLikeHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        var payload model.Likes
+
+        userIdRaw, exists := ctx.Get("userId")
+        if !exists </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                return
+        }</span>
+        <span class="cov0" title="0">userIdFloat, ok := userIdRaw.(float64)
+        if !ok </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+                return
+        }</span>
+        <span class="cov0" title="0">userId := int(userIdFloat)
+
+        payload.User.Id = userId
+
+        if err := ctx.ShouldBindJSON(&amp;payload); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{
+                        "message": "Invalid payload: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">data, err := l.service.CreateLike(payload)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{
+                        "message": "Failed to add Like: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Add New Like",
+                "data":    data,
+        })</span>
+
+}
+
+// @Summary Get likes by article ID
+// @Description Get a list of likes for a specific article ID
+// @Tags Likes
+// @Produce json
+// @Param article_id path int true "ID of the article to retrieve likes for"
+// @Success 200 {object} object{message=string,data=[]model.Likes} "List of likes for the article"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /likes/article/{article_id} [get]
+func (l *LikeController) GetLikeByArticleIdHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        articleID, err := strconv.Atoi(ctx.Param("article_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        // Mendapatkan daftar bookmark
+        <span class="cov0" title="0">bookmarks, err := l.service.FindLikeByArticleId(articleID)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Get Bookmark",
+                "data":    bookmarks,
+        })</span>
+}
+
+// @Summary Get likes by user ID
+// @Description Get a list of likes by a specific user ID
+// @Tags Likes
+// @Produce json
+// @Param user_id path int true "ID of the user whose likes to retrieve"
+// @Success 200 {object} object{message=string,data=[]model.Likes} "List of likes by the user"
+// @Failure 400 {object} object{error=string} "Invalid user ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /likes/user/{user_id} [get]
+func (l *LikeController) GetLikeByUserIdHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        userID, err := strconv.Atoi(ctx.Param("user_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        // Mendapatkan daftar bookmark
+        <span class="cov0" title="0">bookmarks, err := l.service.FindLikeByUserId(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Get Bookmark",
+                "data":    bookmarks,
+        })</span>
+}
+
+// @Summary Remove a like from an article
+// @Description Remove a like from a specific article by the authenticated user
+// @Tags Likes
+// @Accept json
+// @Produce json
+// @Param payload body object{article_id=int} true "Article ID to unlike"
+// @Success 200 {object} object{message=string} "Like deleted successfully"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /likes [delete]
+func (l *LikeController) DeleteLikeHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        var payload model.Likes
+
+        userIdRaw, exists := ctx.Get("userId")
+        if !exists </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                return
+        }</span>
+        <span class="cov0" title="0">userIdFloat, ok := userIdRaw.(float64)
+        if !ok </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+                return
+        }</span>
+        <span class="cov0" title="0">userId := int(userIdFloat)
+
+        payload.User.Id = userId
+
+        err := l.service.DeleteLike(payload.User.Id, payload.Article.Id)
+
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Delete Like",
+        })</span>
+}
+
+// @Summary Check if an article is liked by the current user
+// @Description Check if a specific article is liked by the authenticated user
+// @Tags Likes
+// @Produce json
+// @Param article_id query int true "ID of the article to check"
+// @Success 200 {object} object{liked=bool} "Like status"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /likes/check [get]
+func (c *LikeController) CheckLikeHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        userIdRaw, exists := ctx.Get("userId")
+        if !exists </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                return
+        }</span>
+        <span class="cov0" title="0">userIdFloat, ok := userIdRaw.(float64)
+        if !ok </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+                return
+        }</span>
+        <span class="cov0" title="0">userId := int(userIdFloat)
+
+        articleId, err := strconv.Atoi(ctx.Query("article_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article_id"})
+                return
+        }</span>
+
+        <span class="cov0" title="0">liked, err := c.service.IsLiked(userId, articleId)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{"liked": liked})</span>
+}
+
+func (l *LikeController) Route() <span class="cov0" title="0">{
+        router := l.rg.Group("/likes")
+        router.GET("/article/:article_id", l.GetLikeByArticleIdHandler)
+        router.GET("/user/:user_id", l.GetLikeByUserIdHandler)
+
+        routerAuth := router.Group("/", l.md.CheckToken())
+        routerAuth.POST("/", l.AddLikeHandler)
+        routerAuth.DELETE("/", l.DeleteLikeHandler)
+        routerAuth.GET("/check", l.CheckLikeHandler)
+}</span>
+
+func NewLikeController(lS service.LikeService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *LikeController <span class="cov0" title="0">{
+        return &amp;LikeController{
+                service: lS,
+                rg:      rg,
+                md:      md,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package controller
+
+import (
+        "develapar-server/middleware"
+        "develapar-server/model"
+        "develapar-server/service"
+        "net/http"
+        "strconv"
+
+        "github.com/gin-gonic/gin"
+)
+
+type TagController struct {
+        service service.TagService
+        rg      *gin.RouterGroup
+        md      middleware.AuthMiddleware
+}
+
+// @Summary Create a new tag
+// @Description Create a new tag with a given name
+// @Tags Tags
+// @Accept json
+// @Produce json
+// @Param payload body model.Tags true "Tag creation details"
+// @Success 200 {object} object{message=string,data=model.Tags} "Tag successfully created"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /tags [post]
+func (t *TagController) CreateTagHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        var payload model.Tags
+        if err := ctx.ShouldBindJSON(&amp;payload); err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{
+                        "message": "Invalid payload: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">data, err := t.service.CreateTag(payload)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{
+                        "message": "Failed to create category: " + err.Error(),
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Create New Category",
+                "data":    data,
+        })</span>
+}
+
+// @Summary Get all tags
+// @Description Get a list of all tags
+// @Tags Tags
+// @Produce json
+// @Success 200 {object} object{message=string,data=[]model.Tags} "List of tags"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Router /tags [get]
+func (t *TagController) GetAllTagHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        data, err := t.service.FindAll()
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{
+                        "message": err},
+                )
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Create New User",
+                "data":    data,
+        })</span>
+}
+
+// @Summary Get tag by ID
+// @Description Get tag details by its ID
+// @Tags Tags
+// @Produce json
+// @Param tags_id path int true "ID of the tag to retrieve"
+// @Success 200 {object} object{message=string,data=model.Tags} "Tag details"
+// @Failure 400 {object} object{error=string} "Invalid tag ID"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /tags/{tags_id} [get]
+func (t *TagController) GetByTagIdHandler(ctx *gin.Context) <span class="cov0" title="0">{
+        tagId, err := strconv.Atoi(ctx.Param("tags_id"))
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        }</span>
+
+        <span class="cov0" title="0">tags, err := t.service.FindById(tagId)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Get Tags",
+                "data":    tags,
+        })</span>
+
+}
+
+func (t *TagController) Route() <span class="cov0" title="0">{
+        router := t.rg.Group("/tags")
+        router.GET("/:tags_id", t.GetByTagIdHandler)
+        router.GET("/", t.GetAllTagHandler)
+
+        routerAuth := router.Group("/", t.md.CheckToken())
+        routerAuth.POST("/", t.CreateTagHandler)
+}</span>
+
+func NewTagController(tS service.TagService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *TagController <span class="cov0" title="0">{
+        return &amp;TagController{
+                service: tS,
+                rg:      rg,
+                md:      md,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package controller
+
+import (
+        "develapar-server/model"
+        "develapar-server/model/dto"
+        "develapar-server/service"
+        "net/http"
+        "time"
+
+        "github.com/gin-gonic/gin"
+)
+
+type UserController struct {
+        service service.UserService
+        rg      *gin.RouterGroup
+}
+
+// @Summary User login
+// @Description Authenticate user and return access token
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param payload body dto.LoginDto true "Login credentials"
+// @Success 200 {object} object{message=string,accessToken=string} "Success Login"
+// @Failure 401 {object} object{error=string} "Invalid credentials"
+// @Router /auth/login [post]
+func (u *UserController) loginHandler(ctx *gin.Context) <span class="cov8" title="1">{
+        var payload dto.LoginDto
+        if err := ctx.ShouldBindJSON(&amp;payload); err != nil </span><span class="cov8" title="1">{
+                ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">response, err := u.service.Login(payload)
+        if err != nil </span><span class="cov8" title="1">{
+                ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        // Set HttpOnly cookie untuk refresh token
+        <span class="cov8" title="1">ctx.SetCookie(
+                "refreshToken",
+                response.RefreshToken,
+                60*60*24*7, // 7 hari
+                "/",
+                "localhost", // ganti ke domain di production
+                false,       // secure: true jika HTTPS
+                true,        // httpOnly
+        )
+
+        // Jangan kirim refresh token ke frontend
+        ctx.JSON(http.StatusOK, gin.H{
+                "message":     "Success Login",
+                "accessToken": response.AccessToken,
+        })</span>
+}
+
+// @Summary Register a new user
+// @Description Register a new user with name, email, and password
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param payload body model.User true "User registration details"
+// @Success 200 {object} object{message=string,data=model.User} "User successfully registered"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Router /auth/register [post]
+func (u *UserController) registerUser(ctx *gin.Context) <span class="cov8" title="1">{
+        var payload model.User
+
+        if err := ctx.ShouldBindJSON(&amp;payload); err != nil </span><span class="cov8" title="1">{
+                ctx.JSON(http.StatusBadRequest, gin.H{
+                        "message": err.Error()},
+                )
+                return
+        }</span>
+
+        <span class="cov8" title="1">data, err := u.service.CreateNewUser(payload)
+        if err != nil </span><span class="cov8" title="1">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{
+                        "message": err.Error()},
+                )
+                return
+        }</span>
+        <span class="cov8" title="1">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Create New User",
+                "data":    data,
+        })</span>
+}
+
+// @Summary Get user by ID
+// @Description Get user details by their ID
+// @Tags Users
+// @Produce json
+// @Param user_id path string true "ID of the user to retrieve"
+// @Success 200 {object} object{message=string,data=model.User} "User details"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /users/{user_id} [get]
+func (u *UserController) findUserByIdHandler(ctx *gin.Context) <span class="cov8" title="1">{
+        userId := ctx.Param("user_id")
+
+        user, err := u.service.FindUserById(userId)
+        if err != nil </span><span class="cov8" title="1">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Get User",
+                "data":    user,
+        })</span>
+}
+
+// @Summary Get all users
+// @Description Get a list of all registered users
+// @Tags Users
+// @Produce json
+// @Success 200 {object} object{message=string,data=[]model.User} "List of users"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /users [get]
+func (u *UserController) findAllUserHandler(ctx *gin.Context) <span class="cov8" title="1">{
+        user, err := u.service.FindAllUser()
+        if err != nil </span><span class="cov8" title="1">{
+                ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">ctx.JSON(http.StatusOK, gin.H{
+                "message": "Success Get All User",
+                "data":    user,
+        })</span>
+}
+
+// @Summary Refresh access token
+// @Description Refresh access token using refresh token from cookie
+// @Tags Users
+// @Produce json
+// @Success 200 {object} object{access_token=string} "Access token refreshed successfully"
+// @Failure 401 {object} object{error=string} "Refresh token not found or invalid"
+// @Router /auth/refresh [post]
+func RefreshTokenHandler(userService service.UserService) gin.HandlerFunc <span class="cov8" title="1">{
+        return func(c *gin.Context) </span><span class="cov8" title="1">{
+                // Ambil dari cookie, bukan dari JSON body
+                cookie, err := c.Cookie("refreshToken")
+                if err != nil || cookie == "" </span><span class="cov8" title="1">{
+                        c.JSON(http.StatusUnauthorized, gin.H{"error": "refresh token not found in cookies"})
+                        return
+                }</span>
+
+                // Proses refresh
+                <span class="cov8" title="1">tokenResp, err := userService.RefreshToken(cookie)
+                if err != nil </span><span class="cov8" title="1">{
+                        c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+                        return
+                }</span>
+
+                // Set ulang refreshToken ke cookie (opsional: rotate token)
+                <span class="cov8" title="1">refreshExpiry := time.Now().Add(7 * 24 * time.Hour)
+                c.SetCookie("refreshToken", tokenResp.RefreshToken, int(refreshExpiry.Sub(time.Now()).Seconds()), "/", "", true, true)
+
+                // Return hanya access token ke frontend (refresh tetap di cookie)
+                c.JSON(http.StatusOK, gin.H{
+                        "access_token": tokenResp.AccessToken,
+                })</span>
+        }
+}
+
+
+
+func (u *UserController) Route() <span class="cov8" title="1">{
+        router := u.rg.Group("/users")
+        </span><span class="cov8" title="1">{
+                router.GET("/", u.findAllUserHandler)
+                router.GET("/:user_id", u.findUserByIdHandler)
+        }</span>
+
+        <span class="cov8" title="1">r := u.rg.Group("/auth")
+        </span><span class="cov8" title="1">{
+                r.POST("/login", u.loginHandler)
+                r.POST("/register", u.registerUser)
+                r.POST("/refresh", RefreshTokenHandler(u.service))
+        }</span>
+
+}
+
+func NewUserController(uS service.UserService, rg *gin.RouterGroup) *UserController <span class="cov8" title="1">{
+        return &amp;UserController{
+
+                service: uS,
+                rg:      rg,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package main
+
+func main() <span class="cov0" title="0">{
+        NewServer().Start()
+
+}</span>
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package middleware
+
+import (
+        "develapar-server/service"
+        "net/http"
+        "strings"
+
+        "github.com/gin-gonic/gin"
+)
+
+type AuthMiddleware interface {
+        CheckToken(roles ...string) gin.HandlerFunc
+}
+
+type authMiddleware struct {
+        jwtService service.JwtService
+}
+
+func (a *authMiddleware) CheckToken(roles ...string) gin.HandlerFunc <span class="cov8" title="1">{
+        return func(ctx *gin.Context) </span><span class="cov8" title="1">{
+                header := ctx.GetHeader("Authorization")
+                token := strings.Replace(header, "Bearer ", "", -1)
+
+                claims, err := a.jwtService.VerifyToken(token)
+                if err != nil </span><span class="cov8" title="1">{
+                        ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+                        return
+                }</span>
+
+                <span class="cov8" title="1">ctx.Set("userId", claims["userId"])
+                ctx.Set("role", claims["role"]) // taruh juga kalau perlu di handler
+
+                if len(roles) &gt; 0 </span><span class="cov8" title="1">{
+                        var validRole bool
+                        for _, r := range roles </span><span class="cov8" title="1">{
+                                if r == claims["role"] </span><span class="cov0" title="0">{
+                                        validRole = true
+                                        break</span>
+                                }
+                        }
+                        <span class="cov8" title="1">if !validRole </span><span class="cov8" title="1">{
+                                ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Forbidden Access"})
+                                return
+                        }</span>
+                }
+
+                <span class="cov8" title="1">ctx.Next()</span>
+        }
+}
+
+
+func NewAuthMiddleware(jwtService service.JwtService) AuthMiddleware <span class="cov8" title="1">{
+        return &amp;authMiddleware{jwtService: jwtService}
+}</span>
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package repository
+
+import (
+        "database/sql"
+        "develapar-server/model"
+)
+
+type ArticleRepository interface {
+        GetAll() ([]model.Article, error)
+        CreateArticle(payload model.Article) (model.Article, error)
+        UpdateArticle(article model.Article) (model.Article, error)
+        GetArticleById(id int) (model.Article, error)
+        GetArticleByUserId(userId int) ([]model.Article, error)
+        GetArticleBySlug(slug string) (model.Article, error)
+        GetArticleByCategory(cat string) ([]model.Article, error)
+        DeleteArticle(id int) error
+}
+
+type articleRepository struct {
+        db *sql.DB
+}
+
+// GetArticleByCategory implements ArticleRepository.
+func (a *articleRepository) GetArticleByCategory(cat string) ([]model.Article, error) <span class="cov8" title="1">{
+        query := `
+        SELECT 
+                a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
+                u.id, u.name, u.email,
+                c.id, c.name
+        FROM articles a
+        JOIN users u ON a.user_id = u.id
+        JOIN categories c ON a.category_id = c.id
+        WHERE c.name = $1;
+        `
+        rows, err := a.db.Query(query, cat)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        var articles []model.Article
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var a model.Article
+                var u model.User
+                var c model.Category
+
+                err := rows.Scan(
+                        &amp;a.Id, &amp;a.Title, &amp;a.Slug, &amp;a.Content, &amp;a.Views, &amp;a.CreatedAt, &amp;a.UpdatedAt,
+                        &amp;u.Id, &amp;u.Name, &amp;u.Email,
+                        &amp;c.Id, &amp;c.Name,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">a.User = u
+                a.Category = c
+                articles = append(articles, a)</span>
+        }
+
+        <span class="cov8" title="1">return articles, nil</span>
+
+}
+
+// GetArticleBySlug implements ArticleRepository.
+func (a *articleRepository) GetArticleBySlug(slug string) (model.Article, error) <span class="cov8" title="1">{
+        query := `
+        SELECT 
+                a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
+                u.id, u.name, u.email,
+                c.id, c.name
+        FROM articles a
+        JOIN users u ON a.user_id = u.id
+        JOIN categories c ON a.category_id = c.id
+        WHERE a.slug = $1;
+        `
+
+        row := a.db.QueryRow(query, slug)
+
+        var article model.Article
+        var user model.User
+        var category model.Category
+
+        err := row.Scan(
+                &amp;article.Id, &amp;article.Title, &amp;article.Slug, &amp;article.Content, &amp;article.Views, &amp;article.CreatedAt, &amp;article.UpdatedAt,
+                &amp;user.Id, &amp;user.Name, &amp;user.Email,
+                &amp;category.Id, &amp;category.Name,
+        )
+        if err != nil </span><span class="cov8" title="1">{
+                return model.Article{}, err
+        }</span>
+
+        <span class="cov8" title="1">article.User = user
+        article.Category = category
+        return article, nil</span>
+}
+
+// DeleteArticle implements ArticleRepository.
+func (a *articleRepository) DeleteArticle(id int) error <span class="cov8" title="1">{
+        _, err := a.db.Exec(`DELETE FROM articles WHERE id = $1`, id)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// GetArticleById implements ArticleRepository.
+func (a *articleRepository) GetArticleById(id int) (model.Article, error) <span class="cov8" title="1">{
+        query := `
+                SELECT id, title, slug, content, views, user_id, category_id, created_at, updated_at
+                FROM articles
+                WHERE id = $1
+        `
+        var arc model.Article
+        err := a.db.QueryRow(query, id).Scan(
+                &amp;arc.Id, &amp;arc.Title, &amp;arc.Slug, &amp;arc.Content, &amp;arc.Views,
+                &amp;arc.User.Id, &amp;arc.Category.Id, &amp;arc.CreatedAt, &amp;arc.UpdatedAt,
+        )
+        return arc, err
+}</span>
+
+// GetArticleByUserId implements ArticleRepository.
+func (a *articleRepository) GetArticleByUserId(userId int) ([]model.Article, error) <span class="cov8" title="1">{
+        query := `
+        SELECT 
+                a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
+                u.id, u.name, u.email,
+                c.id, c.name
+        FROM articles a
+        JOIN users u ON a.user_id = u.id
+        JOIN categories c ON a.category_id = c.id
+        WHERE a.user_id = $1
+        ORDER BY a.created_at DESC;
+        `
+
+        rows, err := a.db.Query(query, userId)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        var articles []model.Article
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var a model.Article
+                var u model.User
+                var c model.Category
+
+                err := rows.Scan(
+                        &amp;a.Id, &amp;a.Title, &amp;a.Slug, &amp;a.Content, &amp;a.Views, &amp;a.CreatedAt, &amp;a.UpdatedAt,
+                        &amp;u.Id, &amp;u.Name, &amp;u.Email,
+                        &amp;c.Id, &amp;c.Name,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">a.User = u
+                a.Category = c
+                articles = append(articles, a)</span>
+        }
+
+        <span class="cov8" title="1">return articles, nil</span>
+}
+
+// UpdateArticle implements ArticleRepository.
+func (a *articleRepository) UpdateArticle(article model.Article) (model.Article, error) <span class="cov8" title="1">{
+        query := `
+        UPDATE articles
+        SET title = $1, slug = $2, content = $3, category_id=$4, updated_at = NOW()
+        WHERE id = $5
+         RETURNING id, title, slug, content, category_id, created_at, updated_at
+        `
+        row := a.db.QueryRow(query, article.Title, article.Slug, article.Content, article.Category.Id, article.Id)
+        var updated model.Article
+        err := row.Scan(
+                &amp;updated.Id,
+                &amp;updated.Title,
+                &amp;updated.Slug,
+                &amp;updated.Content,
+                &amp;updated.Category.Id,
+                &amp;updated.CreatedAt,
+                &amp;updated.UpdatedAt,
+        )
+        if err != nil </span><span class="cov8" title="1">{
+                return model.Article{}, err
+        }</span>
+
+        <span class="cov8" title="1">return updated, nil</span>
+}
+
+// GetAll implements ArticleRepository.
+func (a *articleRepository) GetAll() ([]model.Article, error) <span class="cov8" title="1">{
+        query := `
+        SELECT 
+                a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
+                u.id, u.name, u.email,
+                c.id, c.name
+        FROM articles a
+        JOIN users u ON a.user_id = u.id
+        JOIN categories c ON a.category_id = c.id
+        ORDER BY a.created_at DESC;
+        `
+
+        rows, err := a.db.Query(query)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        var articles []model.Article
+        for rows.Next() </span><span class="cov8" title="1">{
+                var article model.Article
+                var user model.User
+                var category model.Category
+
+                err := rows.Scan(
+                        &amp;article.Id, &amp;article.Title, &amp;article.Slug, &amp;article.Content,
+                        &amp;article.Views, &amp;article.CreatedAt, &amp;article.UpdatedAt,
+                        &amp;user.Id, &amp;user.Name, &amp;user.Email,
+                        &amp;category.Id, &amp;category.Name,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">article.User = user
+                article.Category = category
+                articles = append(articles, article)</span>
+        }
+
+        <span class="cov8" title="1">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return articles, nil</span>
+}
+
+// CreateArticle implements ArticleRepository.
+func (a *articleRepository) CreateArticle(payload model.Article) (model.Article, error) <span class="cov8" title="1">{
+        var arc model.Article
+        err := a.db.QueryRow(`
+  INSERT INTO articles (title, content, slug, user_id, category_id) 
+  VALUES ($1, $2, $3, $4, $5) 
+  RETURNING id, title, slug, content, user_id, category_id, views, created_at, updated_at
+`,
+                payload.Title,
+                payload.Content,
+                payload.Slug,
+                payload.User.Id,
+                payload.Category.Id,
+        ).Scan(
+                &amp;arc.Id,
+                &amp;arc.Title,
+                &amp;arc.Slug,
+                &amp;arc.Content,
+                &amp;arc.User.Id,     // hanya ambil ID-nya
+                &amp;arc.Category.Id, // hanya ambil ID-nya
+                &amp;arc.Views,
+                &amp;arc.CreatedAt,
+                &amp;arc.UpdatedAt,
+        )
+
+        if err != nil </span><span class="cov8" title="1">{
+                return model.Article{}, err
+        }</span>
+        <span class="cov8" title="1">return arc, nil</span>
+}
+
+func NewArticleRepository(database *sql.DB) ArticleRepository <span class="cov8" title="1">{
+        return &amp;articleRepository{db: database}
+}</span>
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package repository
+
+import (
+        "database/sql"
+        "develapar-server/model"
+)
+
+type ArticleTagRepository interface {
+        AssignTags(articleId int, tagId []int) error
+        GetTagsByArticleId(articleId int) ([]model.Tags, error)
+        GetArticleByTagId(tagId int) ([]model.Article, error)
+        RemoveTagFromArticle(articleId, tagId int) error
+}
+
+type articleTagRepository struct {
+        db *sql.DB
+}
+
+// RemoveTagFromArticle implements ArticleTagRepository.
+func (a *articleTagRepository) RemoveTagFromArticle(articleId int, tagId int) error <span class="cov8" title="1">{
+        _, err := a.db.Exec(`DELETE FROM article_tags WHERE article_id= $1 AND tag_id = $2`, articleId, tagId)
+
+        return err
+}</span>
+
+// AssignTags implements ArticleTagRepository.
+func (a *articleTagRepository) AssignTags(articleId int, tagId []int) error <span class="cov8" title="1">{
+        tx, err := a.db.Begin()
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">defer tx.Rollback()
+
+        _, err = tx.Exec(`DELETE FROM article_tags WHERE article_id = $1`, articleId)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">for _, tagID := range tagId </span><span class="cov8" title="1">{
+                _, err := tx.Exec(`INSERT INTO article_tags (article_id, tag_id) VALUES ($1,$2)`, articleId, tagID)
+                if err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+        }
+        <span class="cov8" title="1">return tx.Commit()</span>
+}
+
+// GetArticleByTagId implements ArticleTagRepository.
+func (a *articleTagRepository) GetArticleByTagId(tagId int) ([]model.Article, error) <span class="cov8" title="1">{
+        query := `
+        SELECT 
+                a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
+                u.id, u.name, u.email,
+                c.id, c.name
+        FROM articles a
+        JOIN users u ON a.user_id = u.id
+        JOIN categories c ON a.category_id = c.id
+        JOIN article_tags at ON at.article_id = a.id
+        WHERE at.tag_id = $1
+        ORDER BY a.created_at DESC`
+
+        rows, err := a.db.Query(query, tagId)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        var articles []model.Article
+        for rows.Next() </span><span class="cov8" title="1">{
+                var article model.Article
+
+                err := rows.Scan(
+                        &amp;article.Id, &amp;article.Title, &amp;article.Slug, &amp;article.Content, &amp;article.Views, &amp;article.CreatedAt, &amp;article.UpdatedAt, &amp;article.User.Id, &amp;article.User.Name, &amp;article.User.Email, &amp;article.Category.Id, &amp;article.Category.Name,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">articles = append(articles, article)</span>
+        }
+
+        <span class="cov8" title="1">return articles, nil</span>
+}
+
+// GetTagsByArticleId implements ArticleTagRepository.
+func (a *articleTagRepository) GetTagsByArticleId(articleId int) ([]model.Tags, error) <span class="cov8" title="1">{
+        query := `SELECT t.id, t.name FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = $1`
+
+        rows, err := a.db.Query(query, articleId)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        var tags []model.Tags
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var tag model.Tags
+                err := rows.Scan(&amp;tag.Id, &amp;tag.Name)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">tags = append(tags, tag)</span>
+        }
+
+        <span class="cov8" title="1">return tags, nil</span>
+}
+
+func NewArticleTagRepository(database *sql.DB) ArticleTagRepository <span class="cov8" title="1">{
+        return &amp;articleTagRepository{db: database}
+}</span>
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package repository
+
+import (
+        "database/sql"
+        "develapar-server/model"
+        "time"
+)
+
+type BookmarkRepository interface {
+        CreateBookmark(payload model.Bookmark) (model.Bookmark, error)
+        GetByUserId(userId string) ([]model.Bookmark, error)
+        DeleteBookmark(userId, articleId int) error
+        IsBookmarked(userId, articleId int) (bool, error)
+}
+
+type bookmarkRepository struct {
+        db *sql.DB
+}
+
+// DeleteBookmark implements BookmarkRepository.
+func (b *bookmarkRepository) DeleteBookmark(userId int, articleId int) error <span class="cov8" title="1">{
+        query := `DELETE FROM bookmarks WHERE user_id = $1 AND article_id = $2`
+        _, err := b.db.Exec(query, userId, articleId)
+        return err
+}</span>
+
+// IsBookmarked implements BookmarkRepository.
+func (r *bookmarkRepository) IsBookmarked(userId, articleId int) (bool, error) <span class="cov8" title="1">{
+        var exists bool
+        query := `SELECT EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND article_id = $2)`
+        err := r.db.QueryRow(query, userId, articleId).Scan(&amp;exists)
+        if err != nil </span><span class="cov8" title="1">{
+                return false, err
+        }</span>
+        <span class="cov8" title="1">return exists, nil</span>
+}
+
+// GetByUserId implements BookmarkRepository.
+func (b *bookmarkRepository) GetByUserId(userId string) ([]model.Bookmark, error) <span class="cov8" title="1">{
+        var bookmarks []model.Bookmark
+
+        query := `
+        SELECT 
+                b.id, b.article_id, b.user_id, b.created_at, 
+                a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
+                u.id, u.name, u.email, u.created_at, u.updated_at,
+                c.id, c.name
+        FROM bookmarks b
+        JOIN articles a ON b.article_id = a.id
+        JOIN users u ON b.user_id = u.id
+        JOIN categories c ON a.category_id = c.id
+        WHERE b.user_id = $1
+        ORDER BY b.created_at DESC;
+        `
+
+        rows, err := b.db.Query(query, userId)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var bookmark model.Bookmark
+                var article model.Article
+                var user model.User
+                var category model.Category
+
+                err := rows.Scan(
+                        &amp;bookmark.Id, &amp;article.Id, &amp;bookmark.User.Id, &amp;bookmark.CreatedAt,
+                        &amp;article.Id, &amp;article.Title, &amp;article.Slug, &amp;article.Content, &amp;article.Views, &amp;article.CreatedAt, &amp;article.UpdatedAt,
+                        &amp;user.Id, &amp;user.Name, &amp;user.Email, &amp;user.CreatedAt, &amp;user.UpdatedAt,
+                        &amp;category.Id, &amp;category.Name,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                // Assigning the article, user, and category to the bookmark
+                <span class="cov8" title="1">bookmark.Article = article
+                bookmark.User = user
+
+                // Append the bookmark to the bookmarks slice
+                bookmarks = append(bookmarks, bookmark)</span>
+        }
+
+        // Handle errors while iterating through rows
+        <span class="cov8" title="1">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return bookmarks, nil</span>
+}
+
+// CreateBookmark implements BookmarkRepository.
+func (b *bookmarkRepository) CreateBookmark(payload model.Bookmark) (model.Bookmark, error) <span class="cov8" title="1">{
+        var brk model.Bookmark
+        err := b.db.QueryRow(`INSERT INTO bookmarks (article_id, user_id, created_at) VALUES ($1, $2, $3) RETURNING id, article_id, user_id,created_at`, payload.Article.Id, payload.User.Id, time.Now()).Scan(
+                &amp;brk.Id, &amp;brk.Article.Id, &amp;brk.User.Id, &amp;brk.CreatedAt,
+        )
+
+        if err != nil </span><span class="cov8" title="1">{
+                return model.Bookmark{}, err
+        }</span>
+        <span class="cov8" title="1">return brk, nil</span>
+}
+
+func NewBookmarkRepository(database *sql.DB) BookmarkRepository <span class="cov8" title="1">{
+        return &amp;bookmarkRepository{db: database}
+}</span>
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">package repository
+
+import (
+        "database/sql"
+        "develapar-server/model"
+)
+
+type CategoryRepository interface {
+        GetAll() ([]model.Category, error)
+        CreateCategory(payload model.Category) (model.Category, error)
+        GetCategoryById(id int) (model.Category, error)
+        UpdateCategory(payload model.Category) (model.Category, error)
+        DeleteCategory(id int) error
+}
+
+type categoryRepository struct {
+        db *sql.DB
+}
+
+// FindCategoryById implements CategoryRepository.
+func (c *categoryRepository) GetCategoryById(id int) (model.Category, error) <span class="cov8" title="1">{
+        query := `
+        SELECT id, name
+        FROM categories
+        WHERE id = $1
+        `
+
+        var cat model.Category
+        err := c.db.QueryRow(query, id).Scan(
+                &amp;cat.Id, &amp;cat.Name,
+        )
+        if err != nil </span><span class="cov8" title="1">{
+                return model.Category{}, err
+        }</span>
+
+        <span class="cov8" title="1">return cat, nil</span>
+
+}
+
+// DeleteCategory implements CategoryRepository.
+func (c *categoryRepository) DeleteCategory(id int) error <span class="cov8" title="1">{
+        _, err := c.db.Exec(`DELETE FROM categories WHERE id = $1`, id)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// UpdateCategory implements CategoryRepository.
+func (c *categoryRepository) UpdateCategory(payload model.Category) (model.Category, error) <span class="cov8" title="1">{
+        var cat model.Category
+        err := c.db.QueryRow(`UPDATE categories SET name = $1 WHERE id = $2 RETURNING id, name`, payload.Name, payload.Id).Scan(&amp;cat.Id, &amp;cat.Name)
+
+        if err != nil </span><span class="cov8" title="1">{
+                return model.Category{}, err
+        }</span>
+
+        <span class="cov8" title="1">return cat, nil</span>
+}
+
+// CreateCategory implements CategoryRepository.
+func (c *categoryRepository) CreateCategory(payload model.Category) (model.Category, error) <span class="cov8" title="1">{
+        var cat model.Category
+        err := c.db.QueryRow(`INSERT INTO categories (name) VALUES($1) RETURNING id, name`, payload.Name).Scan(&amp;cat.Id, &amp;cat.Name)
+        if err != nil </span><span class="cov8" title="1">{
+                return model.Category{}, err
+        }</span>
+        <span class="cov8" title="1">return cat, nil</span>
+}
+
+// GetAll implements CategoryRepository.
+func (c *categoryRepository) GetAll() ([]model.Category, error) <span class="cov8" title="1">{
+        var listCategory []model.Category
+
+        rows, err := c.db.Query(`SELECT id, name FROM categories`)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var category model.Category
+
+                err := rows.Scan(
+                        &amp;category.Id,
+                        &amp;category.Name,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">listCategory = append(listCategory, category)</span>
+        }
+
+        <span class="cov8" title="1">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return listCategory, nil</span>
+}
+
+func NewCategoryRepository(database *sql.DB) CategoryRepository <span class="cov8" title="1">{
+        return &amp;categoryRepository{db: database}
+}</span>
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">package repository
+
+import (
+        "database/sql"
+        "develapar-server/model"
+        "develapar-server/model/dto"
+        "time"
+)
+
+type CommentRepository interface {
+        CreateComment(payload model.Comment) (model.Comment, error)
+        GetCommentByArticleId(articleId int) ([]model.Comment, error)
+        GetCommentByUserId(userId int) ([]dto.CommentResponse, error)
+        GetCommentById(commentId int) (model.Comment, error)
+        UpdateComment(commentId int, content string, userId int) error
+        DeleteComment(commentId int) error
+}
+
+type commentRepository struct {
+        db *sql.DB
+}
+
+// GetCommentById implements CommentRepository.
+func (c *commentRepository) GetCommentById(commentId int) (model.Comment, error) <span class="cov8" title="1">{
+        var comment model.Comment
+        query := `SELECT id, article_id, user_id, content, created_at FROM comments WHERE id = $1`
+
+        err := c.db.QueryRow(query, commentId).Scan(&amp;comment.Id, &amp;comment.Article.Id, &amp;comment.User.Id, &amp;comment.Content, &amp;comment.CreatedAt)
+        if err != nil </span><span class="cov8" title="1">{
+                return model.Comment{}, err
+        }</span>
+
+        <span class="cov8" title="1">return comment, nil</span>
+}
+
+// DeleteComment implements CommentRepository.
+func (c *commentRepository) DeleteComment(commentId int) error <span class="cov8" title="1">{
+        query := `DELETE FROM comments WHERE id = $1`
+        _, err := c.db.Exec(query, commentId)
+        return err
+}</span>
+
+// UpdateComment implements CommentRepository.
+func (c *commentRepository) UpdateComment(commentId int, content string, userId int) error <span class="cov8" title="1">{
+        query := `UPDATE comments SET content = $1, updated_at = NOW() WHERE id = $2 AND user_id=$3`
+        _, err := c.db.Exec(query, content, commentId, userId)
+        return err
+}</span>
+
+// CreateComment implements CommentRepository.
+func (c *commentRepository) CreateComment(payload model.Comment) (model.Comment, error) <span class="cov8" title="1">{
+        var comment model.Comment
+        err := c.db.QueryRow(`INSERT INTO comments (article_id, user_id , content, created_at) VALUES($1, $2, $3, $4) RETURNING id, article_id, user_id, content, created_at`, payload.Article.Id, payload.User.Id, payload.Content, time.Now()).Scan(
+                &amp;comment.Id, &amp;comment.Article.Id, &amp;comment.User.Id, &amp;comment.Content, &amp;comment.CreatedAt,
+        )
+
+        if err != nil </span><span class="cov8" title="1">{
+                return model.Comment{}, err
+        }</span>
+
+        <span class="cov8" title="1">return comment, nil</span>
+}
+
+// GetCommentByArticleId implements CommentRepository.
+func (c *commentRepository) GetCommentByArticleId(articleId int) ([]model.Comment, error) <span class="cov8" title="1">{
+        var comments []model.Comment
+
+        query := `
+        SELECT
+                c.id, c.article_id, c.user_id, c.content, c.created_at,
+                a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
+                u.id, u.name, u.email, u.created_at, u.updated_at,
+                ca.id, ca.name
+        FROM comments c
+        JOIN articles a ON c.article_id = a.id
+        JOIN users u ON c.user_id = u.id
+        JOIN categories ca ON a.category_id = ca.id
+        WHERE c.article_id = $1
+        ORDER BY c.created_at DESC
+        `
+
+        rows, err := c.db.Query(query, articleId)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var comment model.Comment
+                var article model.Article
+                var user model.User
+                var category model.Category
+
+                err := rows.Scan(
+                        &amp;comment.Id, &amp;comment.Article.Id, &amp;comment.User.Id, &amp;comment.Content, &amp;comment.CreatedAt, &amp;article.Id, &amp;article.Title, &amp;article.Slug, &amp;article.Content, &amp;article.Views, &amp;article.CreatedAt, &amp;article.UpdatedAt,
+                        &amp;user.Id, &amp;user.Name, &amp;user.Email, &amp;user.CreatedAt, &amp;user.UpdatedAt,
+                        &amp;category.Id, &amp;category.Name,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">comment.Article = article
+                comment.User = user
+
+                comments = append(comments, comment)</span>
+
+        }
+
+        <span class="cov8" title="1">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return comments, nil</span>
+}
+
+// GetCommentByUserId implements CommentRepository.
+func (c *commentRepository) GetCommentByUserId(userId int) ([]dto.CommentResponse, error) <span class="cov8" title="1">{
+        var comments []dto.CommentResponse
+
+        query := `
+        SELECT 
+                c.id, c.content, c.created_at,
+                u.id, u.name, u.email,
+                a.id, a.title, a.slug
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
+        JOIN articles a ON c.article_id = a.id
+        WHERE c.user_id = $1
+        `
+
+        rows, err := c.db.Query(query, userId)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var comment dto.CommentResponse
+
+                err := rows.Scan(
+                        &amp;comment.Id, &amp;comment.Content, &amp;comment.CreatedAt,
+                        &amp;comment.User.Id, &amp;comment.User.Name, &amp;comment.User.Email,
+                        &amp;comment.Article.Id, &amp;comment.Article.Title, &amp;comment.Article.Slug,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">comments = append(comments, comment)</span>
+        }
+
+        <span class="cov8" title="1">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return comments, nil</span>
+}
+
+func NewCommentRepository(database *sql.DB) CommentRepository <span class="cov8" title="1">{
+        return &amp;commentRepository{db: database}
+}</span>
+</pre>
+		
+		<pre class="file" id="file16" style="display: none">package repository
+
+import (
+        "database/sql"
+        "develapar-server/model"
+        "time"
+)
+
+type LikeRepository interface {
+        CreateLike(payload model.Likes) (model.Likes, error)
+        GetLikeByArticleId(articleId int) ([]model.Likes, error)
+        GetLikeByUserId(userId int) ([]model.Likes, error)
+        DeleteLike(userId, articleId int) error
+        IsLiked(userId, articleId int) (bool, error)
+}
+
+type likeRepository struct {
+        db *sql.DB
+}
+
+// isLiked implements LikeRepository.
+func (r *likeRepository) IsLiked(userId int, articleId int) (bool, error) <span class="cov8" title="1">{
+        var exists bool
+        query := `SELECT EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND article_id = $2)`
+        err := r.db.QueryRow(query, userId, articleId).Scan(&amp;exists)
+        if err != nil </span><span class="cov8" title="1">{
+                return false, err
+        }</span>
+        <span class="cov8" title="1">return exists, nil</span>
+}
+
+// CreateLike implements LikeRepository.
+func (l *likeRepository) CreateLike(payload model.Likes) (model.Likes, error) <span class="cov8" title="1">{
+        var like model.Likes
+        err := l.db.QueryRow(`INSERT INTO likes(article_id, user_id, created_at) VALUES($1,$2,$3) RETURNING id, article_id, user_id, created_at `, payload.Article.Id, payload.User.Id, time.Now()).Scan(
+                &amp;like.Id, &amp;like.Article.Id, &amp;like.User.Id, &amp;like.CreatedAt,
+        )
+
+        if err != nil </span><span class="cov8" title="1">{
+                return model.Likes{}, err
+        }</span>
+
+        <span class="cov8" title="1">return like, nil</span>
+}
+
+// DeleteLike implements LikeRepository.
+func (l *likeRepository) DeleteLike(userId int, articleId int) error <span class="cov8" title="1">{
+        query := `DELETE FROM likes WHERE user_id=$1 AND article_id = $2`
+        _, err := l.db.Exec(query, userId, articleId)
+
+        return err
+}</span>
+
+// GetLikeByArticleId implements LikeRepository.
+func (l *likeRepository) GetLikeByArticleId(articleId int) ([]model.Likes, error) <span class="cov8" title="1">{
+        var likes []model.Likes
+
+        query := `
+        SELECT
+                l.id, l.article_id, l.user_id, l.created_at,
+                u.id, u.name, u.email
+        FROM likes l
+        JOIN users u ON l.user_id = u.id
+        WHERE l.article_id = $1
+
+        `
+
+        rows, err := l.db.Query(query, articleId)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var like model.Likes
+                var user model.User
+
+                err := rows.Scan(
+                        &amp;like.Id, &amp;like.Article.Id, &amp;like.User.Id, &amp;like.CreatedAt, &amp;user.Id, &amp;user.Name, &amp;user.Email,
+                )
+
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">like.User = user
+
+                likes = append(likes, like)</span>
+        }
+
+        <span class="cov8" title="1">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return likes, nil</span>
+
+}
+
+// GetLikeByUserId implements LikeRepository.
+func (l *likeRepository) GetLikeByUserId(userId int) ([]model.Likes, error) <span class="cov8" title="1">{
+        var likes []model.Likes
+
+        query := `
+        SELECT
+                l.id, l.article_id, l.user_id, l.created_at,
+                a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at
+        FROM likes l
+        JOIN articles a ON l.article_id = a.id
+        WHERE l.user_id = $1
+
+        `
+
+        rows, err := l.db.Query(query, userId)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer rows.Close()
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var like model.Likes
+                var article model.Article
+
+                err := rows.Scan(
+                        &amp;like.Id, &amp;like.Article.Id, &amp;like.User.Id, &amp;like.CreatedAt, &amp;article.Id, &amp;article.Title, &amp;article.Slug, &amp;article.Content, &amp;article.Views, &amp;article.CreatedAt, &amp;article.UpdatedAt,
+                )
+
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">like.Article = article
+
+                likes = append(likes, like)</span>
+        }
+
+        <span class="cov8" title="1">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return likes, nil</span>
+}
+
+func NewLikeRepository(database *sql.DB) LikeRepository <span class="cov8" title="1">{
+        return &amp;likeRepository{db: database}
+}</span>
+</pre>
+		
+		<pre class="file" id="file17" style="display: none">package repository
+
+import (
+        "database/sql"
+        "develapar-server/model"
+)
+
+type TagRepository interface {
+        CreateTag(payload model.Tags) (model.Tags, error)
+        GetAllTag() ([]model.Tags, error)
+        GetTagById(id int) (model.Tags, error)
+        GetTagByName(name string) (model.Tags, error)
+}
+
+type tagRepository struct {
+        db *sql.DB
+}
+
+// GetTagByName implements TagRepository.
+func (t *tagRepository) GetTagByName(name string) (model.Tags, error) <span class="cov0" title="0">{
+        var tag model.Tags
+
+        err := t.db.QueryRow(`SELECT id, name FROM tags WHERE name = $1`, name).Scan(&amp;tag.Id, &amp;tag.Name)
+        if err != nil </span><span class="cov0" title="0">{
+                return model.Tags{}, err
+        }</span>
+
+        <span class="cov0" title="0">return tag, nil</span>
+}
+
+// CreateTag implements TagRepository.
+func (t *tagRepository) CreateTag(payload model.Tags) (model.Tags, error) <span class="cov0" title="0">{
+        var tag model.Tags
+        err := t.db.QueryRow(`INSERT INTO tags (name) VALUES($1) RETURNING id, name`, payload.Name).Scan(&amp;tag.Id, &amp;tag.Name)
+        if err != nil </span><span class="cov0" title="0">{
+                return model.Tags{}, err
+        }</span>
+        <span class="cov0" title="0">return tag, nil</span>
+}
+
+// GetAllTag implements TagRepository.
+func (t *tagRepository) GetAllTag() ([]model.Tags, error) <span class="cov0" title="0">{
+        var listTag []model.Tags
+
+        rows, err := t.db.Query(`SELECT id, name FROM tags`)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">defer rows.Close()
+
+        for rows.Next() </span><span class="cov0" title="0">{
+                var tag model.Tags
+
+                err := rows.Scan(
+                        &amp;tag.Id,
+                        &amp;tag.Name,
+                )
+
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov0" title="0">listTag = append(listTag, tag)</span>
+        }
+
+        <span class="cov0" title="0">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return listTag, nil</span>
+}
+
+// GetTagById implements TagRepository.
+func (t *tagRepository) GetTagById(id int) (model.Tags, error) <span class="cov0" title="0">{
+        var tag model.Tags
+
+        err := t.db.QueryRow(`SELECT id, name FROM tags WHERE id = $1`, id).Scan(&amp;tag.Id, &amp;tag.Name)
+        if err != nil </span><span class="cov0" title="0">{
+                return model.Tags{}, err
+        }</span>
+
+        <span class="cov0" title="0">return tag, nil</span>
+}
+
+func NewTagRepository(database *sql.DB) TagRepository <span class="cov0" title="0">{
+        return &amp;tagRepository{db: database}
+}</span>
+</pre>
+		
+		<pre class="file" id="file18" style="display: none">package repository
+
+import (
+        "database/sql"
+        "develapar-server/model"
+        "errors"
+        "time"
+)
+
+type UserRepository interface {
+        CreateNewUser(payload model.User) (model.User, error)
+        GetUserById(id int) (model.User, error)
+        GetByEmail(email string) (model.User, error)
+        GetAllUser() ([]model.User, error)
+        SaveRefreshToken(userId int, token string, expiresAt time.Time) error
+        ValidateRefreshToken(token string) (int, error)
+        DeleteRefreshToken(token string) error
+        DeleteAllRefreshTOkensByUser(userId int) error
+        FindRefreshToken(token string) (model.RefreshToken, error)
+        UpdateRefreshToken(oldToken string, newToken string, expiresAt time.Time) error
+}
+
+type userRepository struct {
+        db *sql.DB
+}
+
+func (r *userRepository) FindRefreshToken(token string) (model.RefreshToken, error) <span class="cov0" title="0">{
+        var rt model.RefreshToken
+        query := `SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens WHERE token = $1`
+        row := r.db.QueryRow(query, token)
+
+        err := row.Scan(&amp;rt.ID, &amp;rt.UserID, &amp;rt.Token, &amp;rt.ExpiresAt, &amp;rt.CreatedAt)
+        if err != nil </span><span class="cov0" title="0">{
+                return model.RefreshToken{}, err
+        }</span>
+
+        <span class="cov0" title="0">return rt, nil</span>
+}
+
+func (r *userRepository) UpdateRefreshToken(oldToken, newToken string, expiresAt time.Time) error <span class="cov0" title="0">{
+        query := `UPDATE refresh_tokens SET token = $1, expires_at = $2 WHERE token = $3`
+        _, err := r.db.Exec(query, newToken, expiresAt, oldToken)
+        return err
+}</span>
+
+// DeleteAllRefreshTOkensByUser implements UserRepository.
+func (u *userRepository) DeleteAllRefreshTOkensByUser(userId int) error <span class="cov0" title="0">{
+        query := `DELETE FROM refresh_tokens WHERE user_id = $1`
+        _, err := u.db.Exec(query, userId)
+        return err
+}</span>
+
+// DeleteRefreshToken implements UserRepository.
+func (u *userRepository) DeleteRefreshToken(token string) error <span class="cov0" title="0">{
+        query := `DELETE FROM refresh_tokens WHERE token = $1`
+        _, err := u.db.Exec(query, token)
+        return err
+}</span>
+
+// SaveRefreshToken implements UserRepository.
+func (u *userRepository) SaveRefreshToken(userId int, token string, expiresAt time.Time) error <span class="cov0" title="0">{
+        query := `INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`
+        _, err := u.db.Exec(query, userId, token, expiresAt)
+        return err
+}</span>
+
+// ValidateRefreshToken implements UserRepository.
+func (u *userRepository) ValidateRefreshToken(token string) (int, error) <span class="cov0" title="0">{
+        var userId int
+        var expiresAt time.Time
+        query := `SELECT user_id, expires_at FROM refresh_tokens WHERE token = $1`
+        err := u.db.QueryRow(query, token).Scan(&amp;userId, &amp;expiresAt)
+        if err != nil </span><span class="cov0" title="0">{
+                if errors.Is(err, sql.ErrNoRows) </span><span class="cov0" title="0">{
+                        return 0, errors.New("refresh token not found")
+                }</span>
+                <span class="cov0" title="0">return 0, err</span>
+        }
+
+        <span class="cov0" title="0">if time.Now().After(expiresAt) </span><span class="cov0" title="0">{
+                _ = u.DeleteRefreshToken(token)
+                return 0, errors.New("refresh token expired")
+
+        }</span>
+
+        <span class="cov0" title="0">return userId, nil</span>
+}
+
+// GetByEmail implements UserRepository.
+func (u *userRepository) GetByEmail(email string) (model.User, error) <span class="cov0" title="0">{
+        var user model.User
+
+        err := u.db.QueryRow(`SELECT id, name, email, password, created_at, updated_at FROM users WHERE email=$1`, email).Scan(&amp;user.Id, &amp;user.Name, &amp;user.Email, &amp;user.Password, &amp;user.CreatedAt, &amp;user.UpdatedAt)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return model.User{}, err
+        }</span>
+
+        <span class="cov0" title="0">return user, nil</span>
+}
+
+// GetAllUser implements UserRepository.
+func (u *userRepository) GetAllUser() ([]model.User, error) <span class="cov0" title="0">{
+        var listUser []model.User
+
+        rows, err := u.db.Query(`SELECT id, name, email, password, role, created_at, updated_at FROM users`)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">defer rows.Close()
+
+        for rows.Next() </span><span class="cov0" title="0">{
+                var user model.User
+
+                err := rows.Scan(
+                        &amp;user.Id,
+                        &amp;user.Name,
+                        &amp;user.Email,
+                        &amp;user.Password,
+                        &amp;user.Role,
+                        &amp;user.CreatedAt,
+                        &amp;user.UpdatedAt,
+                )
+
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov0" title="0">listUser = append(listUser, user)</span>
+        }
+
+        <span class="cov0" title="0">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return listUser, nil</span>
+}
+
+// GetUserById implements UserRepository.
+func (u *userRepository) GetUserById(id int) (model.User, error) <span class="cov0" title="0">{
+        var user model.User
+
+        err := u.db.QueryRow(`SELECT id, name, email, password, created_at, updated_at FROM users WHERE id=$1`, id).Scan(&amp;user.Id, &amp;user.Name, &amp;user.Email, &amp;user.CreatedAt, &amp;user.UpdatedAt)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return model.User{}, nil
+        }</span>
+
+        <span class="cov0" title="0">return user, nil</span>
+}
+
+func (u *userRepository) CreateNewUser(payload model.User) (model.User, error) <span class="cov0" title="0">{
+        var user model.User
+        err := u.db.QueryRow(`INSERT INTO users (name, email, password, role, updated_at) VALUES($1, $2, $3, $4, $5) RETURNING id, name, email, role, created_at, updated_at`, payload.Name, payload.Email, payload.Password, payload.Role, time.Now()).Scan(&amp;user.Id, &amp;user.Name, &amp;user.Email, &amp;user.Role, &amp;user.CreatedAt, &amp;user.UpdatedAt)
+        if err != nil </span><span class="cov0" title="0">{
+                return model.User{}, err
+        }</span>
+        <span class="cov0" title="0">return user, nil</span>
+}
+
+func NewUserRepository(database *sql.DB) UserRepository <span class="cov0" title="0">{
+        return &amp;userRepository{db: database}
+}</span>
+</pre>
+		
+		<pre class="file" id="file19" style="display: none">package main
+
+import (
+        "database/sql"
+        "develapar-server/config"
+        "develapar-server/controller"
+        "develapar-server/middleware"
+        "develapar-server/repository"
+        "develapar-server/service"
+        "fmt"
+        "log"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+        swaggerFiles "github.com/swaggo/files"
+        ginSwagger "github.com/swaggo/gin-swagger"
+)
+
+type Server struct {
+        uS      service.UserService
+        cS      service.CategoryService
+        aS      service.ArticleService
+        bS      service.BookmarkService
+        tS      service.TagService
+        atS     service.ArticleTagService
+        coS     service.CommentService
+        lS      service.LikeService
+        jS      service.JwtService
+        mD      middleware.AuthMiddleware
+        engine  *gin.Engine
+        portApp string
+}
+
+func (s *Server) initiateRoute() <span class="cov0" title="0">{
+        routerGroup := s.engine.Group("/api/v1")
+        controller.NewUserController(s.uS, routerGroup).Route()
+        controller.NewCategoryController(s.cS, routerGroup, s.mD).Route()
+        controller.NewArticleController(s.aS, s.mD, routerGroup).Route()
+        controller.NewBookmarkController(s.bS, routerGroup, s.mD).Route()
+        controller.NewTagController(s.tS, routerGroup, s.mD).Route()
+        controller.NewArticleTagController(s.atS, routerGroup, s.mD).Route()
+        controller.NewCommentController(s.coS, routerGroup, s.mD).Route()
+        controller.NewLikeController(s.lS, routerGroup, s.mD).Route()
+
+        // Swagger UI
+        s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+}</span>
+
+func (s *Server) Start() <span class="cov0" title="0">{
+        s.initiateRoute()
+        s.engine.Run(s.portApp)
+}</span>
+
+// CORSMiddleware adalah middleware yang akan menangani CORS
+func CORSMiddleware() gin.HandlerFunc <span class="cov8" title="1">{
+        return func(c *gin.Context) </span><span class="cov8" title="1">{
+                fmt.Println("CORS Middleware hit:", c.Request.Method, c.Request.URL.Path)
+                c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+                c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+                c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+                c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+                if c.Request.Method == "OPTIONS" </span><span class="cov8" title="1">{
+                        c.AbortWithStatus(http.StatusNoContent)
+                        return
+                }</span>
+
+                <span class="cov8" title="1">c.Next()</span>
+        }
+}
+
+func NewServer() *Server <span class="cov0" title="0">{
+        co, err := config.NewConfig()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("failed to load config: %v", err)
+        }</span>
+        <span class="cov0" title="0">urlConnection := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", co.Host, co.Port, co.User, co.Password, co.Name)
+
+        db, err := sql.Open(co.Driver, urlConnection)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err)
+        }</span>
+
+        <span class="cov0" title="0">engine := gin.Default()
+
+        // PENTING: Pastikan middleware CORS dipasang sebelum router
+        engine.Use(CORSMiddleware())
+
+        portApp := co.AppPort
+
+        userRepo := repository.NewUserRepository(db)
+        categoryRepo := repository.NewCategoryRepository(db)
+        articleRepo := repository.NewArticleRepository(db)
+        bookmarkRepo := repository.NewBookmarkRepository(db)
+        tagRepo := repository.NewTagRepository(db)
+        articleTagRepo := repository.NewArticleTagRepository(db)
+        commentRepo := repository.NewCommentRepository(db)
+        likeRepo := repository.NewLikeRepository(db)
+
+        jwtService := service.NewJwtService(co.SecurityConfig)
+        userService := service.NewUserservice(userRepo, jwtService)
+        categoryService := service.NewCategoryService(categoryRepo)
+        articleService := service.NewArticleService(articleRepo)
+        bookmarkService := service.NewBookmarkService(bookmarkRepo)
+        tagService := service.NewTagService(tagRepo)
+        articleTagService := service.NewArticleTagService(tagRepo, articleTagRepo)
+        commentService := service.NewCommentService(commentRepo)
+        likeService := service.NewLikeService(likeRepo)
+
+        authMiddleware := middleware.NewAuthMiddleware(jwtService)
+
+        return &amp;Server{
+                cS:      categoryService,
+                uS:      userService,
+                aS:      articleService,
+                bS:      bookmarkService,
+                tS:      tagService,
+                jS:      jwtService,
+                atS:     articleTagService,
+                coS:     commentService,
+                lS:      likeService,
+                mD:      authMiddleware,
+                portApp: portApp,
+                engine:  engine,
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file20" style="display: none">package service
+
+import (
+        "develapar-server/model"
+        "develapar-server/model/dto"
+        "develapar-server/repository"
+        "develapar-server/utils"
+        "time"
+)
+
+type ArticleService interface {
+        CreateArticle(payload model.Article) (model.Article, error)
+        FindAll() ([]model.Article, error)
+        UpdateArticle(id int, req dto.UpdateArticleRequest) (model.Article, error)
+        FindById(id int) (model.Article, error)
+        FindBySlug(slug string) (model.Article, error)
+        FindByUserId(userId int) ([]model.Article, error)
+        FindByCategory(catId string) ([]model.Article, error)
+        DeleteArticle(id int) error
+}
+
+type articleService struct {
+        repo repository.ArticleRepository
+}
+
+// FindById implements ArticleService.
+func (a *articleService) FindById(id int) (model.Article, error) <span class="cov0" title="0">{
+        return a.repo.GetArticleById(id)
+}</span>
+
+// FindByCategory implements ArticleService.
+func (a *articleService) FindByCategory(catId string) ([]model.Article, error) <span class="cov0" title="0">{
+        return a.repo.GetArticleByCategory(catId)
+}</span>
+
+// DeleteArticle implements ArticleService.
+func (a *articleService) DeleteArticle(id int) error <span class="cov0" title="0">{
+        return a.repo.DeleteArticle(id)
+}</span>
+
+// FindByUserId implements ArticleService.
+func (a *articleService) FindByUserId(userId int) ([]model.Article, error) <span class="cov0" title="0">{
+        return a.repo.GetArticleByUserId(userId)
+}</span>
+
+// FindBySlug implements ArticleService.
+func (a *articleService) FindBySlug(slug string) (model.Article, error) <span class="cov0" title="0">{
+        return a.repo.GetArticleBySlug(slug)
+}</span>
+
+// UpdateArticle implements ArticleService.
+func (a *articleService) UpdateArticle(id int, req dto.UpdateArticleRequest) (model.Article, error) <span class="cov0" title="0">{
+        article, err := a.repo.GetArticleById(id)
+        if err != nil </span><span class="cov0" title="0">{
+                return model.Article{}, err
+        }</span>
+
+        <span class="cov0" title="0">if req.Title != nil </span><span class="cov0" title="0">{
+                article.Title = *req.Title
+        }</span>
+        <span class="cov0" title="0">if req.Slug != nil </span><span class="cov0" title="0">{
+                slug := utils.GenerateSlug(*req.Slug)
+                article.Slug = slug
+        }</span>
+        <span class="cov0" title="0">if req.Content != nil </span><span class="cov0" title="0">{
+                article.Content = *req.Content
+        }</span>
+        <span class="cov0" title="0">if req.CategoryID != nil </span><span class="cov0" title="0">{
+                article.Category.Id = *req.CategoryID
+        }</span>
+
+        <span class="cov0" title="0">return a.repo.UpdateArticle(article)</span>
+}
+
+// CreateArticle implements ArticleService.
+func (a *articleService) CreateArticle(payload model.Article) (model.Article, error) <span class="cov0" title="0">{
+        slug := utils.GenerateSlug(payload.Slug)
+        article := model.Article{
+
+                Title:     payload.Title,
+                Slug:      slug,
+                Content:   payload.Content,
+                User:      payload.User,
+                Category:  payload.Category,
+                Views:     payload.Views,
+                CreatedAt: time.Now(),
+                UpdatedAt: time.Now(),
+        }
+
+        return a.repo.CreateArticle(article)
+}</span>
+
+// FindAll implements ArticleService.
+func (a *articleService) FindAll() ([]model.Article, error) <span class="cov0" title="0">{
+        return a.repo.GetAll()
+}</span>
+
+func NewArticleService(repository repository.ArticleRepository) ArticleService <span class="cov0" title="0">{
+        return &amp;articleService{repo: repository}
+}</span>
+</pre>
+		
+		<pre class="file" id="file21" style="display: none">package service
+
+import (
+        "develapar-server/model"
+        "develapar-server/repository"
+)
+
+type ArticleTagService interface {
+        AssignTags(articleId int, tagId []int) error
+        AsignTagsByName(articleId int, tagNames []string) error
+        FindTagByArticleId(articleId int) ([]model.Tags, error)
+        FindArticleByTagId(tagId int) ([]model.Article, error)
+        RemoveTagFromArticle(articleId, tagId int) error
+}
+
+type articleTagService struct {
+        articleTagRepo repository.ArticleTagRepository
+        tagRepo        repository.TagRepository
+}
+
+// RemoveTagFromArticle implements ArticleTagService.
+func (a *articleTagService) RemoveTagFromArticle(articleId int, tagId int) error <span class="cov0" title="0">{
+        return a.articleTagRepo.RemoveTagFromArticle(articleId, tagId)
+}</span>
+
+// AsignTagsByName implements ArticleTagService.
+func (a *articleTagService) AsignTagsByName(articleId int, tagNames []string) error <span class="cov0" title="0">{
+
+        var tagIds []int
+
+        for _, tagName := range tagNames </span><span class="cov0" title="0">{
+                tag, err := a.tagRepo.GetTagByName(tagName)
+                if err != nil </span><span class="cov0" title="0">{
+                        newTag, err := a.tagRepo.CreateTag(model.Tags{Name: tagName})
+                        if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                        <span class="cov0" title="0">tagIds = append(tagIds, newTag.Id)</span>
+                } else<span class="cov0" title="0"> {
+                        tagIds = append(tagIds, tag.Id)
+                }</span>
+        }
+
+        <span class="cov0" title="0">return a.articleTagRepo.AssignTags(articleId, tagIds)</span>
+}
+
+// AssignTags implements ArticleTagService.
+func (a *articleTagService) AssignTags(articleId int, tagId []int) error <span class="cov0" title="0">{
+        return a.articleTagRepo.AssignTags(articleId, tagId)
+}</span>
+
+// FindArticleByTagId implements ArticleTagService.
+func (a *articleTagService) FindArticleByTagId(tagId int) ([]model.Article, error) <span class="cov0" title="0">{
+        return a.articleTagRepo.GetArticleByTagId(tagId)
+}</span>
+
+// FindTagByArticleId implements ArticleTagService.
+func (a *articleTagService) FindTagByArticleId(articleId int) ([]model.Tags, error) <span class="cov0" title="0">{
+        return a.articleTagRepo.GetTagsByArticleId(articleId)
+}</span>
+
+func NewArticleTagService(tagRepo repository.TagRepository, articleTagRepo repository.ArticleTagRepository) ArticleTagService <span class="cov0" title="0">{
+        return &amp;articleTagService{
+                tagRepo:        tagRepo,
+                articleTagRepo: articleTagRepo,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file22" style="display: none">package service
+
+import (
+        "develapar-server/model"
+        "develapar-server/repository"
+)
+
+type BookmarkService interface {
+        CreateBookmark(payload model.Bookmark) (model.Bookmark, error)
+        FindByUserId(userId string) ([]model.Bookmark, error)
+        DeleteBookmark(userId, articleId int) error
+        IsBookmarked(userId, articleId int) (bool, error)
+}
+
+type bookmarkService struct {
+        repo repository.BookmarkRepository
+}
+
+// IsBookmarked implements BookmarkService.
+func (b *bookmarkService) IsBookmarked(userId int, articleId int) (bool, error) <span class="cov0" title="0">{
+        return b.repo.IsBookmarked(userId, articleId)
+}</span>
+
+// DeleteBookmark implements BookmarkService.
+func (b *bookmarkService) DeleteBookmark(userId int, articleId int) error <span class="cov0" title="0">{
+        return b.repo.DeleteBookmark(userId, articleId)
+}</span>
+
+// CreateBookmark implements BookmarkService.
+func (b *bookmarkService) CreateBookmark(payload model.Bookmark) (model.Bookmark, error) <span class="cov0" title="0">{
+        return b.repo.CreateBookmark(payload)
+}</span>
+
+// FindByUserId implements BookmarkService.
+func (b *bookmarkService) FindByUserId(userId string) ([]model.Bookmark, error) <span class="cov0" title="0">{
+        return b.repo.GetByUserId(userId)
+}</span>
+
+func NewBookmarkService(repository repository.BookmarkRepository) BookmarkService <span class="cov0" title="0">{
+        return &amp;bookmarkService{repo: repository}
+}</span>
+</pre>
+		
+		<pre class="file" id="file23" style="display: none">package service
+
+import (
+        "develapar-server/model"
+        "develapar-server/model/dto"
+        "develapar-server/repository"
+        "strings"
+)
+
+type CategoryService interface {
+        CreateCategory(payload model.Category) (model.Category, error)
+        FindAll() ([]model.Category, error)
+        UpdateCategory(id int, req dto.UpdateCategoryRequest) (model.Category, error)
+        DeleteCategory(id int) error
+}
+
+type categoryService struct {
+        repo repository.CategoryRepository
+}
+
+// DeleteCategory implements CategoryService.
+func (c *categoryService) DeleteCategory(id int) error <span class="cov0" title="0">{
+        return c.repo.DeleteCategory(id)
+}</span>
+
+// UpdateCategory implements CategoryService.
+func (c *categoryService) UpdateCategory(id int, req dto.UpdateCategoryRequest) (model.Category, error) <span class="cov0" title="0">{
+        cat, err := c.repo.GetCategoryById(id)
+        if err != nil </span><span class="cov0" title="0">{
+                return model.Category{}, err
+        }</span>
+
+        <span class="cov0" title="0">if req.Name != nil </span><span class="cov0" title="0">{
+                cat.Name = strings.ToLower(*req.Name)
+        }</span>
+
+        <span class="cov0" title="0">return c.repo.UpdateCategory(cat)</span>
+
+}
+
+// CreateCategory implements CategoryService.
+func (c *categoryService) CreateCategory(payload model.Category) (model.Category, error) <span class="cov0" title="0">{
+        return c.repo.CreateCategory(payload)
+}</span>
+
+// FindAll implements CategoryService.
+func (c *categoryService) FindAll() ([]model.Category, error) <span class="cov0" title="0">{
+        return c.repo.GetAll()
+}</span>
+
+func NewCategoryService(repository repository.CategoryRepository) CategoryService <span class="cov0" title="0">{
+        return &amp;categoryService{repo: repository}
+}</span>
+</pre>
+		
+		<pre class="file" id="file24" style="display: none">package service
+
+import (
+        "develapar-server/model"
+        "develapar-server/model/dto"
+        "develapar-server/repository"
+        "errors"
+)
+
+type CommentService interface {
+        CreateComment(payload model.Comment) (model.Comment, error)
+        FindCommentByArticleId(articleId int) ([]model.Comment, error)
+        FindCommentByUserId(userId int) ([]dto.CommentResponse, error)
+        EditComment(commentId int, content string, userId int) error
+        DeleteComment(commentId int, userId int) error
+}
+
+var ErrUnauthorized = errors.New("unauthorized")
+
+type commentService struct {
+        repo repository.CommentRepository
+}
+
+// DeleteComment implements CommentService.
+func (c *commentService) DeleteComment(commentId int, userId int) error <span class="cov0" title="0">{
+        comment, err := c.repo.GetCommentById(commentId)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">if comment.User.Id != userId </span><span class="cov0" title="0">{
+                return ErrUnauthorized
+        }</span>
+
+        <span class="cov0" title="0">return c.repo.DeleteComment(commentId)</span>
+}
+
+// EditComment implements CommentService.
+func (c *commentService) EditComment(commentId int, content string, userId int) error <span class="cov0" title="0">{
+        comment, err := c.repo.GetCommentById(commentId)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">if comment.User.Id != userId </span><span class="cov0" title="0">{
+                return ErrUnauthorized
+        }</span>
+
+        <span class="cov0" title="0">return c.repo.UpdateComment(commentId, content, userId)</span>
+}
+
+// CreateComment implements CommentService.
+func (c *commentService) CreateComment(payload model.Comment) (model.Comment, error) <span class="cov0" title="0">{
+        return c.repo.CreateComment(payload)
+}</span>
+
+// FindCommentByArticleId implements CommentService.
+func (c *commentService) FindCommentByArticleId(articleId int) ([]model.Comment, error) <span class="cov0" title="0">{
+        return c.repo.GetCommentByArticleId(articleId)
+}</span>
+
+// FindCommentByUserId implements CommentService.
+func (c *commentService) FindCommentByUserId(userId int) ([]dto.CommentResponse, error) <span class="cov0" title="0">{
+        return c.repo.GetCommentByUserId(userId)
+}</span>
+
+func NewCommentService(repository repository.CommentRepository) CommentService <span class="cov0" title="0">{
+        return &amp;commentService{repo: repository}
+}</span>
+</pre>
+		
+		<pre class="file" id="file25" style="display: none">package service
+
+import (
+        "crypto/rand"
+        "develapar-server/config"
+        "develapar-server/model"
+        "develapar-server/model/dto"
+        "encoding/base64"
+        "errors"
+        "time"
+
+        "github.com/golang-jwt/jwt/v5"
+)
+
+type JwtService interface {
+        GenerateToken(payload model.User) (dto.LoginResponseDto, error)
+        VerifyToken(tokenString string) (jwt.MapClaims, error)
+
+        GenerateRefreshToken() (string, error)
+}
+type jwtService struct {
+        config config.SecurityConfig
+}
+
+// GenerateRefreshToken implements JwtService.
+func (j *jwtService) GenerateRefreshToken() (string, error) <span class="cov0" title="0">{
+                b := make([]byte, 32) // 256 bit
+        _, err := rand.Read(b)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov0" title="0">return base64.URLEncoding.EncodeToString(b), nil</span>
+}
+
+// GenerateToken implements JwtService.
+func (j *jwtService) GenerateToken(payload model.User) (dto.LoginResponseDto, error) <span class="cov0" title="0">{
+        claims := dto.JwtTokenClaims{
+                RegisteredClaims: jwt.RegisteredClaims{
+                        Issuer:    j.config.Issues,
+                        ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.config.Durasi * time.Hour)),
+                        IssuedAt:  jwt.NewNumericDate(time.Now()),
+                },
+                UserId: payload.Id,
+                Role:   payload.Role,
+        }
+
+        token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+        accessToken, err := token.SignedString([]byte(j.config.Key))
+        if err != nil </span><span class="cov0" title="0">{
+                return dto.LoginResponseDto{}, err
+        }</span>
+// 2. Refresh Token
+        <span class="cov0" title="0">refreshToken, err := j.GenerateRefreshToken()
+        if err != nil </span><span class="cov0" title="0">{
+                return dto.LoginResponseDto{}, err
+        }</span>
+
+        <span class="cov0" title="0">return dto.LoginResponseDto{
+                AccessToken:  accessToken,
+                RefreshToken: refreshToken,
+        }, nil</span>
+}
+
+// VerifyToken implements JwtService.
+func (j *jwtService) VerifyToken(tokenString string) (jwt.MapClaims, error) <span class="cov0" title="0">{
+        token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) </span><span class="cov0" title="0">{
+                return []byte(j.config.Key), nil
+        }</span>)
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, errors.New("failed verify token")
+        }</span>
+
+        <span class="cov0" title="0">claims, ok := token.Claims.(jwt.MapClaims)
+        if !token.Valid || !ok || claims["iss"] != j.config.Issues </span><span class="cov0" title="0">{
+                return nil, errors.New("invalid issuer or claims")
+        }</span>
+        <span class="cov0" title="0">return claims, nil</span>
+}
+
+func NewJwtService(cg config.SecurityConfig) JwtService <span class="cov0" title="0">{
+        return &amp;jwtService{config: cg}
+}</span>
+</pre>
+		
+		<pre class="file" id="file26" style="display: none">package service
+
+import (
+        "develapar-server/model"
+        "develapar-server/model/dto"
+
+        "github.com/golang-jwt/jwt/v5"
+        "github.com/stretchr/testify/mock"
+)
+
+type JwtServiceMock struct {
+        mock.Mock
+}
+
+func (j *JwtServiceMock) GenerateToken(payload model.User) (dto.LoginResponseDto, error) <span class="cov0" title="0">{
+        args := j.Called(payload)
+        return args.Get(0).(dto.LoginResponseDto), args.Error(1)
+}</span>
+
+func (j *JwtServiceMock) VerifyToken(token string) (jwt.MapClaims, error) <span class="cov0" title="0">{
+        args := j.Called(token)
+        return args.Get(0).(jwt.MapClaims), args.Error(1)
+}</span>
+
+func (j *JwtServiceMock) GenerateRefreshToken() (string, error) <span class="cov0" title="0">{
+        args := j.Called()
+        return args.Get(0).(string), args.Error(1)
+}</span>
+</pre>
+		
+		<pre class="file" id="file27" style="display: none">package service
+
+import (
+        "develapar-server/model"
+        "develapar-server/repository"
+)
+
+type LikeService interface {
+        CreateLike(payload model.Likes) (model.Likes, error)
+        FindLikeByArticleId(articleId int) ([]model.Likes, error)
+        FindLikeByUserId(userId int) ([]model.Likes, error)
+        DeleteLike(userId, articleId int) error
+        IsLiked(userId, articleId int) (bool, error)
+}
+
+type likeService struct {
+        repo repository.LikeRepository
+}
+
+// IsLiked implements LikeService.
+func (l *likeService) IsLiked(userId int, articleId int) (bool, error) <span class="cov0" title="0">{
+        return l.repo.IsLiked(userId, articleId)
+}</span>
+
+// CreateLike implements LikeService.
+func (l *likeService) CreateLike(payload model.Likes) (model.Likes, error) <span class="cov0" title="0">{
+        return l.repo.CreateLike(payload)
+}</span>
+
+// DeleteLike implements LikeService.
+func (l *likeService) DeleteLike(userId int, articleId int) error <span class="cov0" title="0">{
+        return l.repo.DeleteLike(userId, articleId)
+}</span>
+
+// FindLikeByArticleId implements LikeService.
+func (l *likeService) FindLikeByArticleId(articleId int) ([]model.Likes, error) <span class="cov0" title="0">{
+
+        return l.repo.GetLikeByArticleId(articleId)
+}</span>
+
+// FindLikeByUserId implements LikeService.
+func (l *likeService) FindLikeByUserId(userId int) ([]model.Likes, error) <span class="cov0" title="0">{
+        return l.repo.GetLikeByUserId(userId)
+}</span>
+
+func NewLikeService(repository repository.LikeRepository) LikeService <span class="cov0" title="0">{
+        return &amp;likeService{repo: repository}
+}</span>
+</pre>
+		
+		<pre class="file" id="file28" style="display: none">package service
+
+import (
+        "develapar-server/model"
+        "develapar-server/repository"
+)
+
+type TagService interface {
+        CreateTag(payload model.Tags) (model.Tags, error)
+        FindAll() ([]model.Tags, error)
+        FindById(id int) (model.Tags, error)
+}
+
+type tagService struct {
+        repo repository.TagRepository
+}
+
+// CreateTag implements TagService.
+func (t *tagService) CreateTag(payload model.Tags) (model.Tags, error) <span class="cov0" title="0">{
+        return t.repo.CreateTag(payload)
+}</span>
+
+// FindAll implements TagService.
+func (t *tagService) FindAll() ([]model.Tags, error) <span class="cov0" title="0">{
+        return t.repo.GetAllTag()
+}</span>
+
+// FindById implements TagService.
+func (t *tagService) FindById(id int) (model.Tags, error) <span class="cov0" title="0">{
+
+        return t.repo.GetTagById(id)
+}</span>
+
+func NewTagService(repository repository.TagRepository) TagService <span class="cov0" title="0">{
+        return &amp;tagService{repo: repository}
+}</span>
+</pre>
+		
+		<pre class="file" id="file29" style="display: none">package service
+
+import (
+        "develapar-server/model"
+        "develapar-server/model/dto"
+        "develapar-server/repository"
+        "develapar-server/utils"
+        "fmt"
+        "log"
+        "net/url"
+        "strconv"
+        "time"
+)
+
+type UserService interface {
+        CreateNewUser(payload model.User) (model.User, error)
+        FindUserById(id string) (model.User, error)
+        FindAllUser() ([]model.User, error)
+        Login(payload dto.LoginDto) (dto.LoginResponseDto, error)
+        RefreshToken(refreshToken string) (dto.LoginResponseDto, error)
+}
+
+type userService struct {
+        repo       repository.UserRepository
+        jwtService JwtService
+}
+
+// Login implements UserService.
+func (u *userService) Login(payload dto.LoginDto) (dto.LoginResponseDto, error) <span class="cov0" title="0">{
+        user, err := u.repo.GetByEmail(payload.Identifier)
+        if err != nil </span><span class="cov0" title="0">{
+                return dto.LoginResponseDto{}, fmt.Errorf("invalid credentials")
+        }</span>
+
+        <span class="cov0" title="0">if err := utils.ComparePasswordHash(user.Password, payload.Password); err != nil </span><span class="cov0" title="0">{
+                return dto.LoginResponseDto{}, fmt.Errorf("invalid credentials")
+        }</span>
+
+        <span class="cov0" title="0">user.Password = "-"
+        token, err := u.jwtService.GenerateToken(user)
+        if err != nil </span><span class="cov0" title="0">{
+                return dto.LoginResponseDto{}, fmt.Errorf("failed to create token")
+        }</span>
+
+        <span class="cov0" title="0">expiresAt := time.Now().Add(7 * 24 * time.Hour) // misalnya refresh token 7 hari
+        err = u.repo.SaveRefreshToken(user.Id, token.RefreshToken, expiresAt)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("[Login] Failed saving refresh token: %v", err)
+                return dto.LoginResponseDto{}, fmt.Errorf("internal server error")
+        }</span>
+
+        <span class="cov0" title="0">return token, nil</span>
+
+}
+
+// FindAllUser implements UserService.
+func (u *userService) FindAllUser() ([]model.User, error) <span class="cov0" title="0">{
+        return u.repo.GetAllUser()
+}</span>
+
+// FindUserById implements UserService.
+func (u *userService) FindUserById(id string) (model.User, error) <span class="cov0" title="0">{
+        newId, err := strconv.Atoi(id)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return model.User{}, err
+        }</span>
+
+        <span class="cov0" title="0">return u.repo.GetUserById(newId)</span>
+}
+
+func (u *userService) CreateNewUser(payload model.User) (model.User, error) <span class="cov0" title="0">{
+        // Hash password dulu sebelum disimpan
+        hashedPassword, err := utils.EncryptPassword(payload.Password)
+        if err != nil </span><span class="cov0" title="0">{
+                return model.User{}, fmt.Errorf("failed to encrypt password: %v", err)
+        }</span>
+        <span class="cov0" title="0">payload.Password = hashedPassword
+
+        // Simpan user ke database
+        createdUser, err := u.repo.CreateNewUser(payload)
+        if err != nil </span><span class="cov0" title="0">{
+                return model.User{}, err
+        }</span>
+
+        // Jangan balikin password-nya
+        <span class="cov0" title="0">createdUser.Password = "-"
+        return createdUser, nil</span>
+}
+
+func (u *userService) RefreshToken(refreshToken string) (dto.LoginResponseDto, error) <span class="cov0" title="0">{
+        // Cek refresh token di database
+        decodedToken, err := url.QueryUnescape(refreshToken)
+        if err != nil </span><span class="cov0" title="0">{
+                return dto.LoginResponseDto{}, fmt.Errorf("invalid refresh token format")
+        }</span>
+        <span class="cov0" title="0">fmt.Println(refreshToken)
+        fmt.Println(decodedToken)
+        // Cek refresh token di database
+        rt, err := u.repo.FindRefreshToken(decodedToken)
+        if err != nil || rt.ExpiresAt.Before(time.Now()) </span><span class="cov0" title="0">{
+                return dto.LoginResponseDto{}, err
+        }</span>
+
+        // Ambil user
+        <span class="cov0" title="0">user, err := u.repo.GetUserById(rt.UserID)
+        if err != nil </span><span class="cov0" title="0">{
+                return dto.LoginResponseDto{}, fmt.Errorf("user not found")
+        }</span>
+
+        // Generate token baru
+        <span class="cov0" title="0">tokenResp, err := u.jwtService.GenerateToken(user)
+        if err != nil </span><span class="cov0" title="0">{
+                return dto.LoginResponseDto{}, fmt.Errorf("failed to generate new token")
+        }</span>
+
+        // Update refresh token lama → bisa regenerasi token atau pakai yang sama (opsional)
+        <span class="cov0" title="0">expiresAt := time.Now().Add(7 * 24 * time.Hour)
+        err = u.repo.UpdateRefreshToken(refreshToken, tokenResp.RefreshToken, expiresAt)
+        if err != nil </span><span class="cov0" title="0">{
+                return dto.LoginResponseDto{}, fmt.Errorf("failed to update refresh token")
+        }</span>
+
+        <span class="cov0" title="0">return tokenResp, nil</span>
+}
+
+func NewUserservice(repository repository.UserRepository, jS JwtService) UserService <span class="cov0" title="0">{
+        return &amp;userService{repo: repository, jwtService: jS}
+}</span>
+</pre>
+		
+		<pre class="file" id="file30" style="display: none">package utils
+
+import "golang.org/x/crypto/bcrypt"
+
+func EncryptPassword(password string) (string, error) <span class="cov8" title="1">{
+        passwordHash, error := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+        if error != nil </span><span class="cov0" title="0">{
+                return "", error
+        }</span>
+        <span class="cov8" title="1">return string(passwordHash), nil</span>
+}
+
+func ComparePasswordHash(passwordHash string, plainPassword string) error <span class="cov8" title="1">{
+        return bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(plainPassword))
+}</span>
+</pre>
+		
+		<pre class="file" id="file31" style="display: none">package utils
+
+import (
+        "strings"
+        "unicode"
+)
+
+func GenerateSlug(title string) string <span class="cov8" title="1">{
+        slug := strings.ToLower(title)
+        slug = strings.Map(func(r rune) rune </span><span class="cov8" title="1">{
+                if unicode.IsLetter(r) || unicode.IsNumber(r) </span><span class="cov8" title="1">{
+                        return r
+                }</span>
+                <span class="cov8" title="1">if unicode.IsSpace(r) </span><span class="cov8" title="1">{
+                        return '-'
+                }</span>
+                <span class="cov8" title="1">return -1</span>
+        }, slug)
+        <span class="cov8" title="1">return slug</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

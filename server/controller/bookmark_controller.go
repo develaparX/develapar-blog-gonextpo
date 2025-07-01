@@ -16,6 +16,18 @@ type BookmarkController struct {
 	md      middleware.AuthMiddleware
 }
 
+// @Summary Create a new bookmark
+// @Description Create a new bookmark for an article
+// @Tags Bookmarks
+// @Accept json
+// @Produce json
+// @Param payload body model.Bookmark true "Bookmark creation details"
+// @Success 200 {object} object{message=string,data=model.Bookmark} "Bookmark successfully created"
+// @Failure 400 {object} object{message=string} "Invalid payload"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{message=string} "Internal server error"
+// @Security BearerAuth
+// @Router /bookmark [post]
 func (b *BookmarkController) CreateBookmarkHandler(ctx *gin.Context) {
 	var payload model.Bookmark
 	userIdRaw, exists := ctx.Get("userId")
@@ -53,6 +65,14 @@ func (b *BookmarkController) CreateBookmarkHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Get bookmarks by user ID
+// @Description Get a list of bookmarks for a specific user ID
+// @Tags Bookmarks
+// @Produce json
+// @Param user_id path int true "ID of the user whose bookmarks to retrieve"
+// @Success 200 {object} object{message=string,data=[]model.Bookmark} "List of bookmarks for the user"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Router /bookmark/{user_id} [get]
 func (b *BookmarkController) GetBookmarkByUserId(ctx *gin.Context) {
 	userID := ctx.Param("user_id")
 
@@ -69,6 +89,18 @@ func (b *BookmarkController) GetBookmarkByUserId(ctx *gin.Context) {
 	})
 }
 
+// @Summary Delete a bookmark
+// @Description Delete a bookmark for an article by article ID
+// @Tags Bookmarks
+// @Accept json
+// @Produce json
+// @Param article_id body object{article_id=int} true "Article ID to unbookmark"
+// @Success 200 {object} object{message=string} "Bookmark deleted successfully"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /bookmark [delete]
 func (b *BookmarkController) DeleteBookmarkHandler(ctx *gin.Context) {
 	userIdRaw, exists := ctx.Get("userId")
 	if !exists {
@@ -100,6 +132,17 @@ func (b *BookmarkController) DeleteBookmarkHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Check if an article is bookmarked by the current user
+// @Description Check if a specific article is bookmarked by the authenticated user
+// @Tags Bookmarks
+// @Produce json
+// @Param article_id query int true "ID of the article to check"
+// @Success 200 {object} object{bookmarked=bool} "Bookmark status"
+// @Failure 400 {object} object{error=string} "Invalid article ID"
+// @Failure 401 {object} object{message=string} "Unauthorized"
+// @Failure 500 {object} object{error=string} "Internal server error"
+// @Security BearerAuth
+// @Router /bookmark/check [get]
 func (c *BookmarkController) CheckBookmarkHandler(ctx *gin.Context) {
 	userIdRaw, exists := ctx.Get("userId")
 	if !exists {
