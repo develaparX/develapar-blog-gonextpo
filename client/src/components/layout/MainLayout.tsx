@@ -5,7 +5,7 @@ const MainLayout = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Floating Navbar */}
-      <div className="fixed top-6 left-1/8 -translate-x-1/2 z-5 shadow-lg">
+      <div className=" top-6 left-1/8 -translate-x-1/2 z-5 shadow-lg">
         <img src={logo} alt="" width={150} className=" rounded-xl " />
       </div>
 

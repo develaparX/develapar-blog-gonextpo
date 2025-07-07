@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"develapar-server/config"
 	"develapar-server/controller"
+	_ "develapar-server/docs" // Import the generated docs
 	"develapar-server/middleware"
 	"develapar-server/repository"
 	"develapar-server/service"
+	"develapar-server/utils"
 	"fmt"
 	"log"
 	"net/http"
@@ -97,8 +99,9 @@ func NewServer() *Server {
 	commentRepo := repository.NewCommentRepository(db)
 	likeRepo := repository.NewLikeRepository(db)
 
+	passwordHasher := utils.NewPasswordHasher()
 	jwtService := service.NewJwtService(co.SecurityConfig)
-	userService := service.NewUserservice(userRepo, jwtService)
+	userService := service.NewUserservice(userRepo, jwtService, passwordHasher)
 	categoryService := service.NewCategoryService(categoryRepo)
 	articleService := service.NewArticleService(articleRepo)
 	bookmarkService := service.NewBookmarkService(bookmarkRepo)

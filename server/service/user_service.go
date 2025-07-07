@@ -21,8 +21,9 @@ type UserService interface {
 }
 
 type userService struct {
-	repo       repository.UserRepository
-	jwtService JwtService
+	repo           repository.UserRepository
+	jwtService     JwtService
+	passwordHasher utils.PasswordHasher
 }
 
 // Login implements UserService.
@@ -32,7 +33,7 @@ func (u *userService) Login(payload dto.LoginDto) (dto.LoginResponseDto, error) 
 		return dto.LoginResponseDto{}, fmt.Errorf("invalid credentials")
 	}
 
-	if err := utils.ComparePasswordHash(user.Password, payload.Password); err != nil {
+	if err := u.passwordHasher.ComparePasswordHash(user.Password, payload.Password); err != nil {
 		return dto.LoginResponseDto{}, fmt.Errorf("invalid credentials")
 	}
 
@@ -71,7 +72,7 @@ func (u *userService) FindUserById(id string) (model.User, error) {
 
 func (u *userService) CreateNewUser(payload model.User) (model.User, error) {
 	// Hash password dulu sebelum disimpan
-	hashedPassword, err := utils.EncryptPassword(payload.Password)
+	hashedPassword, err := u.passwordHasher.EncryptPassword(payload.Password)
 	if err != nil {
 		return model.User{}, fmt.Errorf("failed to encrypt password: %v", err)
 	}
@@ -94,8 +95,7 @@ func (u *userService) RefreshToken(refreshToken string) (dto.LoginResponseDto, e
 	if err != nil {
 		return dto.LoginResponseDto{}, fmt.Errorf("invalid refresh token format")
 	}
-	fmt.Println(refreshToken)
-	fmt.Println(decodedToken)
+	
 	// Cek refresh token di database
 	rt, err := u.repo.FindRefreshToken(decodedToken)
 	if err != nil || rt.ExpiresAt.Before(time.Now()) {
@@ -124,6 +124,6 @@ func (u *userService) RefreshToken(refreshToken string) (dto.LoginResponseDto, e
 	return tokenResp, nil
 }
 
-func NewUserservice(repository repository.UserRepository, jS JwtService) UserService {
-	return &userService{repo: repository, jwtService: jS}
+func NewUserservice(repository repository.UserRepository, jS JwtService, ph utils.PasswordHasher) UserService {
+	return &userService{repo: repository, jwtService: jS, passwordHasher: ph}
 }

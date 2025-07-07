@@ -50,7 +50,7 @@ func (c *Config) readConfig() error {
 
 	c.SecurityConfig = SecurityConfig{
 		Key:    os.Getenv("JWT_KEY"),
-		Durasi: time.Duration(lifeTime),
+		Durasi: time.Duration(lifeTime) * time.Hour,
 		Issues: os.Getenv("JWT_ISSUER_NAME"),
 	}
 

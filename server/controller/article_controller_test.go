@@ -806,7 +806,7 @@ func TestDeleteArticleHandler(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 		var responseBody map[string]string
 		json.Unmarshal(rr.Body.Bytes(), &responseBody)
-		assert.Contains(t, responseBody["message"], "Failed to get articles")
+		assert.Contains(t, responseBody["error"], "database error")
 
 		mockArticleService.AssertExpectations(t)
 		mockAuthMiddleware.AssertExpectations(t)

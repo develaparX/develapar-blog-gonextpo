@@ -1,0 +1,1711 @@
+basePath: /api/v1
+definitions:
+  dto.ArticleResponse:
+    properties:
+      id:
+        type: integer
+      slug:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.AssignTagsByNameDTO:
+    properties:
+      article_id:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+    required:
+    - article_id
+    - tags
+    type: object
+  dto.CommentResponse:
+    properties:
+      article:
+        $ref: '#/definitions/dto.ArticleResponse'
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      user:
+        $ref: '#/definitions/dto.UserResponse'
+    type: object
+  dto.LoginDto:
+    properties:
+      identifier:
+        type: string
+      password:
+        type: string
+    required:
+    - identifier
+    type: object
+  dto.UpdateArticleRequest:
+    properties:
+      category_id:
+        type: integer
+      content:
+        type: string
+      slug:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.UpdateCategoryRequest:
+    properties:
+      name:
+        type: string
+    type: object
+  dto.UserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  model.Article:
+    properties:
+      category:
+        $ref: '#/definitions/model.Category'
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      slug:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/model.User'
+      views:
+        type: integer
+    type: object
+  model.Bookmark:
+    properties:
+      article:
+        $ref: '#/definitions/model.Article'
+      created_at:
+        type: string
+      id:
+        type: integer
+      user:
+        $ref: '#/definitions/model.User'
+    type: object
+  model.Category:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  model.Comment:
+    properties:
+      article:
+        $ref: '#/definitions/model.Article'
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      user:
+        $ref: '#/definitions/model.User'
+    type: object
+  model.Likes:
+    properties:
+      article:
+        $ref: '#/definitions/model.Article'
+      created_at:
+        type: string
+      id:
+        type: integer
+      user:
+        $ref: '#/definitions/model.User'
+    type: object
+  model.Tags:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  model.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      password:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server for a blog application.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Develapar API
+  version: "1.0"
+paths:
+  /article:
+    get:
+      description: Get a list of all blog articles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of articles
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Article'
+                type: array
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      summary: Get all articles
+      tags:
+      - Articles
+    post:
+      consumes:
+      - application/json
+      description: Create a new blog article
+      parameters:
+      - description: Article creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.Article'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Article successfully created
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.Article'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new article
+      tags:
+      - Articles
+  /article-to-tag:
+    post:
+      consumes:
+      - application/json
+      description: Assigns a list of tags (by name) to a specific article
+      parameters:
+      - description: Article ID and list of tag names
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignTagsByNameDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tags assigned successfully
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Assign tags to an article by tag names
+      tags:
+      - Tags
+  /article-to-tag/article/{tag_id}:
+    get:
+      description: Get a list of articles associated with a specific tag ID
+      parameters:
+      - description: ID of the tag to retrieve articles for
+        in: path
+        name: tag_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of articles with the specified tag
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Article'
+                type: array
+            type: object
+        "400":
+          description: Invalid tag ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get articles by tag ID
+      tags:
+      - Articles
+  /article-to-tag/articles/{article_id}/tags/{tag_id}:
+    delete:
+      description: Remove a specific tag from an article by their IDs
+      parameters:
+      - description: ID of the article
+        in: path
+        name: article_id
+        required: true
+        type: integer
+      - description: ID of the tag to remove
+        in: path
+        name: tag_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag removed from article successfully
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid article ID or tag ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove a tag from an article
+      tags:
+      - Tags
+  /article-to-tag/tags/{article_id}:
+    get:
+      description: Get a list of tags associated with a specific article ID
+      parameters:
+      - description: ID of the article to retrieve tags for
+        in: path
+        name: article_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of tags for the article
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Tags'
+                type: array
+            type: object
+        "400":
+          description: Invalid article ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get tags by article ID
+      tags:
+      - Tags
+  /article/{article_id}:
+    delete:
+      description: Delete an article by ID
+      parameters:
+      - description: ID of the article to delete
+        in: path
+        name: article_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Article deleted successfully
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid article ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "403":
+          description: Forbidden (user does not own the article)
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "404":
+          description: Article not found
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete an article
+      tags:
+      - Articles
+    put:
+      consumes:
+      - application/json
+      description: Update an existing article by ID
+      parameters:
+      - description: ID of the article to update
+        in: path
+        name: article_id
+        required: true
+        type: integer
+      - description: Article update details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateArticleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Article updated successfully
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.Article'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid article ID or payload
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "403":
+          description: Forbidden (user does not own the article)
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "404":
+          description: Article not found
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update an article
+      tags:
+      - Articles
+  /article/{slug}:
+    get:
+      description: Get article details by its slug
+      parameters:
+      - description: Slug of the article to retrieve
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Article details
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.Article'
+              message:
+                type: string
+            type: object
+        "404":
+          description: Article not found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get article by slug
+      tags:
+      - Articles
+  /article/c/{cat_name}:
+    get:
+      description: Get a list of articles by category name
+      parameters:
+      - description: Name of the category to retrieve articles from
+        in: path
+        name: cat_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of articles by category
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Article'
+                type: array
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get articles by category name
+      tags:
+      - Articles
+  /article/u/{user_id}:
+    get:
+      description: Get a list of articles by a specific user ID
+      parameters:
+      - description: ID of the user whose articles to retrieve
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of articles by user
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Article'
+                type: array
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get articles by user ID
+      tags:
+      - Articles
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return access token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success Login
+          schema:
+            properties:
+              accessToken:
+                type: string
+              message:
+                type: string
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: User login
+      tags:
+      - Users
+  /auth/refresh:
+    post:
+      description: Refresh access token using refresh token from cookie
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Access token refreshed successfully
+          schema:
+            properties:
+              access_token:
+                type: string
+            type: object
+        "401":
+          description: Refresh token not found or invalid
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Refresh access token
+      tags:
+      - Users
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with name, email, and password
+      parameters:
+      - description: User registration details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User successfully registered
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.User'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - Users
+  /bookmark:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a bookmark for an article by article ID
+      parameters:
+      - description: Article ID to unbookmark
+        in: body
+        name: article_id
+        required: true
+        schema:
+          properties:
+            article_id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bookmark deleted successfully
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid article ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a bookmark
+      tags:
+      - Bookmarks
+    post:
+      consumes:
+      - application/json
+      description: Create a new bookmark for an article
+      parameters:
+      - description: Bookmark creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.Bookmark'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bookmark successfully created
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.Bookmark'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new bookmark
+      tags:
+      - Bookmarks
+  /bookmark/{user_id}:
+    get:
+      description: Get a list of bookmarks for a specific user ID
+      parameters:
+      - description: ID of the user whose bookmarks to retrieve
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of bookmarks for the user
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Bookmark'
+                type: array
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get bookmarks by user ID
+      tags:
+      - Bookmarks
+  /bookmark/check:
+    get:
+      description: Check if a specific article is bookmarked by the authenticated
+        user
+      parameters:
+      - description: ID of the article to check
+        in: query
+        name: article_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bookmark status
+          schema:
+            properties:
+              bookmarked:
+                type: boolean
+            type: object
+        "400":
+          description: Invalid article ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check if an article is bookmarked by the current user
+      tags:
+      - Bookmarks
+  /category:
+    get:
+      description: Get a list of all categories
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of categories
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Category'
+                type: array
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      summary: Get all categories
+      tags:
+      - Categories
+    post:
+      consumes:
+      - application/json
+      description: Create a new category with a given name
+      parameters:
+      - description: Category creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category successfully created
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.Category'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new category
+      tags:
+      - Categories
+  /category/{cat_id}:
+    delete:
+      description: Delete a category by ID
+      parameters:
+      - description: ID of the category to delete
+        in: path
+        name: cat_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category deleted successfully
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid category ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a category
+      tags:
+      - Categories
+    put:
+      consumes:
+      - application/json
+      description: Update an existing category by ID
+      parameters:
+      - description: ID of the category to update
+        in: path
+        name: cat_id
+        required: true
+        type: integer
+      - description: Category update details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category updated successfully
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.Category'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid category ID or payload
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a category
+      tags:
+      - Categories
+  /comment/{id}:
+    delete:
+      description: Delete a comment by ID
+      parameters:
+      - description: ID of the comment to delete
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Comment deleted successfully
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid comment ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a comment
+      tags:
+      - Comments
+    put:
+      consumes:
+      - application/json
+      description: Update an existing comment by ID
+      parameters:
+      - description: ID of the comment to update
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Comment update details
+        in: body
+        name: payload
+        required: true
+        schema:
+          properties:
+            content:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Comment updated successfully
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "403":
+          description: Forbidden (user does not own the comment)
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a comment
+      tags:
+      - Comments
+  /comment/article/c{article_id}:
+    get:
+      description: Get a list of comments for a specific article ID
+      parameters:
+      - description: ID of the article to retrieve comments for
+        in: path
+        name: article_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of comments for the article
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Comment'
+                type: array
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid article ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get comments by article ID
+      tags:
+      - Comments
+  /comment/user/{user_id}:
+    get:
+      description: Get a list of comments by a specific user ID
+      parameters:
+      - description: ID of the user whose comments to retrieve
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of comments by the user
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dto.CommentResponse'
+                type: array
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get comments by user ID
+      tags:
+      - Comments
+  /comments:
+    post:
+      consumes:
+      - application/json
+      description: Create a new comment on an article
+      parameters:
+      - description: Comment creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.Comment'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Comment successfully created
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.Comment'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new comment
+      tags:
+      - Comments
+  /likes:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a like from a specific article by the authenticated user
+      parameters:
+      - description: Article ID to unlike
+        in: body
+        name: payload
+        required: true
+        schema:
+          properties:
+            article_id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Like deleted successfully
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid article ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove a like from an article
+      tags:
+      - Likes
+    post:
+      consumes:
+      - application/json
+      description: Add a like to a specific article by the authenticated user
+      parameters:
+      - description: Like creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.Likes'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Like successfully added
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.Likes'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add a like to an article
+      tags:
+      - Likes
+  /likes/article/{article_id}:
+    get:
+      description: Get a list of likes for a specific article ID
+      parameters:
+      - description: ID of the article to retrieve likes for
+        in: path
+        name: article_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of likes for the article
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Likes'
+                type: array
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get likes by article ID
+      tags:
+      - Likes
+  /likes/check:
+    get:
+      description: Check if a specific article is liked by the authenticated user
+      parameters:
+      - description: ID of the article to check
+        in: query
+        name: article_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Like status
+          schema:
+            properties:
+              liked:
+                type: boolean
+            type: object
+        "400":
+          description: Invalid article ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check if an article is liked by the current user
+      tags:
+      - Likes
+  /likes/user/{user_id}:
+    get:
+      description: Get a list of likes by a specific user ID
+      parameters:
+      - description: ID of the user whose likes to retrieve
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of likes by the user
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Likes'
+                type: array
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get likes by user ID
+      tags:
+      - Likes
+  /tags:
+    get:
+      description: Get a list of all tags
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of tags
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.Tags'
+                type: array
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      summary: Get all tags
+      tags:
+      - Tags
+    post:
+      consumes:
+      - application/json
+      description: Create a new tag with a given name
+      parameters:
+      - description: Tag creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.Tags'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag successfully created
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.Tags'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new tag
+      tags:
+      - Tags
+  /tags/{tags_id}:
+    get:
+      description: Get tag details by its ID
+      parameters:
+      - description: ID of the tag to retrieve
+        in: path
+        name: tags_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag details
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.Tags'
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid tag ID
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get tag by ID
+      tags:
+      - Tags
+  /users:
+    get:
+      description: Get a list of all registered users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of users
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/model.User'
+                type: array
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get all users
+      tags:
+      - Users
+  /users/{user_id}:
+    get:
+      description: Get user details by their ID
+      parameters:
+      - description: ID of the user to retrieve
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User details
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/model.User'
+              message:
+                type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get user by ID
+      tags:
+      - Users
+swagger: "2.0"
