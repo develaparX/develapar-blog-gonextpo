@@ -1,71 +1,133 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Eye, EyeOff } from "lucide-react";
+import { useEffect, useState } from "react";
+
+const images = [
+  "https://4kwallpapers.com/images/walls/thumbs_3t/22156.jpg",
+  "https://4kwallpapers.com/images/walls/thumbs_3t/19468.jpg",
+  "https://4kwallpapers.com/images/walls/thumbs_3t/19461.jpg",
+  "https://4kwallpapers.com/images/walls/thumbs_3t/19165.jpg",
+];
 
 const LoginPage = () => {
-  const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
+  const [currentImage, setCurrentImage] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % images.length);
+    }, 1000); // ganti setiap 5 detik
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div className="relative min-h-screen bg-black text-white flex items-center justify-center overflow-hidden px-4">
-      {/* Background Glow */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-br from-purple-600 via-indigo-500 to-teal-400 opacity-30 blur-3xl rounded-full animate-pulse" />
+    <div className="flex items-center justify-center min-h-screen min-w-full bg-gray-50">
+      <div className="fixed z-50 top-[8%] text-4xl md:text-6xl font-bold text-gray-800 typing-animation">
+        Mari mencurahkan ide bersama!
       </div>
-
-      {/* Login Card */}
-      <motion.div
-        className="z-10 w-full max-w-md bg-white/5 backdrop-blur-md rounded-2xl p-8 shadow-xl"
-        initial={{ y: 30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      >
-        <h2 className="text-3xl font-bold text-center mb-8">Welcome Back 👋</h2>
-
-        <form className="space-y-6">
-          {/* Email Field */}
-          <div className="relative">
-            <input
-              type="email"
-              placeholder="Email"
-              className="w-full px-4 py-3 bg-transparent border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 transition"
-              required
-            />
-          </div>
-
-          {/* Password Field */}
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              className="w-full px-4 py-3 bg-transparent border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 transition"
-              required
-            />
-            <div
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer"
+      <div className="flex justify-evenly items-center w-screen gap-7 ">
+        {/* KIRI */}
+        <div className="  bg-white rounded-2xl shadow-lg p-8 w-1/2 max-w-md ">
+          {/* Tab */}
+          <div className="flex justify-evenly mb-6 ">
+            <button
+              id="login"
+              className={`px-4 py-2 font-semibold ${
+                activeTab === "login"
+                  ? "border-b-2 border-blue-500 text-blue-600"
+                  : "text-gray-500"
+              }`}
+              onClick={() => setActiveTab("login")}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </div>
+              Login
+            </button>
+            <button
+              id="register"
+              className={`ml-4 px-4 py-2 font-semibold ${
+                activeTab === "signup"
+                  ? "border-b-2 border-blue-500 text-blue-600"
+                  : "text-gray-500"
+              }`}
+              onClick={() => setActiveTab("signup")}
+            >
+              Sign Up
+            </button>
           </div>
 
-          {/* Button */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            className="w-full py-3 bg-purple-600 hover:bg-purple-700 transition text-white font-semibold rounded-lg"
-          >
-            Login
-          </motion.button>
-        </form>
-
-        <div className="mt-6 text-center text-sm text-gray-400">
-          Don't have an account?{" "}
-          <span className="text-purple-400 hover:underline cursor-pointer">
-            Sign up
-          </span>
+          {/* Form */}
+          {activeTab === "login" ? (
+            <form className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
+              >
+                Login
+              </button>
+            </form>
+          ) : (
+            <form className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
+              >
+                Sign Up
+              </button>
+            </form>
+          )}
         </div>
-      </motion.div>
+
+        {/* KANAN */}
+        <div className="w-1/2 h-full relative">
+          <img
+            src={images[currentImage]}
+            alt="Slide"
+            className="w-full h-full object-cover rounded-lg"
+          />
+        </div>
+      </div>
     </div>
   );
 };

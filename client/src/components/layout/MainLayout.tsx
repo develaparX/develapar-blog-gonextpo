@@ -1,9 +1,10 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { Bell, User } from "lucide-react";
 
 const MainLayout = () => {
-  const loggedIn = false;
+  const navigate = useNavigate();
+  const loggedIn = true;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -16,7 +17,7 @@ const MainLayout = () => {
             </div>
 
             <div className="flex gap-8 border-l-2">
-              <div className="pl-4">Stories</div>
+              <div className="pl-4 cursor-pointer ">Stories</div>
               <div>Idea</div>
               <div>Gaming</div>
               <div>Tech</div>
@@ -25,7 +26,7 @@ const MainLayout = () => {
           <div className="flex items-center gap-5">
             {loggedIn ? (
               <>
-                <button className="bg-gray-200 hover:bg-gray-700 hover:text-white rounded-lg px-5">
+                <button className="bg-gray-200 hover:bg-gray-700 hover:text-white rounded-lg px-5 cursor-pointer">
                   Write here
                 </button>
 
@@ -37,7 +38,10 @@ const MainLayout = () => {
                 </div>
               </>
             ) : (
-              <div className="border hover:bg-black hover:text-white  rounded-lg py-1 px-10">
+              <div
+                className="border hover:bg-black hover:text-white  cursor-pointer rounded-lg py-1 px-10"
+                onClick={() => navigate("/login")}
+              >
                 Sign Up!
               </div>
             )}
@@ -53,11 +57,8 @@ const MainLayout = () => {
       {/* Footer */}
       <footer className="bg-black text-white py-2 mt-20">
         <div className="max-w-6xl mx-auto px-4 text-center space-y-4">
-          <p className="text-lg font-semibold">
-            YourBlog © {new Date().getFullYear()}
-          </p>
-          <p className="text-sm text-gray-400">
-            Made with 💙 by Your Name. All rights reserved.
+          <p className="text-md font-semibold">
+            develapar © {new Date().getFullYear()}
           </p>
           <div className="flex justify-center gap-4 text-sm text-gray-400">
             <Link to="/privacy" className="hover:text-white transition">
