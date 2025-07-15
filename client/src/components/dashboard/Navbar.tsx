@@ -44,7 +44,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   const unreadCount: number = notifications.filter((n) => n.unread).length;
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+    <header className="bg-white  border-b border-gray-200 sticky top-0 z-30">
       <div className="flex items-center justify-between h-9 px-4">
         {/* Left section */}
         <div className="flex items-center space-x-4">

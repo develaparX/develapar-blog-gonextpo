@@ -12,7 +12,7 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-gray-100 flex">
+    <div className="h-screen overflow-hidden  flex">
       {/* Sidebar */}
       <Sidebar
         isOpen={isSidebarOpen}

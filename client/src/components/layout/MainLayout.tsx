@@ -4,7 +4,7 @@ import { Bell, User } from "lucide-react";
 
 const MainLayout = () => {
   const navigate = useNavigate();
-  const loggedIn = true;
+  const loggedIn = false;
 
   return (
     <div className="flex flex-col min-h-screen">
