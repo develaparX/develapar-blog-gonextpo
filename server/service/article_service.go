@@ -9,7 +9,7 @@ import (
 )
 
 type ArticleService interface {
-	CreateArticle(payload model.Article) (model.Article, error)
+	CreateArticleWithTags(req dto.CreateArticleRequest, userID int) (model.Article, error)
 	FindAll() ([]model.Article, error)
 	UpdateArticle(id int, req dto.UpdateArticleRequest) (model.Article, error)
 	FindById(id int) (model.Article, error)
@@ -20,7 +20,8 @@ type ArticleService interface {
 }
 
 type articleService struct {
-	repo repository.ArticleRepository
+	repo              repository.ArticleRepository
+	articleTagService ArticleTagService
 }
 
 // FindById implements ArticleService.
@@ -67,32 +68,80 @@ func (a *articleService) UpdateArticle(id int, req dto.UpdateArticleRequest) (mo
 		article.Category.Id = *req.CategoryID
 	}
 
-	return a.repo.UpdateArticle(article)
+	updatedArticle, err := a.repo.UpdateArticle(article)
+	if err != nil {
+		return model.Article{}, err
+	}
+
+	// Update tags if provided
+	if len(req.Tags) > 0 {
+		// Remove existing tags first, then assign new ones
+		// This is a simple approach - in production you might want to be more selective
+		err = a.assignTagsToArticle(updatedArticle.Id, req.Tags)
+		if err != nil {
+			// Log error but don't fail the update
+			// In production, you might want to use database transactions
+			return updatedArticle, err
+		}
+	}
+
+	return updatedArticle, nil
 }
 
-// CreateArticle implements ArticleService.
-func (a *articleService) CreateArticle(payload model.Article) (model.Article, error) {
+// assignTagsToArticle is a helper method to assign tags to an article
+// Uses ArticleTagService to avoid code duplication
+func (a *articleService) assignTagsToArticle(articleId int, tagNames []string) error {
+	return a.articleTagService.AsignTagsByName(articleId, tagNames)
+}
+
+// CreateArticleWithTags implements ArticleService.
+func (a *articleService) CreateArticleWithTags(req dto.CreateArticleRequest, userID int) (model.Article, error) {
 	// Generate slug automatically from title
-	slug := utils.GenerateSlug(payload.Title)
+	slug := utils.GenerateSlug(req.Title)
+	
+	// Create article first
 	article := model.Article{
-		Title:     payload.Title,
+		Title:     req.Title,
 		Slug:      slug,
-		Content:   payload.Content,
-		User:      payload.User,
-		Category:  payload.Category,
-		Views:     payload.Views,
+		Content:   req.Content,
+		User:      model.User{Id: userID},
+		Category:  model.Category{Id: req.CategoryID},
+		Views:     0,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 
-	return a.repo.CreateArticle(article)
+	createdArticle, err := a.repo.CreateArticle(article)
+	if err != nil {
+		return model.Article{}, err
+	}
+
+	// Assign tags if provided
+	if len(req.Tags) > 0 {
+		err = a.assignTagsToArticle(createdArticle.Id, req.Tags)
+		if err != nil {
+			// If tag assignment fails, we could either:
+			// 1. Delete the created article (rollback)
+			// 2. Return the article without tags
+			// For now, we'll return the article without tags and log the error
+			// In production, you might want to use database transactions
+			return createdArticle, err
+		}
+	}
+
+	return createdArticle, nil
 }
+
+
 
 // FindAll implements ArticleService.
 func (a *articleService) FindAll() ([]model.Article, error) {
 	return a.repo.GetAll()
 }
 
-func NewArticleService(repository repository.ArticleRepository) ArticleService {
-	return &articleService{repo: repository}
+func NewArticleService(repository repository.ArticleRepository, articleTagService ArticleTagService) ArticleService {
+	return &articleService{
+		repo:              repository,
+		articleTagService: articleTagService,
+	}
 }

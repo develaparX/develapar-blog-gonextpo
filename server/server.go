@@ -118,10 +118,10 @@ func NewServer() *Server {
 	jwtService := service.NewJwtService(co.SecurityConfig)
 	userService := service.NewUserservice(userRepo, jwtService, passwordHasher)
 	categoryService := service.NewCategoryService(categoryRepo)
-	articleService := service.NewArticleService(articleRepo)
+	articleTagService := service.NewArticleTagService(tagRepo, articleTagRepo)
+	articleService := service.NewArticleService(articleRepo, articleTagService)
 	bookmarkService := service.NewBookmarkService(bookmarkRepo)
 	tagService := service.NewTagService(tagRepo)
-	articleTagService := service.NewArticleTagService(tagRepo, articleTagRepo)
 	commentService := service.NewCommentService(commentRepo)
 	likeService := service.NewLikeService(likeRepo)
 

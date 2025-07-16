@@ -26,6 +26,11 @@ func (m *MockArticleService) CreateArticle(payload model.Article) (model.Article
 	return args.Get(0).(model.Article), args.Error(1)
 }
 
+func (m *MockArticleService) CreateArticleWithTags(req dto.CreateArticleRequest, userID int) (model.Article, error) {
+	args := m.Called(req, userID)
+	return args.Get(0).(model.Article), args.Error(1)
+}
+
 func (m *MockArticleService) FindAll() ([]model.Article, error) {
 	args := m.Called()
 	return args.Get(0).([]model.Article), args.Error(1)
@@ -97,16 +102,20 @@ func TestCreateArticleHandler(t *testing.T) {
 		articleController := NewArticleController(mockArticleService, mockAuthMiddleware, router.Group("/api/v1"))
 		articleController.Route()
 
-		articlePayload := model.Article{
+		articlePayload := dto.CreateArticleRequest{
+			Title:      "Test Article",
+			Content:    "This is a test article content.",
+			CategoryID: 1,
+			Tags:       []string{"golang", "test"},
+		}
+		createdArticle := model.Article{
+			Id:      1,
 			Title:   "Test Article",
 			Content: "This is a test article content.",
-			User:    model.User{},
+			User:    model.User{Id: 1},
 		}
-		createdArticle := articlePayload
-		createdArticle.Id = 1
-		createdArticle.User.Id = 1
 
-		mockArticleService.On("CreateArticle", mock.AnythingOfType("model.Article")).Return(createdArticle, nil).Once()
+		mockArticleService.On("CreateArticleWithTags", mock.AnythingOfType("dto.CreateArticleRequest"), 1).Return(createdArticle, nil).Once()
 
 		body, _ := json.Marshal(articlePayload)
 		req, _ := http.NewRequest(http.MethodPost, "/api/v1/article/", bytes.NewBuffer(body))
@@ -118,7 +127,7 @@ func TestCreateArticleHandler(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 		var responseBody map[string]interface{}
 		json.Unmarshal(rr.Body.Bytes(), &responseBody)
-		assert.Equal(t, "Success create article", responseBody["message"])
+		assert.Equal(t, "Success create article with tags", responseBody["message"])
 		data := responseBody["data"].(map[string]interface{})
 		assert.Equal(t, float64(1), data["id"])
 		assert.Equal(t, "Test Article", data["title"])
@@ -142,9 +151,10 @@ func TestCreateArticleHandler(t *testing.T) {
 		articleController := NewArticleController(mockArticleService, mockAuthMiddleware, router.Group("/api/v1"))
 		articleController.Route()
 
-		articlePayload := model.Article{
-			Title:   "Test Article",
-			Content: "This is a test article content.",
+		articlePayload := dto.CreateArticleRequest{
+			Title:      "Test Article",
+			Content:    "This is a test article content.",
+			CategoryID: 1,
 		}
 		body, _ := json.Marshal(articlePayload)
 		req, _ := http.NewRequest(http.MethodPost, "/api/v1/article/", bytes.NewBuffer(body))
@@ -158,7 +168,7 @@ func TestCreateArticleHandler(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &responseBody)
 		assert.Equal(t, "Unauthorized", responseBody["message"])
 
-		mockArticleService.AssertNotCalled(t, "CreateArticle")
+		mockArticleService.AssertNotCalled(t, "CreateArticleWithTags")
 		mockAuthMiddleware.AssertExpectations(t)
 	})
 
@@ -187,7 +197,7 @@ func TestCreateArticleHandler(t *testing.T) {
 		json.Unmarshal(rr.Body.Bytes(), &responseBody)
 		assert.Contains(t, responseBody["message"], "Invalid payload")
 
-		mockArticleService.AssertNotCalled(t, "CreateArticle")
+		mockArticleService.AssertNotCalled(t, "CreateArticleWithTags")
 		mockAuthMiddleware.AssertExpectations(t)
 	})
 
@@ -205,12 +215,12 @@ func TestCreateArticleHandler(t *testing.T) {
 		articleController := NewArticleController(mockArticleService, mockAuthMiddleware, router.Group("/api/v1"))
 		articleController.Route()
 
-		articlePayload := model.Article{
-			Title:   "Test Article",
-			Content: "This is a test article content.",
-			User:    model.User{},
+		articlePayload := dto.CreateArticleRequest{
+			Title:      "Test Article",
+			Content:    "This is a test article content.",
+			CategoryID: 1,
 		}
-		mockArticleService.On("CreateArticle", mock.AnythingOfType("model.Article")).Return(model.Article{}, errors.New("database error")).Once()
+		mockArticleService.On("CreateArticleWithTags", mock.AnythingOfType("dto.CreateArticleRequest"), 1).Return(model.Article{}, errors.New("database error")).Once()
 
 		body, _ := json.Marshal(articlePayload)
 		req, _ := http.NewRequest(http.MethodPost, "/api/v1/article/", bytes.NewBuffer(body))

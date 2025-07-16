@@ -2,9 +2,9 @@ package controller
 
 import (
 	"develapar-server/middleware"
-	"develapar-server/model"
 	"develapar-server/model/dto"
 	"develapar-server/service"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -17,12 +17,37 @@ type ArticleController struct {
 	rg      *gin.RouterGroup
 }
 
+// Helper function to extract user ID from context
+func (c *ArticleController) getUserID(ctx *gin.Context) (int, error) {
+	userIdRaw, exists := ctx.Get("userId")
+	if !exists {
+		return 0, fmt.Errorf("unauthorized")
+	}
+
+	userIdFloat, ok := userIdRaw.(float64)
+	if !ok {
+		return 0, fmt.Errorf("invalid user ID type")
+	}
+
+	return int(userIdFloat), nil
+}
+
+// Helper function to parse article ID from URL parameter
+func (c *ArticleController) parseArticleID(ctx *gin.Context) (int, error) {
+	idStr := ctx.Param("article_id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid article ID")
+	}
+	return id, nil
+}
+
 // @Summary Create a new article
-// @Description Create a new blog article
+// @Description Create a new blog article with tags
 // @Tags Articles
 // @Accept json
 // @Produce json
-// @Param payload body model.Article true "Article creation details"
+// @Param payload body dto.CreateArticleRequest true "Article creation details"
 // @Success 200 {object} object{message=string,data=model.Article} "Article successfully created"
 // @Failure 400 {object} object{message=string} "Invalid payload"
 // @Failure 401 {object} object{message=string} "Unauthorized"
@@ -30,30 +55,25 @@ type ArticleController struct {
 // @Security BearerAuth
 // @Router /article [post]
 func (c *ArticleController) CreateArticleHandler(ctx *gin.Context) {
-	userIdRaw, exists := ctx.Get("userId")
-	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+	userId, err := c.getUserID(ctx)
+	if err != nil {
+		if err.Error() == "unauthorized" {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		}
 		return
 	}
 
-	userIdFloat, ok := userIdRaw.(float64)
-	if !ok {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
-		return
-	}
-	userId := int(userIdFloat)
-
-	var payload model.Article
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
+	var req dto.CreateArticleRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid payload: " + err.Error(),
 		})
 		return
 	}
 
-	payload.User.Id = userId // assign author ID from token
-
-	data, err := c.service.CreateArticle(payload)
+	data, err := c.service.CreateArticleWithTags(req, userId)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to create article: " + err.Error(),
@@ -62,7 +82,7 @@ func (c *ArticleController) CreateArticleHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success create article",
+		"message": "Success create article with tags",
 		"data":    data,
 	})
 }
@@ -105,22 +125,17 @@ func (c *ArticleController) GetAllArticleHandler(ctx *gin.Context) {
 // @Security BearerAuth
 // @Router /article/{article_id} [put]
 func (c *ArticleController) UpdateArticleHandler(ctx *gin.Context) {
-	// Ambil user ID dari JWT context
-	userIdRaw, exists := ctx.Get("userId")
-	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+	userId, err := c.getUserID(ctx)
+	if err != nil {
+		if err.Error() == "unauthorized" {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		}
 		return
 	}
-	userIdFloat, ok := userIdRaw.(float64)
-	if !ok {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
-		return
-	}
-	userId := int(userIdFloat)
 
-	// Ambil ID artikel dari URL param
-	idStr := ctx.Param("article_id")
-	id, err := strconv.Atoi(idStr)
+	id, err := c.parseArticleID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
 		return
@@ -250,22 +265,17 @@ func (ac *ArticleController) GetByCategory(ctx *gin.Context) {
 // @Security BearerAuth
 // @Router /article/{article_id} [delete]
 func (ac *ArticleController) DeleteArticleHandler(ctx *gin.Context) {
-	// Ambil user ID dari JWT context
-	userIdRaw, exists := ctx.Get("userId")
-	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+	userId, err := ac.getUserID(ctx)
+	if err != nil {
+		if err.Error() == "unauthorized" {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		}
 		return
 	}
-	userIdFloat, ok := userIdRaw.(float64)
-	if !ok {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
-		return
-	}
-	userId := int(userIdFloat)
 
-	// Ambil ID artikel dari param
-	idStr := ctx.Param("article_id")
-	articleId, err := strconv.Atoi(idStr)
+	articleId, err := ac.parseArticleID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
 		return
