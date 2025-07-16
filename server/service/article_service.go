@@ -57,10 +57,8 @@ func (a *articleService) UpdateArticle(id int, req dto.UpdateArticleRequest) (mo
 
 	if req.Title != nil {
 		article.Title = *req.Title
-	}
-	if req.Slug != nil {
-		slug := utils.GenerateSlug(*req.Slug)
-		article.Slug = slug
+		// Generate new slug automatically when title is updated
+		article.Slug = utils.GenerateSlug(*req.Title)
 	}
 	if req.Content != nil {
 		article.Content = *req.Content
@@ -74,9 +72,9 @@ func (a *articleService) UpdateArticle(id int, req dto.UpdateArticleRequest) (mo
 
 // CreateArticle implements ArticleService.
 func (a *articleService) CreateArticle(payload model.Article) (model.Article, error) {
-	slug := utils.GenerateSlug(payload.Slug)
+	// Generate slug automatically from title
+	slug := utils.GenerateSlug(payload.Title)
 	article := model.Article{
-
 		Title:     payload.Title,
 		Slug:      slug,
 		Content:   payload.Content,

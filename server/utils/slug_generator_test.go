@@ -25,7 +25,7 @@ func TestGenerateSlug(t *testing.T) {
 			args: args{
 				title: "Hello  World",
 			},
-			want: "hello--world",
+			want: "hello-world",
 		},
 		{
 			name: "should handle special characters",
@@ -33,6 +33,34 @@ func TestGenerateSlug(t *testing.T) {
 				title: "Hello World!",
 			},
 			want: "hello-world",
+		},
+		{
+			name: "should handle empty title",
+			args: args{
+				title: "",
+			},
+			want: "",
+		},
+		{
+			name: "should handle title with only special characters",
+			args: args{
+				title: "!@#$%",
+			},
+			want: "untitled",
+		},
+		{
+			name: "should handle complex title",
+			args: args{
+				title: "How to Build a REST API with Go & Gin Framework",
+			},
+			want: "how-to-build-a-rest-api-with-go-gin-framework",
+		},
+		{
+			name: "should handle title with numbers",
+			args: args{
+				title: "Top 10 Programming Languages in 2024",
+			},
+			want: "top-10-programming-languages-in-2024",
 		},
 	}
 	for _, tt := range tests {
