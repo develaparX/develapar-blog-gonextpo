@@ -85,8 +85,23 @@ func NewServer() *Server {
 
 	engine := gin.Default()
 
-	// PENTING: Pastikan middleware CORS dipasang sebelum router
+	// Initialize middleware components
+	contextManager := middleware.NewContextManager()
+	contextMiddleware := middleware.NewContextMiddleware(contextManager)
+	errorHandler := middleware.NewErrorHandler(nil) // Using default logger
+
+	// Configure middleware order for proper context propagation
+	// 1. Recovery middleware (should be first to catch panics)
+	engine.Use(middleware.RecoveryMiddleware(errorHandler))
+	
+	// 2. CORS middleware
 	engine.Use(CORSMiddleware())
+	
+	// 3. Context middleware (injects request ID, user ID, start time)
+	engine.Use(contextMiddleware.InjectContext())
+	
+	// 4. Error handling middleware (should be last to catch all errors)
+	engine.Use(middleware.ErrorMiddleware(errorHandler))
 
 	portApp := co.AppPort
 

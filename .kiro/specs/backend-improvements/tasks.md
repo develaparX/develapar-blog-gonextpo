@@ -28,40 +28,47 @@
   - Add error logging with context information
   - _Requirements: 1.1, 1.3, 1.5_
 
-- [ ] 2. Implement context-aware validation service
+- [x] 2. Implement context-aware validation service
 
   - Create validation service interface with context support
   - Move validation logic from controllers to service layer
   - Implement field-level validation with context timeout handling
   - _Requirements: 2.1, 2.2, 2.6_
 
-- [ ] 2.1 Create validation service interface and base implementation
+- [x] 2.1 Create validation service interface and base implementation
 
   - Define ValidationService interface with context parameters
   - Implement base validator with context support
   - Create FieldError struct with context information
   - _Requirements: 2.1, 2.2_
 
-- [ ] 2.2 Implement user validation with context
+- [x] 2.2 Implement user validation with context
 
   - Write ValidateUser function with context support
   - Add email format validation with context timeout
   - Implement password strength validation with context
   - _Requirements: 2.1, 2.3, 2.6_
 
-- [ ] 2.3 Implement article validation with context
+- [x] 2.3 Implement article validation with context
 
   - Write ValidateArticle function with context support
   - Add title and content validation with context
   - Implement slug validation with context
   - _Requirements: 2.1, 2.3, 2.6_
 
-- [ ] 2.4 Implement comment validation with context
+- [x] 2.4 Implement comment validation with context
 
   - Write ValidateComment function with context support
   - Add content validation with context timeout
   - Implement user and article reference validation with context
   - _Requirements: 2.1, 2.3, 2.6_
+
+- [x] 2.5 Integrate middleware into server setup
+
+  - Add context middleware to server initialization
+  - Add error handling middleware to server setup
+  - Configure middleware order for proper context propagation
+  - _Requirements: 1.1, 1.3, 9.1_
 
 - [ ] 3. Create context-aware logging infrastructure
 
