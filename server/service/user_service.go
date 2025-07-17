@@ -14,12 +14,12 @@ import (
 )
 
 type UserService interface {
-	CreateNewUser(payload model.User) (model.User, error)
-	FindUserById(id string) (model.User, error)
-	FindAllUser() ([]model.User, error)
+	CreateNewUser(ctx context.Context, payload model.User) (model.User, error)
+	FindUserById(ctx context.Context, id string) (model.User, error)
+	FindAllUser(ctx context.Context) ([]model.User, error)
 	FindAllUserWithPagination(ctx context.Context, page, limit int) (PaginationResult, error)
-	Login(payload dto.LoginDto) (dto.LoginResponseDto, error)
-	RefreshToken(refreshToken string) (dto.LoginResponseDto, error)
+	Login(ctx context.Context, payload dto.LoginDto) (dto.LoginResponseDto, error)
+	RefreshToken(ctx context.Context, refreshToken string) (dto.LoginResponseDto, error)
 }
 
 type userService struct {
@@ -27,39 +27,104 @@ type userService struct {
 	jwtService        JwtService
 	passwordHasher    utils.PasswordHasher
 	paginationService PaginationService
+	validationService ValidationService
 }
 
 // Login implements UserService.
-func (u *userService) Login(payload dto.LoginDto) (dto.LoginResponseDto, error) {
-	user, err := u.repo.GetByEmail(context.Background(), payload.Identifier)
+func (u *userService) Login(ctx context.Context, payload dto.LoginDto) (dto.LoginResponseDto, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return dto.LoginResponseDto{}, ctx.Err()
+	default:
+	}
+
+	// Basic validation for login payload
+	if payload.Identifier == "" {
+		return dto.LoginResponseDto{}, fmt.Errorf("email is required")
+	}
+	if payload.Password == "" {
+		return dto.LoginResponseDto{}, fmt.Errorf("password is required")
+	}
+
+	// Get user by email with context
+	user, err := u.repo.GetByEmail(ctx, payload.Identifier)
 	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return dto.LoginResponseDto{}, ctx.Err()
+		}
 		return dto.LoginResponseDto{}, fmt.Errorf("invalid credentials")
 	}
 
+	// Check context cancellation before password comparison
+	select {
+	case <-ctx.Done():
+		return dto.LoginResponseDto{}, ctx.Err()
+	default:
+	}
+
+	// Compare password
 	if err := u.passwordHasher.ComparePasswordHash(user.Password, payload.Password); err != nil {
 		return dto.LoginResponseDto{}, fmt.Errorf("invalid credentials")
 	}
 
+	// Remove password from user object for security
 	user.Password = "-"
+	
+	// Check context cancellation before token generation
+	select {
+	case <-ctx.Done():
+		return dto.LoginResponseDto{}, ctx.Err()
+	default:
+	}
+
+	// Generate JWT token
 	token, err := u.jwtService.GenerateToken(user)
 	if err != nil {
 		return dto.LoginResponseDto{}, fmt.Errorf("failed to create token")
 	}
 
-	expiresAt := time.Now().Add(7 * 24 * time.Hour) // misalnya refresh token 7 hari
-	err = u.repo.SaveRefreshToken(context.Background(), user.Id, token.RefreshToken, expiresAt)
+	// Save refresh token with context
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	err = u.repo.SaveRefreshToken(ctx, user.Id, token.RefreshToken, expiresAt)
 	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return dto.LoginResponseDto{}, ctx.Err()
+		}
 		log.Printf("[Login] Failed saving refresh token: %v", err)
 		return dto.LoginResponseDto{}, fmt.Errorf("internal server error")
 	}
 
 	return token, nil
-
 }
 
 // FindAllUser implements UserService.
-func (u *userService) FindAllUser() ([]model.User, error) {
-	return u.repo.GetAllUser(context.Background())
+func (u *userService) FindAllUser(ctx context.Context) ([]model.User, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	// Get all users from repository with context
+	users, err := u.repo.GetAllUser(ctx)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, fmt.Errorf("failed to fetch users: %v", err)
+	}
+
+	// Remove passwords from user data for security
+	for i := range users {
+		users[i].Password = "-"
+	}
+
+	return users, nil
 }
 
 // FindAllUserWithPagination implements UserService with pagination support
@@ -102,75 +167,152 @@ func (u *userService) FindAllUserWithPagination(ctx context.Context, page, limit
 }
 
 // FindUserById implements UserService.
-func (u *userService) FindUserById(id string) (model.User, error) {
-	newId, err := strconv.Atoi(id)
-
-	if err != nil {
-		return model.User{}, err
+func (u *userService) FindUserById(ctx context.Context, id string) (model.User, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return model.User{}, ctx.Err()
+	default:
 	}
 
-	return u.repo.GetUserById(context.Background(), newId)
+	// Validate ID format
+	newId, err := strconv.Atoi(id)
+	if err != nil {
+		return model.User{}, fmt.Errorf("invalid user ID format: %v", err)
+	}
+
+	if newId <= 0 {
+		return model.User{}, fmt.Errorf("user ID must be greater than 0")
+	}
+
+	// Get user from repository with context
+	user, err := u.repo.GetUserById(ctx, newId)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return model.User{}, ctx.Err()
+		}
+		return model.User{}, fmt.Errorf("failed to fetch user: %v", err)
+	}
+
+	// Remove password from user data for security
+	user.Password = "-"
+	return user, nil
 }
 
-func (u *userService) CreateNewUser(payload model.User) (model.User, error) {
-	// Hash password dulu sebelum disimpan
+func (u *userService) CreateNewUser(ctx context.Context, payload model.User) (model.User, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return model.User{}, ctx.Err()
+	default:
+	}
+
+	// Validate user data using validation service
+	if validationErr := u.validationService.ValidateUser(ctx, payload); validationErr != nil {
+		return model.User{}, validationErr
+	}
+
+	// Check context cancellation after validation
+	select {
+	case <-ctx.Done():
+		return model.User{}, ctx.Err()
+	default:
+	}
+
+	// Hash password before saving
 	hashedPassword, err := u.passwordHasher.EncryptPassword(payload.Password)
 	if err != nil {
 		return model.User{}, fmt.Errorf("failed to encrypt password: %v", err)
 	}
 	payload.Password = hashedPassword
 
-	// Simpan user ke database
-	createdUser, err := u.repo.CreateNewUser(context.Background(), payload)
+	// Save user to database with context
+	createdUser, err := u.repo.CreateNewUser(ctx, payload)
 	if err != nil {
-		return model.User{}, err
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return model.User{}, ctx.Err()
+		}
+		return model.User{}, fmt.Errorf("failed to create user: %v", err)
 	}
 
-	// Jangan balikin password-nya
+	// Remove password from response for security
 	createdUser.Password = "-"
 	return createdUser, nil
 }
 
-func (u *userService) RefreshToken(refreshToken string) (dto.LoginResponseDto, error) {
-	// Cek refresh token di database
+func (u *userService) RefreshToken(ctx context.Context, refreshToken string) (dto.LoginResponseDto, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return dto.LoginResponseDto{}, ctx.Err()
+	default:
+	}
+
+	// Decode refresh token
 	decodedToken, err := url.QueryUnescape(refreshToken)
 	if err != nil {
 		return dto.LoginResponseDto{}, fmt.Errorf("invalid refresh token format")
 	}
 	
-	// Cek refresh token di database
-	rt, err := u.repo.FindRefreshToken(context.Background(), decodedToken)
-	if err != nil || rt.ExpiresAt.Before(time.Now()) {
-		return dto.LoginResponseDto{}, err
+	// Check refresh token in database with context
+	rt, err := u.repo.FindRefreshToken(ctx, decodedToken)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return dto.LoginResponseDto{}, ctx.Err()
+		}
+		return dto.LoginResponseDto{}, fmt.Errorf("invalid refresh token")
+	}
+	
+	if rt.ExpiresAt.Before(time.Now()) {
+		return dto.LoginResponseDto{}, fmt.Errorf("refresh token expired")
 	}
 
-	// Ambil user
-	user, err := u.repo.GetUserById(context.Background(), rt.UserID)
+	// Check context cancellation before getting user
+	select {
+	case <-ctx.Done():
+		return dto.LoginResponseDto{}, ctx.Err()
+	default:
+	}
+
+	// Get user with context
+	user, err := u.repo.GetUserById(ctx, rt.UserID)
 	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return dto.LoginResponseDto{}, ctx.Err()
+		}
 		return dto.LoginResponseDto{}, fmt.Errorf("user not found")
 	}
 
-	// Generate token baru
+	// Generate new token
 	tokenResp, err := u.jwtService.GenerateToken(user)
 	if err != nil {
 		return dto.LoginResponseDto{}, fmt.Errorf("failed to generate new token")
 	}
 
-	// Update refresh token lama → bisa regenerasi token atau pakai yang sama (opsional)
+	// Update refresh token with context
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	err = u.repo.UpdateRefreshToken(context.Background(), refreshToken, tokenResp.RefreshToken, expiresAt)
+	err = u.repo.UpdateRefreshToken(ctx, refreshToken, tokenResp.RefreshToken, expiresAt)
 	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return dto.LoginResponseDto{}, ctx.Err()
+		}
 		return dto.LoginResponseDto{}, fmt.Errorf("failed to update refresh token")
 	}
 
 	return tokenResp, nil
 }
 
-func NewUserservice(repository repository.UserRepository, jS JwtService, ph utils.PasswordHasher, paginationService PaginationService) UserService {
+func NewUserservice(repository repository.UserRepository, jS JwtService, ph utils.PasswordHasher, paginationService PaginationService, validationService ValidationService) UserService {
 	return &userService{
 		repo:              repository,
 		jwtService:        jS,
 		passwordHasher:    ph,
 		paginationService: paginationService,
+		validationService: validationService,
 	}
 }

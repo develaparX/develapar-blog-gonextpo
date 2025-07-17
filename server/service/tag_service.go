@@ -4,34 +4,110 @@ import (
 	"context"
 	"develapar-server/model"
 	"develapar-server/repository"
+	"fmt"
+	"strings"
 )
 
 type TagService interface {
-	CreateTag(payload model.Tags) (model.Tags, error)
-	FindAll() ([]model.Tags, error)
-	FindById(id int) (model.Tags, error)
+	CreateTag(ctx context.Context, payload model.Tags) (model.Tags, error)
+	FindAll(ctx context.Context) ([]model.Tags, error)
+	FindById(ctx context.Context, id int) (model.Tags, error)
 }
 
 type tagService struct {
-	repo repository.TagRepository
+	repo              repository.TagRepository
+	validationService ValidationService
 }
 
 // CreateTag implements TagService.
-func (t *tagService) CreateTag(payload model.Tags) (model.Tags, error) {
-	return t.repo.CreateTag(context.Background(), payload)
+func (t *tagService) CreateTag(ctx context.Context, payload model.Tags) (model.Tags, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return model.Tags{}, ctx.Err()
+	default:
+	}
+
+	// Validate tag data
+	if strings.TrimSpace(payload.Name) == "" {
+		return model.Tags{}, fmt.Errorf("tag name is required")
+	}
+
+	// Normalize tag name
+	payload.Name = strings.ToLower(strings.TrimSpace(payload.Name))
+
+	// Check context cancellation after validation
+	select {
+	case <-ctx.Done():
+		return model.Tags{}, ctx.Err()
+	default:
+	}
+
+	// Create tag in repository with context
+	createdTag, err := t.repo.CreateTag(ctx, payload)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return model.Tags{}, ctx.Err()
+		}
+		return model.Tags{}, fmt.Errorf("failed to create tag: %v", err)
+	}
+
+	return createdTag, nil
 }
 
 // FindAll implements TagService.
-func (t *tagService) FindAll() ([]model.Tags, error) {
-	return t.repo.GetAllTag(context.Background())
+func (t *tagService) FindAll(ctx context.Context) ([]model.Tags, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	// Get all tags from repository with context
+	tags, err := t.repo.GetAllTag(ctx)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, fmt.Errorf("failed to fetch tags: %v", err)
+	}
+
+	return tags, nil
 }
 
 // FindById implements TagService.
-func (t *tagService) FindById(id int) (model.Tags, error) {
+func (t *tagService) FindById(ctx context.Context, id int) (model.Tags, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return model.Tags{}, ctx.Err()
+	default:
+	}
 
-	return t.repo.GetTagById(context.Background(), id)
+	// Validate tag ID
+	if id <= 0 {
+		return model.Tags{}, fmt.Errorf("tag ID must be greater than 0")
+	}
+
+	// Get tag by ID from repository with context
+	tag, err := t.repo.GetTagById(ctx, id)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return model.Tags{}, ctx.Err()
+		}
+		return model.Tags{}, fmt.Errorf("failed to fetch tag: %v", err)
+	}
+
+	return tag, nil
 }
 
-func NewTagService(repository repository.TagRepository) TagService {
-	return &tagService{repo: repository}
+func NewTagService(repository repository.TagRepository, validationService ValidationService) TagService {
+	return &tagService{
+		repo:              repository,
+		validationService: validationService,
+	}
 }

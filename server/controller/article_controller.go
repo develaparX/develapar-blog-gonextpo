@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"develapar-server/middleware"
 	"develapar-server/model/dto"
 	"develapar-server/service"
@@ -106,6 +107,75 @@ func (c *ArticleController) GetAllArticleHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Success Get All Articles",
 		"data":    data,
+	})
+}
+
+// @Summary Get all articles with pagination
+// @Description Get a paginated list of all blog articles
+// @Tags Articles
+// @Produce json
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Number of items per page (default: 10, max: 100)"
+// @Success 200 {object} object{success=bool,data=[]model.Article,pagination=object} "Paginated list of articles"
+// @Failure 400 {object} object{success=bool,error=object} "Invalid pagination parameters"
+// @Failure 500 {object} object{success=bool,error=object} "Internal server error"
+// @Router /article/paginated [get]
+func (c *ArticleController) GetAllArticleWithPaginationHandler(ctx *gin.Context) {
+	// Get pagination parameters from query string
+	page := 1
+	limit := 10
+
+	if pageStr := ctx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr := ctx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	// Get context with request ID if available
+	requestCtx := ctx.Request.Context()
+	if requestID := ctx.GetString("request_id"); requestID != "" {
+		requestCtx = context.WithValue(requestCtx, "request_id", requestID)
+	}
+
+	// Call service with pagination
+	result, err := c.service.FindAllWithPagination(requestCtx, page, limit)
+	if err != nil {
+		// Check if it's a context cancellation error
+		if requestCtx.Err() != nil {
+			ctx.JSON(http.StatusRequestTimeout, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "REQUEST_TIMEOUT",
+					"message": "Request was cancelled or timed out",
+				},
+			})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Return standardized response
+	ctx.JSON(http.StatusOK, gin.H{
+		"success":    true,
+		"data":       result.Data,
+		"pagination": result.Metadata,
+		"meta": gin.H{
+			"request_id": result.RequestID,
+		},
 	})
 }
 
@@ -229,6 +299,89 @@ func (ac *ArticleController) GetByUserIdHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Get articles by user ID with pagination
+// @Description Get a paginated list of articles by a specific user ID
+// @Tags Articles
+// @Produce json
+// @Param user_id path int true "ID of the user whose articles to retrieve"
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Number of items per page (default: 10, max: 100)"
+// @Success 200 {object} object{success=bool,data=[]model.Article,pagination=object} "Paginated list of articles by user"
+// @Failure 400 {object} object{success=bool,error=object} "Invalid user ID or pagination parameters"
+// @Failure 500 {object} object{success=bool,error=object} "Internal server error"
+// @Router /article/u/{user_id}/paginated [get]
+func (ac *ArticleController) GetByUserIdWithPaginationHandler(ctx *gin.Context) {
+	userIdParam := ctx.Param("user_id")
+	userId, err := strconv.Atoi(userIdParam)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INVALID_USER_ID",
+				"message": "Invalid user ID",
+			},
+		})
+		return
+	}
+
+	// Get pagination parameters from query string
+	page := 1
+	limit := 10
+
+	if pageStr := ctx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr := ctx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	// Get context with request ID if available
+	requestCtx := ctx.Request.Context()
+	if requestID := ctx.GetString("request_id"); requestID != "" {
+		requestCtx = context.WithValue(requestCtx, "request_id", requestID)
+	}
+
+	// Call service with pagination
+	result, err := ac.service.FindByUserIdWithPagination(requestCtx, userId, page, limit)
+	if err != nil {
+		// Check if it's a context cancellation error
+		if requestCtx.Err() != nil {
+			ctx.JSON(http.StatusRequestTimeout, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "REQUEST_TIMEOUT",
+					"message": "Request was cancelled or timed out",
+				},
+			})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Return standardized response
+	ctx.JSON(http.StatusOK, gin.H{
+		"success":    true,
+		"data":       result.Data,
+		"pagination": result.Metadata,
+		"meta": gin.H{
+			"request_id": result.RequestID,
+		},
+	})
+}
+
 // @Summary Get articles by category name
 // @Description Get a list of articles by category name
 // @Tags Articles
@@ -248,6 +401,78 @@ func (ac *ArticleController) GetByCategory(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Success get articles by Category",
 		"data":    articles,
+	})
+}
+
+// @Summary Get articles by category name with pagination
+// @Description Get a paginated list of articles by category name
+// @Tags Articles
+// @Produce json
+// @Param cat_name path string true "Name of the category to retrieve articles from"
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Number of items per page (default: 10, max: 100)"
+// @Success 200 {object} object{success=bool,data=[]model.Article,pagination=object} "Paginated list of articles by category"
+// @Failure 400 {object} object{success=bool,error=object} "Invalid pagination parameters"
+// @Failure 500 {object} object{success=bool,error=object} "Internal server error"
+// @Router /article/c/{cat_name}/paginated [get]
+func (ac *ArticleController) GetByCategoryWithPaginationHandler(ctx *gin.Context) {
+	categoryName := ctx.Param("cat_name")
+
+	// Get pagination parameters from query string
+	page := 1
+	limit := 10
+
+	if pageStr := ctx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr := ctx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	// Get context with request ID if available
+	requestCtx := ctx.Request.Context()
+	if requestID := ctx.GetString("request_id"); requestID != "" {
+		requestCtx = context.WithValue(requestCtx, "request_id", requestID)
+	}
+
+	// Call service with pagination
+	result, err := ac.service.FindByCategoryWithPagination(requestCtx, categoryName, page, limit)
+	if err != nil {
+		// Check if it's a context cancellation error
+		if requestCtx.Err() != nil {
+			ctx.JSON(http.StatusRequestTimeout, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "REQUEST_TIMEOUT",
+					"message": "Request was cancelled or timed out",
+				},
+			})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Return standardized response
+	ctx.JSON(http.StatusOK, gin.H{
+		"success":    true,
+		"data":       result.Data,
+		"pagination": result.Metadata,
+		"meta": gin.H{
+			"request_id": result.RequestID,
+		},
 	})
 }
 
@@ -309,9 +534,12 @@ func (c *ArticleController) Route() {
 	// Public routes
 	publicRoutes := c.rg.Group("/article")
 	publicRoutes.GET("/", c.GetAllArticleHandler)
+	publicRoutes.GET("/paginated", c.GetAllArticleWithPaginationHandler)
 	publicRoutes.GET("/:slug", c.GetBySlugHandler)
 	publicRoutes.GET("/u/:user_id", c.GetByUserIdHandler)
+	publicRoutes.GET("/u/:user_id/paginated", c.GetByUserIdWithPaginationHandler)
 	publicRoutes.GET("/c/:cat_name", c.GetByCategory)
+	publicRoutes.GET("/c/:cat_name/paginated", c.GetByCategoryWithPaginationHandler)
 
 	// Protected routes
 	protectedRoutes := c.rg.Group("/article")

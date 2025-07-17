@@ -140,10 +140,16 @@ func NewServer() *Server {
 
 	passwordHasher := utils.NewPasswordHasher()
 	jwtService := service.NewJwtService(co.SecurityConfig)
-	userService := service.NewUserservice(userRepo, jwtService, passwordHasher)
+	
+	// Initialize error wrapper and validation service for pagination
+	errorWrapper := utils.NewErrorWrapper()
+	validationService := service.NewValidationService(errorWrapper)
+	paginationService := service.NewPaginationService(validationService, errorWrapper)
+	
+	userService := service.NewUserservice(userRepo, jwtService, passwordHasher, paginationService)
 	categoryService := service.NewCategoryService(categoryRepo)
 	articleTagService := service.NewArticleTagService(tagRepo, articleTagRepo)
-	articleService := service.NewArticleService(articleRepo, articleTagService)
+	articleService := service.NewArticleService(articleRepo, articleTagService, paginationService)
 	bookmarkService := service.NewBookmarkService(bookmarkRepo)
 	tagService := service.NewTagService(tagRepo)
 	commentService := service.NewCommentService(commentRepo)
