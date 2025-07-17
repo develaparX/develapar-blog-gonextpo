@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"develapar-server/model"
 	"develapar-server/model/dto"
 	"develapar-server/repository"
@@ -20,12 +21,12 @@ type categoryService struct {
 
 // DeleteCategory implements CategoryService.
 func (c *categoryService) DeleteCategory(id int) error {
-	return c.repo.DeleteCategory(id)
+	return c.repo.DeleteCategory(context.Background(), id)
 }
 
 // UpdateCategory implements CategoryService.
 func (c *categoryService) UpdateCategory(id int, req dto.UpdateCategoryRequest) (model.Category, error) {
-	cat, err := c.repo.GetCategoryById(id)
+	cat, err := c.repo.GetCategoryById(context.Background(), id)
 	if err != nil {
 		return model.Category{}, err
 	}
@@ -34,18 +35,18 @@ func (c *categoryService) UpdateCategory(id int, req dto.UpdateCategoryRequest) 
 		cat.Name = strings.ToLower(*req.Name)
 	}
 
-	return c.repo.UpdateCategory(cat)
+	return c.repo.UpdateCategory(context.Background(), cat)
 
 }
 
 // CreateCategory implements CategoryService.
 func (c *categoryService) CreateCategory(payload model.Category) (model.Category, error) {
-	return c.repo.CreateCategory(payload)
+	return c.repo.CreateCategory(context.Background(), payload)
 }
 
 // FindAll implements CategoryService.
 func (c *categoryService) FindAll() ([]model.Category, error) {
-	return c.repo.GetAll()
+	return c.repo.GetAll(context.Background())
 }
 
 func NewCategoryService(repository repository.CategoryRepository) CategoryService {

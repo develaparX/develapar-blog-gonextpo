@@ -1,16 +1,17 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"develapar-server/model"
 	"time"
 )
 
 type BookmarkRepository interface {
-	CreateBookmark(payload model.Bookmark) (model.Bookmark, error)
-	GetByUserId(userId string) ([]model.Bookmark, error)
-	DeleteBookmark(userId, articleId int) error
-	IsBookmarked(userId, articleId int) (bool, error)
+	CreateBookmark(ctx context.Context, payload model.Bookmark) (model.Bookmark, error)
+	GetByUserId(ctx context.Context, userId string) ([]model.Bookmark, error)
+	DeleteBookmark(ctx context.Context, userId, articleId int) error
+	IsBookmarked(ctx context.Context, userId, articleId int) (bool, error)
 }
 
 type bookmarkRepository struct {
@@ -18,17 +19,17 @@ type bookmarkRepository struct {
 }
 
 // DeleteBookmark implements BookmarkRepository.
-func (b *bookmarkRepository) DeleteBookmark(userId int, articleId int) error {
+func (b *bookmarkRepository) DeleteBookmark(ctx context.Context, userId int, articleId int) error {
 	query := `DELETE FROM bookmarks WHERE user_id = $1 AND article_id = $2`
-	_, err := b.db.Exec(query, userId, articleId)
+	_, err := b.db.ExecContext(ctx, query, userId, articleId)
 	return err
 }
 
 // IsBookmarked implements BookmarkRepository.
-func (r *bookmarkRepository) IsBookmarked(userId, articleId int) (bool, error) {
+func (r *bookmarkRepository) IsBookmarked(ctx context.Context, userId, articleId int) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND article_id = $2)`
-	err := r.db.QueryRow(query, userId, articleId).Scan(&exists)
+	err := r.db.QueryRowContext(ctx, query, userId, articleId).Scan(&exists)
 	if err != nil {
 		return false, err
 	}
@@ -36,7 +37,7 @@ func (r *bookmarkRepository) IsBookmarked(userId, articleId int) (bool, error) {
 }
 
 // GetByUserId implements BookmarkRepository.
-func (b *bookmarkRepository) GetByUserId(userId string) ([]model.Bookmark, error) {
+func (b *bookmarkRepository) GetByUserId(ctx context.Context, userId string) ([]model.Bookmark, error) {
 	var bookmarks []model.Bookmark
 
 	query := `
@@ -53,7 +54,7 @@ func (b *bookmarkRepository) GetByUserId(userId string) ([]model.Bookmark, error
 	ORDER BY b.created_at DESC;
 	`
 
-	rows, err := b.db.Query(query, userId)
+	rows, err := b.db.QueryContext(ctx, query, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +93,9 @@ func (b *bookmarkRepository) GetByUserId(userId string) ([]model.Bookmark, error
 }
 
 // CreateBookmark implements BookmarkRepository.
-func (b *bookmarkRepository) CreateBookmark(payload model.Bookmark) (model.Bookmark, error) {
+func (b *bookmarkRepository) CreateBookmark(ctx context.Context, payload model.Bookmark) (model.Bookmark, error) {
 	var brk model.Bookmark
-	err := b.db.QueryRow(`INSERT INTO bookmarks (article_id, user_id, created_at) VALUES ($1, $2, $3) RETURNING id, article_id, user_id,created_at`, payload.Article.Id, payload.User.Id, time.Now()).Scan(
+	err := b.db.QueryRowContext(ctx, `INSERT INTO bookmarks (article_id, user_id, created_at) VALUES ($1, $2, $3) RETURNING id, article_id, user_id,created_at`, payload.Article.Id, payload.User.Id, time.Now()).Scan(
 		&brk.Id, &brk.Article.Id, &brk.User.Id, &brk.CreatedAt,
 	)
 

@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"context"
 	"develapar-server/model"
 	"develapar-server/model/dto"
 	"develapar-server/service"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -131,6 +133,76 @@ func (u *UserController) findAllUserHandler(ctx *gin.Context) {
 	})
 }
 
+// @Summary Get all users with pagination
+// @Description Get a paginated list of all registered users
+// @Tags Users
+// @Produce json
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Number of items per page (default: 10, max: 100)"
+// @Success 200 {object} object{success=bool,data=[]model.User,pagination=object} "Paginated list of users"
+// @Failure 400 {object} object{success=bool,error=object} "Invalid pagination parameters"
+// @Failure 500 {object} object{success=bool,error=object} "Internal server error"
+// @Router /users/paginated [get]
+func (u *UserController) findAllUserWithPaginationHandler(ctx *gin.Context) {
+	// Get pagination parameters from query string
+	page := 1
+	limit := 10
+
+	if pageStr := ctx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr := ctx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	// Get context with request ID if available
+	requestCtx := ctx.Request.Context()
+	if requestID := ctx.GetString("request_id"); requestID != "" {
+		requestCtx = context.WithValue(requestCtx, "request_id", requestID)
+	}
+
+	// Call service with pagination
+	result, err := u.service.FindAllUserWithPagination(requestCtx, page, limit)
+	if err != nil {
+		// Check if it's a context cancellation error
+		if requestCtx.Err() != nil {
+			ctx.JSON(http.StatusRequestTimeout, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "REQUEST_TIMEOUT",
+					"message": "Request was cancelled or timed out",
+				},
+			})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Return standardized response
+	ctx.JSON(http.StatusOK, gin.H{
+		"success":    true,
+		"data":       result.Data,
+		"pagination": result.Metadata,
+		"meta": gin.H{
+			"request_id":      result.RequestID,
+			"processing_time": time.Since(time.Now()).Milliseconds(),
+		},
+	})
+}
+
 // @Summary Refresh access token
 // @Description Refresh access token using refresh token from cookie
 // @Tags Users
@@ -171,6 +243,7 @@ func (u *UserController) Route() {
 	router := u.rg.Group("/users")
 	{
 		router.GET("/", u.findAllUserHandler)
+		router.GET("/paginated", u.findAllUserWithPaginationHandler)
 		router.GET("/:user_id", u.findUserByIdHandler)
 	}
 

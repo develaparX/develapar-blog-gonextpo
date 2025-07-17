@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"develapar-server/model"
 	"errors"
@@ -8,68 +9,73 @@ import (
 )
 
 type UserRepository interface {
-	CreateNewUser(payload model.User) (model.User, error)
-	GetUserById(id int) (model.User, error)
-	GetByEmail(email string) (model.User, error)
-	GetAllUser() ([]model.User, error)
-	SaveRefreshToken(userId int, token string, expiresAt time.Time) error
-	ValidateRefreshToken(token string) (int, error)
-	DeleteRefreshToken(token string) error
-	DeleteAllRefreshTOkensByUser(userId int) error
-	FindRefreshToken(token string) (model.RefreshToken, error)
-	UpdateRefreshToken(oldToken string, newToken string, expiresAt time.Time) error
+	CreateNewUser(ctx context.Context, payload model.User) (model.User, error)
+	GetUserById(ctx context.Context, id int) (model.User, error)
+	GetByEmail(ctx context.Context, email string) (model.User, error)
+	GetAllUser(ctx context.Context) ([]model.User, error)
+	GetAllUserWithPagination(ctx context.Context, offset, limit int) ([]model.User, int, error)
+	SaveRefreshToken(ctx context.Context, userId int, token string, expiresAt time.Time) error
+	ValidateRefreshToken(ctx context.Context, token string) (int, error)
+	DeleteRefreshToken(ctx context.Context, token string) error
+	DeleteAllRefreshTOkensByUser(ctx context.Context, userId int) error
+	FindRefreshToken(ctx context.Context, token string) (model.RefreshToken, error)
+	UpdateRefreshToken(ctx context.Context, oldToken string, newToken string, expiresAt time.Time) error
 }
 
 type userRepository struct {
 	db *sql.DB
 }
 
-func (r *userRepository) FindRefreshToken(token string) (model.RefreshToken, error) {
+func (r *userRepository) FindRefreshToken(ctx context.Context, token string) (model.RefreshToken, error) {
 	var rt model.RefreshToken
 	query := `SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens WHERE token = $1`
-	row := r.db.QueryRow(query, token)
+	row := r.db.QueryRowContext(ctx, query, token)
 
 	err := row.Scan(&rt.ID, &rt.UserID, &rt.Token, &rt.ExpiresAt, &rt.CreatedAt)
 	if err != nil {
+		// Check if context was cancelled or timed out
+		if ctx.Err() != nil {
+			return model.RefreshToken{}, ctx.Err()
+		}
 		return model.RefreshToken{}, err
 	}
 
 	return rt, nil
 }
 
-func (r *userRepository) UpdateRefreshToken(oldToken, newToken string, expiresAt time.Time) error {
+func (r *userRepository) UpdateRefreshToken(ctx context.Context, oldToken, newToken string, expiresAt time.Time) error {
 	query := `UPDATE refresh_tokens SET token = $1, expires_at = $2 WHERE token = $3`
-	_, err := r.db.Exec(query, newToken, expiresAt, oldToken)
+	_, err := r.db.ExecContext(ctx, query, newToken, expiresAt, oldToken)
 	return err
 }
 
 // DeleteAllRefreshTOkensByUser implements UserRepository.
-func (u *userRepository) DeleteAllRefreshTOkensByUser(userId int) error {
+func (u *userRepository) DeleteAllRefreshTOkensByUser(ctx context.Context, userId int) error {
 	query := `DELETE FROM refresh_tokens WHERE user_id = $1`
-	_, err := u.db.Exec(query, userId)
+	_, err := u.db.ExecContext(ctx, query, userId)
 	return err
 }
 
 // DeleteRefreshToken implements UserRepository.
-func (u *userRepository) DeleteRefreshToken(token string) error {
+func (u *userRepository) DeleteRefreshToken(ctx context.Context, token string) error {
 	query := `DELETE FROM refresh_tokens WHERE token = $1`
-	_, err := u.db.Exec(query, token)
+	_, err := u.db.ExecContext(ctx, query, token)
 	return err
 }
 
 // SaveRefreshToken implements UserRepository.
-func (u *userRepository) SaveRefreshToken(userId int, token string, expiresAt time.Time) error {
+func (u *userRepository) SaveRefreshToken(ctx context.Context, userId int, token string, expiresAt time.Time) error {
 	query := `INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`
-	_, err := u.db.Exec(query, userId, token, expiresAt)
+	_, err := u.db.ExecContext(ctx, query, userId, token, expiresAt)
 	return err
 }
 
 // ValidateRefreshToken implements UserRepository.
-func (u *userRepository) ValidateRefreshToken(token string) (int, error) {
+func (u *userRepository) ValidateRefreshToken(ctx context.Context, token string) (int, error) {
 	var userId int
 	var expiresAt time.Time
 	query := `SELECT user_id, expires_at FROM refresh_tokens WHERE token = $1`
-	err := u.db.QueryRow(query, token).Scan(&userId, &expiresAt)
+	err := u.db.QueryRowContext(ctx, query, token).Scan(&userId, &expiresAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.New("refresh token not found")
@@ -78,7 +84,7 @@ func (u *userRepository) ValidateRefreshToken(token string) (int, error) {
 	}
 
 	if time.Now().After(expiresAt) {
-		_ = u.DeleteRefreshToken(token)
+		_ = u.DeleteRefreshToken(ctx, token)
 		return 0, errors.New("refresh token expired")
 
 	}
@@ -87,12 +93,16 @@ func (u *userRepository) ValidateRefreshToken(token string) (int, error) {
 }
 
 // GetByEmail implements UserRepository.
-func (u *userRepository) GetByEmail(email string) (model.User, error) {
+func (u *userRepository) GetByEmail(ctx context.Context, email string) (model.User, error) {
 	var user model.User
 
-	err := u.db.QueryRow(`SELECT id, name, email, password, created_at, updated_at FROM users WHERE email=$1`, email).Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+	err := u.db.QueryRowContext(ctx, `SELECT id, name, email, password, created_at, updated_at FROM users WHERE email=$1`, email).Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
+		// Check if context was cancelled or timed out
+		if ctx.Err() != nil {
+			return model.User{}, ctx.Err()
+		}
 		return model.User{}, err
 	}
 
@@ -100,16 +110,27 @@ func (u *userRepository) GetByEmail(email string) (model.User, error) {
 }
 
 // GetAllUser implements UserRepository.
-func (u *userRepository) GetAllUser() ([]model.User, error) {
+func (u *userRepository) GetAllUser(ctx context.Context) ([]model.User, error) {
 	var listUser []model.User
 
-	rows, err := u.db.Query(`SELECT id, name, email, password, role, created_at, updated_at FROM users`)
+	rows, err := u.db.QueryContext(ctx, `SELECT id, name, email, password, role, created_at, updated_at FROM users`)
 	if err != nil {
+		// Check if context was cancelled or timed out
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
+		// Check for context cancellation during iteration
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
 		var user model.User
 
 		err := rows.Scan(
@@ -136,23 +157,91 @@ func (u *userRepository) GetAllUser() ([]model.User, error) {
 	return listUser, nil
 }
 
+// GetAllUserWithPagination implements UserRepository with pagination support
+func (u *userRepository) GetAllUserWithPagination(ctx context.Context, offset, limit int) ([]model.User, int, error) {
+	// First get the total count
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM users`
+	err := u.db.QueryRowContext(ctx, countQuery).Scan(&totalCount)
+	if err != nil {
+		// Check if context was cancelled or timed out
+		if ctx.Err() != nil {
+			return nil, 0, ctx.Err()
+		}
+		return nil, 0, err
+	}
+
+	// Then get the paginated results
+	var listUser []model.User
+	query := `SELECT id, name, email, password, role, created_at, updated_at FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	rows, err := u.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		// Check if context was cancelled or timed out
+		if ctx.Err() != nil {
+			return nil, 0, ctx.Err()
+		}
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		// Check for context cancellation during iteration
+		select {
+		case <-ctx.Done():
+			return nil, 0, ctx.Err()
+		default:
+		}
+
+		var user model.User
+		err := rows.Scan(
+			&user.Id,
+			&user.Name,
+			&user.Email,
+			&user.Password,
+			&user.Role,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+
+		if err != nil {
+			return nil, 0, err
+		}
+
+		listUser = append(listUser, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return listUser, totalCount, nil
+}
+
 // GetUserById implements UserRepository.
-func (u *userRepository) GetUserById(id int) (model.User, error) {
+func (u *userRepository) GetUserById(ctx context.Context, id int) (model.User, error) {
 	var user model.User
 
-	err := u.db.QueryRow(`SELECT id, name, email, password, created_at, updated_at FROM users WHERE id=$1`, id).Scan(&user.Id, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt)
+	err := u.db.QueryRowContext(ctx, `SELECT id, name, email, password, created_at, updated_at FROM users WHERE id=$1`, id).Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
-		return model.User{}, nil
+		// Check if context was cancelled or timed out
+		if ctx.Err() != nil {
+			return model.User{}, ctx.Err()
+		}
+		return model.User{}, err
 	}
 
 	return user, nil
 }
 
-func (u *userRepository) CreateNewUser(payload model.User) (model.User, error) {
+func (u *userRepository) CreateNewUser(ctx context.Context, payload model.User) (model.User, error) {
 	var user model.User
-	err := u.db.QueryRow(`INSERT INTO users (name, email, password, role, updated_at) VALUES($1, $2, $3, $4, $5) RETURNING id, name, email, role, created_at, updated_at`, payload.Name, payload.Email, payload.Password, payload.Role, time.Now()).Scan(&user.Id, &user.Name, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+	err := u.db.QueryRowContext(ctx, `INSERT INTO users (name, email, password, role, updated_at) VALUES($1, $2, $3, $4, $5) RETURNING id, name, email, role, created_at, updated_at`, payload.Name, payload.Email, payload.Password, payload.Role, time.Now()).Scan(&user.Id, &user.Name, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
+		// Check if context was cancelled or timed out
+		if ctx.Err() != nil {
+			return model.User{}, ctx.Err()
+		}
 		return model.User{}, err
 	}
 	return user, nil

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"develapar-server/config"
 	"develapar-server/controller"
 	_ "develapar-server/docs" // Import the generated docs
@@ -19,18 +19,20 @@ import (
 )
 
 type Server struct {
-	uS      service.UserService
-	cS      service.CategoryService
-	aS      service.ArticleService
-	bS      service.BookmarkService
-	tS      service.TagService
-	atS     service.ArticleTagService
-	coS     service.CommentService
-	lS      service.LikeService
-	jS      service.JwtService
-	mD      middleware.AuthMiddleware
-	engine  *gin.Engine
-	portApp string
+	uS          service.UserService
+	cS          service.CategoryService
+	aS          service.ArticleService
+	bS          service.BookmarkService
+	tS          service.TagService
+	atS         service.ArticleTagService
+	coS         service.CommentService
+	lS          service.LikeService
+	jS          service.JwtService
+	mD          middleware.AuthMiddleware
+	hC          *controller.HealthController
+	poolManager config.ConnectionPoolManager
+	engine      *gin.Engine
+	portApp     string
 }
 
 func (s *Server) initiateRoute() {
@@ -43,6 +45,9 @@ func (s *Server) initiateRoute() {
 	controller.NewArticleTagController(s.atS, routerGroup, s.mD).Route()
 	controller.NewCommentController(s.coS, routerGroup, s.mD).Route()
 	controller.NewLikeController(s.lS, routerGroup, s.mD).Route()
+
+	// Health check routes (no authentication required)
+	s.hC.Route(routerGroup)
 
 	// Swagger UI
 	s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -76,12 +81,31 @@ func NewServer() *Server {
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
-	urlConnection := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", co.Host, co.Port, co.User, co.Password, co.Name)
 
-	db, err := sql.Open(co.Driver, urlConnection)
+	// Create context for database initialization
+	ctx := context.Background()
+
+	// Initialize connection pool manager with context support
+	poolManager, err := config.NewConnectionPoolManager(ctx, co.DbConfig, co.PoolConfig)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to create connection pool manager: %v", err)
 	}
+
+	// Get database connection from pool manager
+	db, err := poolManager.GetConnection(ctx)
+	if err != nil {
+		log.Fatalf("failed to get database connection: %v", err)
+	}
+
+	// Perform initial health check
+	if err := poolManager.HealthCheck(ctx); err != nil {
+		log.Fatalf("database health check failed: %v", err)
+	}
+
+	log.Printf("Database connection pool initialized successfully")
+	stats := poolManager.GetStats(ctx)
+	log.Printf("Connection pool stats: Open=%d, InUse=%d, Idle=%d", 
+		stats.OpenConnections, stats.InUseConnections, stats.IdleConnections)
 
 	engine := gin.Default()
 
@@ -126,19 +150,22 @@ func NewServer() *Server {
 	likeService := service.NewLikeService(likeRepo)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
+	healthController := controller.NewHealthController(poolManager)
 
 	return &Server{
-		cS:      categoryService,
-		uS:      userService,
-		aS:      articleService,
-		bS:      bookmarkService,
-		tS:      tagService,
-		jS:      jwtService,
-		atS:     articleTagService,
-		coS:     commentService,
-		lS:      likeService,
-		mD:      authMiddleware,
-		portApp: portApp,
-		engine:  engine,
+		cS:          categoryService,
+		uS:          userService,
+		aS:          articleService,
+		bS:          bookmarkService,
+		tS:          tagService,
+		jS:          jwtService,
+		atS:         articleTagService,
+		coS:         commentService,
+		lS:          likeService,
+		mD:          authMiddleware,
+		hC:          healthController,
+		poolManager: poolManager,
+		portApp:     portApp,
+		engine:      engine,
 	}
 }

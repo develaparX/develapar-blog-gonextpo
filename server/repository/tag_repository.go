@@ -1,15 +1,16 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"develapar-server/model"
 )
 
 type TagRepository interface {
-	CreateTag(payload model.Tags) (model.Tags, error)
-	GetAllTag() ([]model.Tags, error)
-	GetTagById(id int) (model.Tags, error)
-	GetTagByName(name string) (model.Tags, error)
+	CreateTag(ctx context.Context, payload model.Tags) (model.Tags, error)
+	GetAllTag(ctx context.Context) ([]model.Tags, error)
+	GetTagById(ctx context.Context, id int) (model.Tags, error)
+	GetTagByName(ctx context.Context, name string) (model.Tags, error)
 }
 
 type tagRepository struct {
@@ -17,10 +18,10 @@ type tagRepository struct {
 }
 
 // GetTagByName implements TagRepository.
-func (t *tagRepository) GetTagByName(name string) (model.Tags, error) {
+func (t *tagRepository) GetTagByName(ctx context.Context, name string) (model.Tags, error) {
 	var tag model.Tags
 
-	err := t.db.QueryRow(`SELECT id, name FROM tags WHERE name = $1`, name).Scan(&tag.Id, &tag.Name)
+	err := t.db.QueryRowContext(ctx, `SELECT id, name FROM tags WHERE name = $1`, name).Scan(&tag.Id, &tag.Name)
 	if err != nil {
 		return model.Tags{}, err
 	}
@@ -29,9 +30,9 @@ func (t *tagRepository) GetTagByName(name string) (model.Tags, error) {
 }
 
 // CreateTag implements TagRepository.
-func (t *tagRepository) CreateTag(payload model.Tags) (model.Tags, error) {
+func (t *tagRepository) CreateTag(ctx context.Context, payload model.Tags) (model.Tags, error) {
 	var tag model.Tags
-	err := t.db.QueryRow(`INSERT INTO tags (name) VALUES($1) RETURNING id, name`, payload.Name).Scan(&tag.Id, &tag.Name)
+	err := t.db.QueryRowContext(ctx, `INSERT INTO tags (name) VALUES($1) RETURNING id, name`, payload.Name).Scan(&tag.Id, &tag.Name)
 	if err != nil {
 		return model.Tags{}, err
 	}
@@ -39,10 +40,10 @@ func (t *tagRepository) CreateTag(payload model.Tags) (model.Tags, error) {
 }
 
 // GetAllTag implements TagRepository.
-func (t *tagRepository) GetAllTag() ([]model.Tags, error) {
+func (t *tagRepository) GetAllTag(ctx context.Context) ([]model.Tags, error) {
 	var listTag []model.Tags
 
-	rows, err := t.db.Query(`SELECT id, name FROM tags`)
+	rows, err := t.db.QueryContext(ctx, `SELECT id, name FROM tags`)
 	if err != nil {
 		return nil, err
 	}
@@ -71,10 +72,10 @@ func (t *tagRepository) GetAllTag() ([]model.Tags, error) {
 }
 
 // GetTagById implements TagRepository.
-func (t *tagRepository) GetTagById(id int) (model.Tags, error) {
+func (t *tagRepository) GetTagById(ctx context.Context, id int) (model.Tags, error) {
 	var tag model.Tags
 
-	err := t.db.QueryRow(`SELECT id, name FROM tags WHERE id = $1`, id).Scan(&tag.Id, &tag.Name)
+	err := t.db.QueryRowContext(ctx, `SELECT id, name FROM tags WHERE id = $1`, id).Scan(&tag.Id, &tag.Name)
 	if err != nil {
 		return model.Tags{}, err
 	}

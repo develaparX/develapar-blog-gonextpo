@@ -34,6 +34,7 @@ type Config struct {
 	DbConfig
 	AppConfig
 	SecurityConfig
+	PoolConfig
 }
 
 func (c *Config) readConfig() error {
@@ -67,11 +68,58 @@ func (c *Config) readConfig() error {
 		AppPort: os.Getenv("PORT_APP"),
 	}
 
+	// Load pool configuration with defaults
+	c.PoolConfig = c.loadPoolConfig()
+
 	if c.DbConfig.Host == "" || c.DbConfig.Port == "" || c.DbConfig.Name == "" || c.DbConfig.User == "" || c.DbConfig.Password == "" || c.DbConfig.Driver == "" || c.SecurityConfig.Key == "" || c.SecurityConfig.Durasi < 0 || c.SecurityConfig.Issues == "" {
 		return errors.New("environtment is empty")
 	}
 	return nil
 
+}
+
+func (c *Config) loadPoolConfig() PoolConfig {
+	// Start with default configuration
+	poolConfig := DefaultPoolConfig()
+
+	// Override with environment variables if present
+	if maxOpenConns := os.Getenv("DB_MAX_OPEN_CONNS"); maxOpenConns != "" {
+		if val, err := strconv.Atoi(maxOpenConns); err == nil && val > 0 {
+			poolConfig.MaxOpenConns = val
+		}
+	}
+
+	if maxIdleConns := os.Getenv("DB_MAX_IDLE_CONNS"); maxIdleConns != "" {
+		if val, err := strconv.Atoi(maxIdleConns); err == nil && val > 0 {
+			poolConfig.MaxIdleConns = val
+		}
+	}
+
+	if connMaxLifetime := os.Getenv("DB_CONN_MAX_LIFETIME"); connMaxLifetime != "" {
+		if val, err := time.ParseDuration(connMaxLifetime); err == nil && val > 0 {
+			poolConfig.ConnMaxLifetime = val
+		}
+	}
+
+	if connMaxIdleTime := os.Getenv("DB_CONN_MAX_IDLE_TIME"); connMaxIdleTime != "" {
+		if val, err := time.ParseDuration(connMaxIdleTime); err == nil && val > 0 {
+			poolConfig.ConnMaxIdleTime = val
+		}
+	}
+
+	if connectTimeout := os.Getenv("DB_CONNECT_TIMEOUT"); connectTimeout != "" {
+		if val, err := time.ParseDuration(connectTimeout); err == nil && val > 0 {
+			poolConfig.ConnectTimeout = val
+		}
+	}
+
+	if queryTimeout := os.Getenv("DB_QUERY_TIMEOUT"); queryTimeout != "" {
+		if val, err := time.ParseDuration(queryTimeout); err == nil && val > 0 {
+			poolConfig.QueryTimeout = val
+		}
+	}
+
+	return poolConfig
 }
 
 func NewConfig() (*Config, error) {

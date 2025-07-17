@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"develapar-server/model"
 	"develapar-server/repository"
 )
@@ -17,18 +18,18 @@ type tagService struct {
 
 // CreateTag implements TagService.
 func (t *tagService) CreateTag(payload model.Tags) (model.Tags, error) {
-	return t.repo.CreateTag(payload)
+	return t.repo.CreateTag(context.Background(), payload)
 }
 
 // FindAll implements TagService.
 func (t *tagService) FindAll() ([]model.Tags, error) {
-	return t.repo.GetAllTag()
+	return t.repo.GetAllTag(context.Background())
 }
 
 // FindById implements TagService.
 func (t *tagService) FindById(id int) (model.Tags, error) {
 
-	return t.repo.GetTagById(id)
+	return t.repo.GetTagById(context.Background(), id)
 }
 
 func NewTagService(repository repository.TagRepository) TagService {

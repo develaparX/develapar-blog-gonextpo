@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"develapar-server/model"
 	"develapar-server/repository"
 )
@@ -19,28 +20,28 @@ type likeService struct {
 
 // IsLiked implements LikeService.
 func (l *likeService) IsLiked(userId int, articleId int) (bool, error) {
-	return l.repo.IsLiked(userId, articleId)
+	return l.repo.IsLiked(context.Background(), userId, articleId)
 }
 
 // CreateLike implements LikeService.
 func (l *likeService) CreateLike(payload model.Likes) (model.Likes, error) {
-	return l.repo.CreateLike(payload)
+	return l.repo.CreateLike(context.Background(), payload)
 }
 
 // DeleteLike implements LikeService.
 func (l *likeService) DeleteLike(userId int, articleId int) error {
-	return l.repo.DeleteLike(userId, articleId)
+	return l.repo.DeleteLike(context.Background(), userId, articleId)
 }
 
 // FindLikeByArticleId implements LikeService.
 func (l *likeService) FindLikeByArticleId(articleId int) ([]model.Likes, error) {
 
-	return l.repo.GetLikeByArticleId(articleId)
+	return l.repo.GetLikeByArticleId(context.Background(), articleId)
 }
 
 // FindLikeByUserId implements LikeService.
 func (l *likeService) FindLikeByUserId(userId int) ([]model.Likes, error) {
-	return l.repo.GetLikeByUserId(userId)
+	return l.repo.GetLikeByUserId(context.Background(), userId)
 }
 
 func NewLikeService(repository repository.LikeRepository) LikeService {

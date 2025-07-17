@@ -1,17 +1,18 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"develapar-server/model"
 	"time"
 )
 
 type LikeRepository interface {
-	CreateLike(payload model.Likes) (model.Likes, error)
-	GetLikeByArticleId(articleId int) ([]model.Likes, error)
-	GetLikeByUserId(userId int) ([]model.Likes, error)
-	DeleteLike(userId, articleId int) error
-	IsLiked(userId, articleId int) (bool, error)
+	CreateLike(ctx context.Context, payload model.Likes) (model.Likes, error)
+	GetLikeByArticleId(ctx context.Context, articleId int) ([]model.Likes, error)
+	GetLikeByUserId(ctx context.Context, userId int) ([]model.Likes, error)
+	DeleteLike(ctx context.Context, userId, articleId int) error
+	IsLiked(ctx context.Context, userId, articleId int) (bool, error)
 }
 
 type likeRepository struct {
@@ -19,10 +20,10 @@ type likeRepository struct {
 }
 
 // isLiked implements LikeRepository.
-func (r *likeRepository) IsLiked(userId int, articleId int) (bool, error) {
+func (r *likeRepository) IsLiked(ctx context.Context, userId int, articleId int) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND article_id = $2)`
-	err := r.db.QueryRow(query, userId, articleId).Scan(&exists)
+	err := r.db.QueryRowContext(ctx, query, userId, articleId).Scan(&exists)
 	if err != nil {
 		return false, err
 	}
@@ -30,9 +31,9 @@ func (r *likeRepository) IsLiked(userId int, articleId int) (bool, error) {
 }
 
 // CreateLike implements LikeRepository.
-func (l *likeRepository) CreateLike(payload model.Likes) (model.Likes, error) {
+func (l *likeRepository) CreateLike(ctx context.Context, payload model.Likes) (model.Likes, error) {
 	var like model.Likes
-	err := l.db.QueryRow(`INSERT INTO likes(article_id, user_id, created_at) VALUES($1,$2,$3) RETURNING id, article_id, user_id, created_at `, payload.Article.Id, payload.User.Id, time.Now()).Scan(
+	err := l.db.QueryRowContext(ctx, `INSERT INTO likes(article_id, user_id, created_at) VALUES($1,$2,$3) RETURNING id, article_id, user_id, created_at `, payload.Article.Id, payload.User.Id, time.Now()).Scan(
 		&like.Id, &like.Article.Id, &like.User.Id, &like.CreatedAt,
 	)
 
@@ -44,15 +45,15 @@ func (l *likeRepository) CreateLike(payload model.Likes) (model.Likes, error) {
 }
 
 // DeleteLike implements LikeRepository.
-func (l *likeRepository) DeleteLike(userId int, articleId int) error {
+func (l *likeRepository) DeleteLike(ctx context.Context, userId int, articleId int) error {
 	query := `DELETE FROM likes WHERE user_id=$1 AND article_id = $2`
-	_, err := l.db.Exec(query, userId, articleId)
+	_, err := l.db.ExecContext(ctx, query, userId, articleId)
 
 	return err
 }
 
 // GetLikeByArticleId implements LikeRepository.
-func (l *likeRepository) GetLikeByArticleId(articleId int) ([]model.Likes, error) {
+func (l *likeRepository) GetLikeByArticleId(ctx context.Context, articleId int) ([]model.Likes, error) {
 	var likes []model.Likes
 
 	query := `
@@ -65,7 +66,7 @@ func (l *likeRepository) GetLikeByArticleId(articleId int) ([]model.Likes, error
 
 	`
 
-	rows, err := l.db.Query(query, articleId)
+	rows, err := l.db.QueryContext(ctx, query, articleId)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +98,7 @@ func (l *likeRepository) GetLikeByArticleId(articleId int) ([]model.Likes, error
 }
 
 // GetLikeByUserId implements LikeRepository.
-func (l *likeRepository) GetLikeByUserId(userId int) ([]model.Likes, error) {
+func (l *likeRepository) GetLikeByUserId(ctx context.Context, userId int) ([]model.Likes, error) {
 	var likes []model.Likes
 
 	query := `
@@ -110,7 +111,7 @@ func (l *likeRepository) GetLikeByUserId(userId int) ([]model.Likes, error) {
 
 	`
 
-	rows, err := l.db.Query(query, userId)
+	rows, err := l.db.QueryContext(ctx, query, userId)
 	if err != nil {
 		return nil, err
 	}

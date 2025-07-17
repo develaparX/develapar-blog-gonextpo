@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"develapar-server/model"
 	"develapar-server/model/dto"
@@ -8,12 +9,12 @@ import (
 )
 
 type CommentRepository interface {
-	CreateComment(payload model.Comment) (model.Comment, error)
-	GetCommentByArticleId(articleId int) ([]model.Comment, error)
-	GetCommentByUserId(userId int) ([]dto.CommentResponse, error)
-	GetCommentById(commentId int) (model.Comment, error)
-	UpdateComment(commentId int, content string, userId int) error
-	DeleteComment(commentId int) error
+	CreateComment(ctx context.Context, payload model.Comment) (model.Comment, error)
+	GetCommentByArticleId(ctx context.Context, articleId int) ([]model.Comment, error)
+	GetCommentByUserId(ctx context.Context, userId int) ([]dto.CommentResponse, error)
+	GetCommentById(ctx context.Context, commentId int) (model.Comment, error)
+	UpdateComment(ctx context.Context, commentId int, content string, userId int) error
+	DeleteComment(ctx context.Context, commentId int) error
 }
 
 type commentRepository struct {
@@ -21,11 +22,11 @@ type commentRepository struct {
 }
 
 // GetCommentById implements CommentRepository.
-func (c *commentRepository) GetCommentById(commentId int) (model.Comment, error) {
+func (c *commentRepository) GetCommentById(ctx context.Context, commentId int) (model.Comment, error) {
 	var comment model.Comment
 	query := `SELECT id, article_id, user_id, content, created_at FROM comments WHERE id = $1`
 
-	err := c.db.QueryRow(query, commentId).Scan(&comment.Id, &comment.Article.Id, &comment.User.Id, &comment.Content, &comment.CreatedAt)
+	err := c.db.QueryRowContext(ctx, query, commentId).Scan(&comment.Id, &comment.Article.Id, &comment.User.Id, &comment.Content, &comment.CreatedAt)
 	if err != nil {
 		return model.Comment{}, err
 	}
@@ -34,23 +35,23 @@ func (c *commentRepository) GetCommentById(commentId int) (model.Comment, error)
 }
 
 // DeleteComment implements CommentRepository.
-func (c *commentRepository) DeleteComment(commentId int) error {
+func (c *commentRepository) DeleteComment(ctx context.Context, commentId int) error {
 	query := `DELETE FROM comments WHERE id = $1`
-	_, err := c.db.Exec(query, commentId)
+	_, err := c.db.ExecContext(ctx, query, commentId)
 	return err
 }
 
 // UpdateComment implements CommentRepository.
-func (c *commentRepository) UpdateComment(commentId int, content string, userId int) error {
+func (c *commentRepository) UpdateComment(ctx context.Context, commentId int, content string, userId int) error {
 	query := `UPDATE comments SET content = $1, updated_at = NOW() WHERE id = $2 AND user_id=$3`
-	_, err := c.db.Exec(query, content, commentId, userId)
+	_, err := c.db.ExecContext(ctx, query, content, commentId, userId)
 	return err
 }
 
 // CreateComment implements CommentRepository.
-func (c *commentRepository) CreateComment(payload model.Comment) (model.Comment, error) {
+func (c *commentRepository) CreateComment(ctx context.Context, payload model.Comment) (model.Comment, error) {
 	var comment model.Comment
-	err := c.db.QueryRow(`INSERT INTO comments (article_id, user_id , content, created_at) VALUES($1, $2, $3, $4) RETURNING id, article_id, user_id, content, created_at`, payload.Article.Id, payload.User.Id, payload.Content, time.Now()).Scan(
+	err := c.db.QueryRowContext(ctx, `INSERT INTO comments (article_id, user_id , content, created_at) VALUES($1, $2, $3, $4) RETURNING id, article_id, user_id, content, created_at`, payload.Article.Id, payload.User.Id, payload.Content, time.Now()).Scan(
 		&comment.Id, &comment.Article.Id, &comment.User.Id, &comment.Content, &comment.CreatedAt,
 	)
 
@@ -62,7 +63,7 @@ func (c *commentRepository) CreateComment(payload model.Comment) (model.Comment,
 }
 
 // GetCommentByArticleId implements CommentRepository.
-func (c *commentRepository) GetCommentByArticleId(articleId int) ([]model.Comment, error) {
+func (c *commentRepository) GetCommentByArticleId(ctx context.Context, articleId int) ([]model.Comment, error) {
 	var comments []model.Comment
 
 	query := `
@@ -79,7 +80,7 @@ func (c *commentRepository) GetCommentByArticleId(articleId int) ([]model.Commen
 	ORDER BY c.created_at DESC
 	`
 
-	rows, err := c.db.Query(query, articleId)
+	rows, err := c.db.QueryContext(ctx, query, articleId)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +116,7 @@ func (c *commentRepository) GetCommentByArticleId(articleId int) ([]model.Commen
 }
 
 // GetCommentByUserId implements CommentRepository.
-func (c *commentRepository) GetCommentByUserId(userId int) ([]dto.CommentResponse, error) {
+func (c *commentRepository) GetCommentByUserId(ctx context.Context, userId int) ([]dto.CommentResponse, error) {
 	var comments []dto.CommentResponse
 
 	query := `
@@ -129,7 +130,7 @@ func (c *commentRepository) GetCommentByUserId(userId int) ([]dto.CommentRespons
 	WHERE c.user_id = $1
 	`
 
-	rows, err := c.db.Query(query, userId)
+	rows, err := c.db.QueryContext(ctx, query, userId)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"develapar-server/model"
 	"develapar-server/repository"
 )
@@ -20,7 +21,7 @@ type articleTagService struct {
 
 // RemoveTagFromArticle implements ArticleTagService.
 func (a *articleTagService) RemoveTagFromArticle(articleId int, tagId int) error {
-	return a.articleTagRepo.RemoveTagFromArticle(articleId, tagId)
+	return a.articleTagRepo.RemoveTagFromArticle(context.Background(), articleId, tagId)
 }
 
 // AsignTagsByName implements ArticleTagService.
@@ -29,9 +30,9 @@ func (a *articleTagService) AsignTagsByName(articleId int, tagNames []string) er
 	var tagIds []int
 
 	for _, tagName := range tagNames {
-		tag, err := a.tagRepo.GetTagByName(tagName)
+		tag, err := a.tagRepo.GetTagByName(context.Background(), tagName)
 		if err != nil {
-			newTag, err := a.tagRepo.CreateTag(model.Tags{Name: tagName})
+			newTag, err := a.tagRepo.CreateTag(context.Background(), model.Tags{Name: tagName})
 			if err != nil {
 				return err
 			}
@@ -41,22 +42,22 @@ func (a *articleTagService) AsignTagsByName(articleId int, tagNames []string) er
 		}
 	}
 
-	return a.articleTagRepo.AssignTags(articleId, tagIds)
+	return a.articleTagRepo.AssignTags(context.Background(), articleId, tagIds)
 }
 
 // AssignTags implements ArticleTagService.
 func (a *articleTagService) AssignTags(articleId int, tagId []int) error {
-	return a.articleTagRepo.AssignTags(articleId, tagId)
+	return a.articleTagRepo.AssignTags(context.Background(), articleId, tagId)
 }
 
 // FindArticleByTagId implements ArticleTagService.
 func (a *articleTagService) FindArticleByTagId(tagId int) ([]model.Article, error) {
-	return a.articleTagRepo.GetArticleByTagId(tagId)
+	return a.articleTagRepo.GetArticleByTagId(context.Background(), tagId)
 }
 
 // FindTagByArticleId implements ArticleTagService.
 func (a *articleTagService) FindTagByArticleId(articleId int) ([]model.Tags, error) {
-	return a.articleTagRepo.GetTagsByArticleId(articleId)
+	return a.articleTagRepo.GetTagsByArticleId(context.Background(), articleId)
 }
 
 func NewArticleTagService(tagRepo repository.TagRepository, articleTagRepo repository.ArticleTagRepository) ArticleTagService {

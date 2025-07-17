@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"develapar-server/model"
 	"develapar-server/model/dto"
 	"develapar-server/repository"
@@ -26,32 +27,32 @@ type articleService struct {
 
 // FindById implements ArticleService.
 func (a *articleService) FindById(id int) (model.Article, error) {
-	return a.repo.GetArticleById(id)
+	return a.repo.GetArticleById(context.Background(), id)
 }
 
 // FindByCategory implements ArticleService.
 func (a *articleService) FindByCategory(catId string) ([]model.Article, error) {
-	return a.repo.GetArticleByCategory(catId)
+	return a.repo.GetArticleByCategory(context.Background(), catId)
 }
 
 // DeleteArticle implements ArticleService.
 func (a *articleService) DeleteArticle(id int) error {
-	return a.repo.DeleteArticle(id)
+	return a.repo.DeleteArticle(context.Background(), id)
 }
 
 // FindByUserId implements ArticleService.
 func (a *articleService) FindByUserId(userId int) ([]model.Article, error) {
-	return a.repo.GetArticleByUserId(userId)
+	return a.repo.GetArticleByUserId(context.Background(), userId)
 }
 
 // FindBySlug implements ArticleService.
 func (a *articleService) FindBySlug(slug string) (model.Article, error) {
-	return a.repo.GetArticleBySlug(slug)
+	return a.repo.GetArticleBySlug(context.Background(), slug)
 }
 
 // UpdateArticle implements ArticleService.
 func (a *articleService) UpdateArticle(id int, req dto.UpdateArticleRequest) (model.Article, error) {
-	article, err := a.repo.GetArticleById(id)
+	article, err := a.repo.GetArticleById(context.Background(), id)
 	if err != nil {
 		return model.Article{}, err
 	}
@@ -68,7 +69,7 @@ func (a *articleService) UpdateArticle(id int, req dto.UpdateArticleRequest) (mo
 		article.Category.Id = *req.CategoryID
 	}
 
-	updatedArticle, err := a.repo.UpdateArticle(article)
+	updatedArticle, err := a.repo.UpdateArticle(context.Background(), article)
 	if err != nil {
 		return model.Article{}, err
 	}
@@ -111,7 +112,7 @@ func (a *articleService) CreateArticleWithTags(req dto.CreateArticleRequest, use
 		UpdatedAt: time.Now(),
 	}
 
-	createdArticle, err := a.repo.CreateArticle(article)
+	createdArticle, err := a.repo.CreateArticle(context.Background(), article)
 	if err != nil {
 		return model.Article{}, err
 	}
@@ -136,7 +137,7 @@ func (a *articleService) CreateArticleWithTags(req dto.CreateArticleRequest, use
 
 // FindAll implements ArticleService.
 func (a *articleService) FindAll() ([]model.Article, error) {
-	return a.repo.GetAll()
+	return a.repo.GetAll(context.Background())
 }
 
 func NewArticleService(repository repository.ArticleRepository, articleTagService ArticleTagService) ArticleService {

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"develapar-server/model"
 	"develapar-server/model/dto"
 	"develapar-server/repository"
@@ -23,7 +24,7 @@ type commentService struct {
 
 // DeleteComment implements CommentService.
 func (c *commentService) DeleteComment(commentId int, userId int) error {
-	comment, err := c.repo.GetCommentById(commentId)
+	comment, err := c.repo.GetCommentById(context.Background(), commentId)
 	if err != nil {
 		return err
 	}
@@ -32,12 +33,12 @@ func (c *commentService) DeleteComment(commentId int, userId int) error {
 		return ErrUnauthorized
 	}
 
-	return c.repo.DeleteComment(commentId)
+	return c.repo.DeleteComment(context.Background(), commentId)
 }
 
 // EditComment implements CommentService.
 func (c *commentService) EditComment(commentId int, content string, userId int) error {
-	comment, err := c.repo.GetCommentById(commentId)
+	comment, err := c.repo.GetCommentById(context.Background(), commentId)
 	if err != nil {
 		return err
 	}
@@ -46,22 +47,22 @@ func (c *commentService) EditComment(commentId int, content string, userId int) 
 		return ErrUnauthorized
 	}
 
-	return c.repo.UpdateComment(commentId, content, userId)
+	return c.repo.UpdateComment(context.Background(), commentId, content, userId)
 }
 
 // CreateComment implements CommentService.
 func (c *commentService) CreateComment(payload model.Comment) (model.Comment, error) {
-	return c.repo.CreateComment(payload)
+	return c.repo.CreateComment(context.Background(), payload)
 }
 
 // FindCommentByArticleId implements CommentService.
 func (c *commentService) FindCommentByArticleId(articleId int) ([]model.Comment, error) {
-	return c.repo.GetCommentByArticleId(articleId)
+	return c.repo.GetCommentByArticleId(context.Background(), articleId)
 }
 
 // FindCommentByUserId implements CommentService.
 func (c *commentService) FindCommentByUserId(userId int) ([]dto.CommentResponse, error) {
-	return c.repo.GetCommentByUserId(userId)
+	return c.repo.GetCommentByUserId(context.Background(), userId)
 }
 
 func NewCommentService(repository repository.CommentRepository) CommentService {

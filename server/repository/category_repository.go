@@ -1,16 +1,17 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"develapar-server/model"
 )
 
 type CategoryRepository interface {
-	GetAll() ([]model.Category, error)
-	CreateCategory(payload model.Category) (model.Category, error)
-	GetCategoryById(id int) (model.Category, error)
-	UpdateCategory(payload model.Category) (model.Category, error)
-	DeleteCategory(id int) error
+	GetAll(ctx context.Context) ([]model.Category, error)
+	CreateCategory(ctx context.Context, payload model.Category) (model.Category, error)
+	GetCategoryById(ctx context.Context, id int) (model.Category, error)
+	UpdateCategory(ctx context.Context, payload model.Category) (model.Category, error)
+	DeleteCategory(ctx context.Context, id int) error
 }
 
 type categoryRepository struct {
@@ -18,7 +19,7 @@ type categoryRepository struct {
 }
 
 // FindCategoryById implements CategoryRepository.
-func (c *categoryRepository) GetCategoryById(id int) (model.Category, error) {
+func (c *categoryRepository) GetCategoryById(ctx context.Context, id int) (model.Category, error) {
 	query := `
 	SELECT id, name
 	FROM categories
@@ -26,7 +27,7 @@ func (c *categoryRepository) GetCategoryById(id int) (model.Category, error) {
 	`
 
 	var cat model.Category
-	err := c.db.QueryRow(query, id).Scan(
+	err := c.db.QueryRowContext(ctx, query, id).Scan(
 		&cat.Id, &cat.Name,
 	)
 	if err != nil {
@@ -38,8 +39,8 @@ func (c *categoryRepository) GetCategoryById(id int) (model.Category, error) {
 }
 
 // DeleteCategory implements CategoryRepository.
-func (c *categoryRepository) DeleteCategory(id int) error {
-	_, err := c.db.Exec(`DELETE FROM categories WHERE id = $1`, id)
+func (c *categoryRepository) DeleteCategory(ctx context.Context, id int) error {
+	_, err := c.db.ExecContext(ctx, `DELETE FROM categories WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
@@ -48,9 +49,9 @@ func (c *categoryRepository) DeleteCategory(id int) error {
 }
 
 // UpdateCategory implements CategoryRepository.
-func (c *categoryRepository) UpdateCategory(payload model.Category) (model.Category, error) {
+func (c *categoryRepository) UpdateCategory(ctx context.Context, payload model.Category) (model.Category, error) {
 	var cat model.Category
-	err := c.db.QueryRow(`UPDATE categories SET name = $1 WHERE id = $2 RETURNING id, name`, payload.Name, payload.Id).Scan(&cat.Id, &cat.Name)
+	err := c.db.QueryRowContext(ctx, `UPDATE categories SET name = $1 WHERE id = $2 RETURNING id, name`, payload.Name, payload.Id).Scan(&cat.Id, &cat.Name)
 
 	if err != nil {
 		return model.Category{}, err
@@ -60,9 +61,9 @@ func (c *categoryRepository) UpdateCategory(payload model.Category) (model.Categ
 }
 
 // CreateCategory implements CategoryRepository.
-func (c *categoryRepository) CreateCategory(payload model.Category) (model.Category, error) {
+func (c *categoryRepository) CreateCategory(ctx context.Context, payload model.Category) (model.Category, error) {
 	var cat model.Category
-	err := c.db.QueryRow(`INSERT INTO categories (name) VALUES($1) RETURNING id, name`, payload.Name).Scan(&cat.Id, &cat.Name)
+	err := c.db.QueryRowContext(ctx, `INSERT INTO categories (name) VALUES($1) RETURNING id, name`, payload.Name).Scan(&cat.Id, &cat.Name)
 	if err != nil {
 		return model.Category{}, err
 	}
@@ -70,10 +71,10 @@ func (c *categoryRepository) CreateCategory(payload model.Category) (model.Categ
 }
 
 // GetAll implements CategoryRepository.
-func (c *categoryRepository) GetAll() ([]model.Category, error) {
+func (c *categoryRepository) GetAll(ctx context.Context) ([]model.Category, error) {
 	var listCategory []model.Category
 
-	rows, err := c.db.Query(`SELECT id, name FROM categories`)
+	rows, err := c.db.QueryContext(ctx, `SELECT id, name FROM categories`)
 	if err != nil {
 		return nil, err
 	}
