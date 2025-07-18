@@ -1,19 +1,23 @@
 package controller
 
 import (
+	"context"
 	"develapar-server/middleware"
 	"develapar-server/model"
 	"develapar-server/service"
+	"develapar-server/utils"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type BookmarkController struct {
-	service service.BookmarkService
-	rg      *gin.RouterGroup
-	md      middleware.AuthMiddleware
+	service      service.BookmarkService
+	rg           *gin.RouterGroup
+	md           middleware.AuthMiddleware
+	errorHandler middleware.ErrorHandler
 }
 
 // @Summary Create a new bookmark
@@ -22,47 +26,78 @@ type BookmarkController struct {
 // @Accept json
 // @Produce json
 // @Param payload body model.Bookmark true "Bookmark creation details"
-// @Success 200 {object} object{message=string,data=model.Bookmark} "Bookmark successfully created"
-// @Failure 400 {object} object{message=string} "Invalid payload"
-// @Failure 401 {object} object{message=string} "Unauthorized"
-// @Failure 500 {object} object{message=string} "Internal server error"
+// @Success 201 {object} middleware.SuccessResponse "Bookmark successfully created"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /bookmark [post]
-func (b *BookmarkController) CreateBookmarkHandler(ctx *gin.Context) {
+func (b *BookmarkController) CreateBookmarkHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
 	var payload model.Bookmark
-	userIdRaw, exists := ctx.Get("userId")
+	userIdRaw, exists := ginCtx.Get("userId")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		appErr := b.errorHandler.WrapError(requestCtx, nil, utils.ErrUnauthorized, "Authentication required")
+		appErr.StatusCode = 401
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 	userIdFloat, ok := userIdRaw.(float64)
 	if !ok {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		appErr := b.errorHandler.WrapError(requestCtx, nil, utils.ErrInternal, "Invalid user ID type")
+		appErr.StatusCode = 500
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 	userId := int(userIdFloat)
 
 	payload.User.Id = userId
 
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid payload: " + err.Error(),
-		})
+	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
+		appErr := b.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	data, err := b.service.CreateBookmark(payload)
+	// Call service with context
+	data, err := b.service.CreateBookmark(requestCtx, payload)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to create bookmark: " + err.Error(),
-		})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := b.errorHandler.TimeoutError(requestCtx, "create bookmark")
+			b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := b.errorHandler.CancellationError(requestCtx, "create bookmark")
+			b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := b.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to create bookmark")
+		appErr.StatusCode = 500
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Create New Category",
-		"data":    data,
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":  "Bookmark created successfully",
+		"bookmark": data,
 	})
+
+	ginCtx.JSON(http.StatusCreated, successResponse)
 }
 
 // @Summary Get bookmarks by user ID
@@ -70,23 +105,58 @@ func (b *BookmarkController) CreateBookmarkHandler(ctx *gin.Context) {
 // @Tags Bookmarks
 // @Produce json
 // @Param user_id path int true "ID of the user whose bookmarks to retrieve"
-// @Success 200 {object} object{message=string,data=[]model.Bookmark} "List of bookmarks for the user"
-// @Failure 500 {object} object{error=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "List of bookmarks for the user"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /bookmark/{user_id} [get]
-func (b *BookmarkController) GetBookmarkByUserId(ctx *gin.Context) {
-	userID := ctx.Param("user_id")
+func (b *BookmarkController) GetBookmarkByUserId(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
 
-	// Mendapatkan daftar bookmark
-	bookmarks, err := b.service.FindByUserId(userID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	userID := ginCtx.Param("user_id")
+	if userID == "" {
+		appErr := b.errorHandler.ValidationError(requestCtx, "user_id", "User ID is required")
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Get Bookmark",
-		"data":    bookmarks,
+	// Call service with context
+	bookmarks, err := b.service.FindByUserId(requestCtx, userID)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := b.errorHandler.TimeoutError(requestCtx, "get bookmarks by user ID")
+			b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := b.errorHandler.CancellationError(requestCtx, "get bookmarks by user ID")
+			b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := b.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve bookmarks")
+		appErr.StatusCode = 500
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":   "Bookmarks retrieved successfully",
+		"bookmarks": bookmarks,
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Delete a bookmark
@@ -94,42 +164,77 @@ func (b *BookmarkController) GetBookmarkByUserId(ctx *gin.Context) {
 // @Tags Bookmarks
 // @Accept json
 // @Produce json
-// @Param article_id body object{article_id=int} true "Article ID to unbookmark"
-// @Success 200 {object} object{message=string} "Bookmark deleted successfully"
-// @Failure 400 {object} object{error=string} "Invalid article ID"
-// @Failure 401 {object} object{message=string} "Unauthorized"
-// @Failure 500 {object} object{error=string} "Internal server error"
+// @Param article_id path int true "Article ID to unbookmark"
+// @Success 200 {object} middleware.SuccessResponse "Bookmark deleted successfully"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /bookmark [delete]
-func (b *BookmarkController) DeleteBookmarkHandler(ctx *gin.Context) {
-	userIdRaw, exists := ctx.Get("userId")
+// @Router /bookmark/{article_id} [delete]
+func (b *BookmarkController) DeleteBookmarkHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	userIdRaw, exists := ginCtx.Get("userId")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		appErr := b.errorHandler.WrapError(requestCtx, nil, utils.ErrUnauthorized, "Authentication required")
+		appErr.StatusCode = 401
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 	userIdFloat, ok := userIdRaw.(float64)
 	if !ok {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		appErr := b.errorHandler.WrapError(requestCtx, nil, utils.ErrInternal, "Invalid user ID type")
+		appErr.StatusCode = 500
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 	userId := int(userIdFloat)
 
-	articleIdParam := ctx.Param("article_id")
+	articleIdParam := ginCtx.Param("article_id")
 	articleId, err := strconv.Atoi(articleIdParam)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
+		appErr := b.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	err = b.service.DeleteBookmark(userId, articleId)
+	// Call service with context
+	err = b.service.DeleteBookmark(requestCtx, userId, articleId)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := b.errorHandler.TimeoutError(requestCtx, "delete bookmark")
+			b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := b.errorHandler.CancellationError(requestCtx, "delete bookmark")
+			b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := b.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to delete bookmark")
+		appErr.StatusCode = 500
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
 		"message": "Bookmark deleted successfully",
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Check if an article is bookmarked by the current user
@@ -137,38 +242,75 @@ func (b *BookmarkController) DeleteBookmarkHandler(ctx *gin.Context) {
 // @Tags Bookmarks
 // @Produce json
 // @Param article_id query int true "ID of the article to check"
-// @Success 200 {object} object{bookmarked=bool} "Bookmark status"
-// @Failure 400 {object} object{error=string} "Invalid article ID"
-// @Failure 401 {object} object{message=string} "Unauthorized"
-// @Failure 500 {object} object{error=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "Bookmark status"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /bookmark/check [get]
-func (c *BookmarkController) CheckBookmarkHandler(ctx *gin.Context) {
-	userIdRaw, exists := ctx.Get("userId")
+func (c *BookmarkController) CheckBookmarkHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	userIdRaw, exists := ginCtx.Get("userId")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		appErr := c.errorHandler.WrapError(requestCtx, nil, utils.ErrUnauthorized, "Authentication required")
+		appErr.StatusCode = 401
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 	userIdFloat, ok := userIdRaw.(float64)
 	if !ok {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		appErr := c.errorHandler.WrapError(requestCtx, nil, utils.ErrInternal, "Invalid user ID type")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 	userId := int(userIdFloat)
 
-	articleId, err := strconv.Atoi(ctx.Query("article_id"))
+	articleId, err := strconv.Atoi(ginCtx.Query("article_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article_id"})
+		appErr := c.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	bookmarked, err := c.service.IsBookmarked(userId, articleId)
+	// Call service with context
+	bookmarked, err := c.service.IsBookmarked(requestCtx, userId, articleId)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(requestCtx, "check bookmark")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(requestCtx, "check bookmark")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to check bookmark status")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"bookmarked": bookmarked})
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"bookmarked": bookmarked,
+	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 func (c *BookmarkController) Route() {
@@ -182,10 +324,11 @@ func (c *BookmarkController) Route() {
 	routerAuth.GET("/check", c.CheckBookmarkHandler)
 }
 
-func NewBookmarkController(bS service.BookmarkService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *BookmarkController {
+func NewBookmarkController(bS service.BookmarkService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *BookmarkController {
 	return &BookmarkController{
-		service: bS,
-		rg:      rg,
-		md:      md,
+		service:      bS,
+		rg:           rg,
+		md:           md,
+		errorHandler: errorHandler,
 	}
 }

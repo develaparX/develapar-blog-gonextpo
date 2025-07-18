@@ -5,17 +5,20 @@ import (
 	"develapar-server/middleware"
 	"develapar-server/model/dto"
 	"develapar-server/service"
+	"develapar-server/utils"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type ArticleController struct {
-	service service.ArticleService
-	md middleware.AuthMiddleware
-	rg      *gin.RouterGroup
+	service      service.ArticleService
+	md           middleware.AuthMiddleware
+	rg           *gin.RouterGroup
+	errorHandler middleware.ErrorHandler
 }
 
 // Helper function to extract user ID from context
@@ -49,65 +52,124 @@ func (c *ArticleController) parseArticleID(ctx *gin.Context) (int, error) {
 // @Accept json
 // @Produce json
 // @Param payload body dto.CreateArticleRequest true "Article creation details"
-// @Success 200 {object} object{message=string,data=model.Article} "Article successfully created"
-// @Failure 400 {object} object{message=string} "Invalid payload"
-// @Failure 401 {object} object{message=string} "Unauthorized"
-// @Failure 500 {object} object{message=string} "Internal server error"
+// @Success 201 {object} middleware.SuccessResponse "Article successfully created"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /article [post]
-func (c *ArticleController) CreateArticleHandler(ctx *gin.Context) {
-	userId, err := c.getUserID(ctx)
+func (c *ArticleController) CreateArticleHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 30*time.Second)
+	defer cancel()
+
+	userId, err := c.getUserID(ginCtx)
 	if err != nil {
 		if err.Error() == "unauthorized" {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrUnauthorized, "Authentication required")
+			appErr.StatusCode = 401
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+			appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Invalid user ID type")
+			appErr.StatusCode = 500
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		}
 		return
 	}
 
 	var req dto.CreateArticleRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid payload: " + err.Error(),
-		})
+	if err := ginCtx.ShouldBindJSON(&req); err != nil {
+		appErr := c.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	data, err := c.service.CreateArticleWithTags(req, userId)
+	// Call service with context
+	data, err := c.service.CreateArticleWithTags(requestCtx, req, userId)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to create article: " + err.Error(),
-		})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(requestCtx, "create article")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(requestCtx, "create article")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to create article")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success create article with tags",
-		"data":    data,
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message": "Article created successfully",
+		"article": data,
 	})
+
+	ginCtx.JSON(http.StatusCreated, successResponse)
 }
 
 // @Summary Get all articles
 // @Description Get a list of all blog articles
 // @Tags Articles
 // @Produce json
-// @Success 200 {object} object{message=string,data=[]model.Article} "List of articles"
-// @Failure 500 {object} object{message=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "List of articles"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /article [get]
-func (c *ArticleController) GetAllArticleHandler(ctx *gin.Context) {
-	data, err := c.service.FindAll()
+func (c *ArticleController) GetAllArticleHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	// Call service with context
+	data, err := c.service.FindAll(requestCtx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to get articles: " + err.Error(),
-		})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(requestCtx, "get all articles")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(requestCtx, "get all articles")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve articles")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Get All Articles",
-		"data":    data,
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":  "Articles retrieved successfully",
+		"articles": data,
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Get all articles with pagination
@@ -116,67 +178,76 @@ func (c *ArticleController) GetAllArticleHandler(ctx *gin.Context) {
 // @Produce json
 // @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Number of items per page (default: 10, max: 100)"
-// @Success 200 {object} object{success=bool,data=[]model.Article,pagination=object} "Paginated list of articles"
-// @Failure 400 {object} object{success=bool,error=object} "Invalid pagination parameters"
-// @Failure 500 {object} object{success=bool,error=object} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "Paginated list of articles"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid pagination parameters"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /article/paginated [get]
-func (c *ArticleController) GetAllArticleWithPaginationHandler(ctx *gin.Context) {
+func (c *ArticleController) GetAllArticleWithPaginationHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 20*time.Second)
+	defer cancel()
+
 	// Get pagination parameters from query string
 	page := 1
 	limit := 10
 
-	if pageStr := ctx.Query("page"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+	if pageStr := ginCtx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err != nil || p <= 0 {
+			appErr := c.errorHandler.ValidationError(requestCtx, "page", "Page must be a positive integer")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		} else {
 			page = p
 		}
 	}
 
-	if limitStr := ctx.Query("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+	if limitStr := ginCtx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err != nil || l <= 0 || l > 100 {
+			appErr := c.errorHandler.ValidationError(requestCtx, "limit", "Limit must be a positive integer between 1 and 100")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		} else {
 			limit = l
 		}
 	}
 
-	// Get context with request ID if available
-	requestCtx := ctx.Request.Context()
-	if requestID := ctx.GetString("request_id"); requestID != "" {
-		requestCtx = context.WithValue(requestCtx, "request_id", requestID)
-	}
-
-	// Call service with pagination
+	// Call service with pagination and context
 	result, err := c.service.FindAllWithPagination(requestCtx, page, limit)
 	if err != nil {
-		// Check if it's a context cancellation error
-		if requestCtx.Err() != nil {
-			ctx.JSON(http.StatusRequestTimeout, gin.H{
-				"success": false,
-				"error": gin.H{
-					"code":    "REQUEST_TIMEOUT",
-					"message": "Request was cancelled or timed out",
-				},
-			})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(requestCtx, "get paginated articles")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(requestCtx, "get paginated articles")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": err.Error(),
-			},
-		})
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve paginated articles")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	// Return standardized response
-	ctx.JSON(http.StatusOK, gin.H{
-		"success":    true,
-		"data":       result.Data,
+	// Create success response with context and pagination
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":    "Articles retrieved successfully",
+		"articles":   result.Data,
 		"pagination": result.Metadata,
-		"meta": gin.H{
-			"request_id": result.RequestID,
-		},
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Update an article
@@ -186,60 +257,117 @@ func (c *ArticleController) GetAllArticleWithPaginationHandler(ctx *gin.Context)
 // @Produce json
 // @Param article_id path int true "ID of the article to update"
 // @Param payload body dto.UpdateArticleRequest true "Article update details"
-// @Success 200 {object} object{message=string,data=model.Article} "Article updated successfully"
-// @Failure 400 {object} object{error=string} "Invalid article ID or payload"
-// @Failure 401 {object} object{message=string} "Unauthorized"
-// @Failure 403 {object} object{message=string} "Forbidden (user does not own the article)"
-// @Failure 404 {object} object{message=string} "Article not found"
-// @Failure 500 {object} object{error=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "Article updated successfully"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID or payload"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 403 {object} middleware.ErrorResponse "Forbidden (user does not own the article)"
+// @Failure 404 {object} middleware.ErrorResponse "Article not found"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /article/{article_id} [put]
-func (c *ArticleController) UpdateArticleHandler(ctx *gin.Context) {
-	userId, err := c.getUserID(ctx)
+func (c *ArticleController) UpdateArticleHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 30*time.Second)
+	defer cancel()
+
+	userId, err := c.getUserID(ginCtx)
 	if err != nil {
 		if err.Error() == "unauthorized" {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrUnauthorized, "Authentication required")
+			appErr.StatusCode = 401
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+			appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Invalid user ID type")
+			appErr.StatusCode = 500
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		}
 		return
 	}
 
-	id, err := c.parseArticleID(ctx)
+	id, err := c.parseArticleID(ginCtx)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
+		appErr := c.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	// Cek apakah user adalah pemilik artikel
-	article, err := c.service.FindById(id)
+	// Check if user owns the article
+	article, err := c.service.FindById(requestCtx, id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Article not found"})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(requestCtx, "find article")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(requestCtx, "find article")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrNotFound, "Article not found")
+		appErr.StatusCode = 404
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
+
 	if article.User.Id != userId {
-		ctx.JSON(http.StatusForbidden, gin.H{"message": "You do not own this article"})
+		appErr := c.errorHandler.WrapError(requestCtx, fmt.Errorf("user does not own article"), utils.ErrForbidden, "You do not own this article")
+		appErr.StatusCode = 403
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	// Bind data dari payload
+	// Bind data from payload
 	var req dto.UpdateArticleRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := ginCtx.ShouldBindJSON(&req); err != nil {
+		appErr := c.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	// Update artikel
-	updatedArticle, err := c.service.UpdateArticle(id, req)
+	// Update article with context
+	updatedArticle, err := c.service.UpdateArticle(requestCtx, id, req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(requestCtx, "update article")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(requestCtx, "update article")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to update article")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
 		"message": "Article updated successfully",
-		"data":    updatedArticle,
+		"article": updatedArticle,
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 
@@ -248,26 +376,67 @@ func (c *ArticleController) UpdateArticleHandler(ctx *gin.Context) {
 // @Tags Articles
 // @Produce json
 // @Param slug path string true "Slug of the article to retrieve"
-// @Success 200 {object} object{message=string,data=model.Article} "Article details"
-// @Failure 404 {object} object{error=string} "Article not found"
+// @Success 200 {object} middleware.SuccessResponse "Article details"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid slug"
+// @Failure 404 {object} middleware.ErrorResponse "Article not found"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /article/{slug} [get]
-func (c *ArticleController) GetBySlugHandler(ctx *gin.Context) {
-	slug := ctx.Param("slug")
+func (c *ArticleController) GetBySlugHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
 
-	article, err := c.service.FindBySlug(slug)
-	if err != nil {
-		if err.Error() == "not found" {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "Article not found"})
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get article by slug: " + err.Error()})
+	slug := ginCtx.Param("slug")
+	if slug == "" {
+		appErr := c.errorHandler.ValidationError(requestCtx, "slug", "Article slug is required")
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success get article by slug",
-		"data":    article,
+	// Call service with context
+	article, err := c.service.FindBySlug(requestCtx, slug)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(requestCtx, "get article by slug")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(requestCtx, "get article by slug")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check for not found error
+		if err.Error() == "not found" {
+			appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrNotFound, "Article not found")
+			appErr.StatusCode = 404
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve article")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message": "Article retrieved successfully",
+		"article": article,
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Get articles by user ID
@@ -275,28 +444,59 @@ func (c *ArticleController) GetBySlugHandler(ctx *gin.Context) {
 // @Tags Articles
 // @Produce json
 // @Param user_id path int true "ID of the user whose articles to retrieve"
-// @Success 200 {object} object{message=string,data=[]model.Article} "List of articles by user"
-// @Failure 400 {object} object{error=string} "Invalid user ID"
-// @Failure 500 {object} object{error=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "List of articles by user"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /article/u/{user_id} [get]
-func (ac *ArticleController) GetByUserIdHandler(ctx *gin.Context) {
-	userIdParam := ctx.Param("user_id")
+func (ac *ArticleController) GetByUserIdHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	userIdParam := ginCtx.Param("user_id")
 	userId, err := strconv.Atoi(userIdParam)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		appErr := ac.errorHandler.ValidationError(requestCtx, "user_id", "Invalid user ID: "+err.Error())
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	articles, err := ac.service.FindByUserId(userId)
+	// Call service with context
+	articles, err := ac.service.FindByUserId(requestCtx, userId)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := ac.errorHandler.TimeoutError(requestCtx, "get articles by user ID")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := ac.errorHandler.CancellationError(requestCtx, "get articles by user ID")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := ac.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve articles by user ID")
+		appErr.StatusCode = 500
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success get articles by user ID",
-		"data":    articles,
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":  "Articles retrieved successfully",
+		"articles": articles,
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Get articles by user ID with pagination
@@ -306,21 +506,21 @@ func (ac *ArticleController) GetByUserIdHandler(ctx *gin.Context) {
 // @Param user_id path int true "ID of the user whose articles to retrieve"
 // @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Number of items per page (default: 10, max: 100)"
-// @Success 200 {object} object{success=bool,data=[]model.Article,pagination=object} "Paginated list of articles by user"
-// @Failure 400 {object} object{success=bool,error=object} "Invalid user ID or pagination parameters"
-// @Failure 500 {object} object{success=bool,error=object} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "Paginated list of articles by user"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID or pagination parameters"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /article/u/{user_id}/paginated [get]
-func (ac *ArticleController) GetByUserIdWithPaginationHandler(ctx *gin.Context) {
-	userIdParam := ctx.Param("user_id")
+func (ac *ArticleController) GetByUserIdWithPaginationHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 20*time.Second)
+	defer cancel()
+
+	userIdParam := ginCtx.Param("user_id")
 	userId, err := strconv.Atoi(userIdParam)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INVALID_USER_ID",
-				"message": "Invalid user ID",
-			},
-		})
+		appErr := ac.errorHandler.ValidationError(requestCtx, "user_id", "Invalid user ID: "+err.Error())
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
@@ -328,58 +528,62 @@ func (ac *ArticleController) GetByUserIdWithPaginationHandler(ctx *gin.Context) 
 	page := 1
 	limit := 10
 
-	if pageStr := ctx.Query("page"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+	if pageStr := ginCtx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err != nil || p <= 0 {
+			appErr := ac.errorHandler.ValidationError(requestCtx, "page", "Page must be a positive integer")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		} else {
 			page = p
 		}
 	}
 
-	if limitStr := ctx.Query("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+	if limitStr := ginCtx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err != nil || l <= 0 || l > 100 {
+			appErr := ac.errorHandler.ValidationError(requestCtx, "limit", "Limit must be a positive integer between 1 and 100")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		} else {
 			limit = l
 		}
 	}
 
-	// Get context with request ID if available
-	requestCtx := ctx.Request.Context()
-	if requestID := ctx.GetString("request_id"); requestID != "" {
-		requestCtx = context.WithValue(requestCtx, "request_id", requestID)
-	}
-
-	// Call service with pagination
+	// Call service with pagination and context
 	result, err := ac.service.FindByUserIdWithPagination(requestCtx, userId, page, limit)
 	if err != nil {
-		// Check if it's a context cancellation error
-		if requestCtx.Err() != nil {
-			ctx.JSON(http.StatusRequestTimeout, gin.H{
-				"success": false,
-				"error": gin.H{
-					"code":    "REQUEST_TIMEOUT",
-					"message": "Request was cancelled or timed out",
-				},
-			})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := ac.errorHandler.TimeoutError(requestCtx, "get paginated articles by user ID")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := ac.errorHandler.CancellationError(requestCtx, "get paginated articles by user ID")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": err.Error(),
-			},
-		})
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := ac.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve paginated articles by user ID")
+		appErr.StatusCode = 500
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	// Return standardized response
-	ctx.JSON(http.StatusOK, gin.H{
-		"success":    true,
-		"data":       result.Data,
+	// Create success response with context and pagination
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":    "Articles retrieved successfully",
+		"articles":   result.Data,
 		"pagination": result.Metadata,
-		"meta": gin.H{
-			"request_id": result.RequestID,
-		},
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Get articles by category name
@@ -387,21 +591,58 @@ func (ac *ArticleController) GetByUserIdWithPaginationHandler(ctx *gin.Context) 
 // @Tags Articles
 // @Produce json
 // @Param cat_name path string true "Name of the category to retrieve articles from"
-// @Success 200 {object} object{message=string,data=[]model.Article} "List of articles by category"
-// @Failure 500 {object} object{error=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "List of articles by category"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid category name"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /article/c/{cat_name} [get]
-func (ac *ArticleController) GetByCategory(ctx *gin.Context) {
-	categoryName := ctx.Param("cat_name")
-	articles, err := ac.service.FindByCategory(categoryName)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get articles"})
+func (ac *ArticleController) GetByCategory(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	categoryName := ginCtx.Param("cat_name")
+	if categoryName == "" {
+		appErr := ac.errorHandler.ValidationError(requestCtx, "cat_name", "Category name is required")
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success get articles by Category",
-		"data":    articles,
+	// Call service with context
+	articles, err := ac.service.FindByCategory(requestCtx, categoryName)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := ac.errorHandler.TimeoutError(requestCtx, "get articles by category")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := ac.errorHandler.CancellationError(requestCtx, "get articles by category")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := ac.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve articles by category")
+		appErr.StatusCode = 500
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":  "Articles retrieved successfully",
+		"articles": articles,
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Get articles by category name with pagination
@@ -411,69 +652,83 @@ func (ac *ArticleController) GetByCategory(ctx *gin.Context) {
 // @Param cat_name path string true "Name of the category to retrieve articles from"
 // @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Number of items per page (default: 10, max: 100)"
-// @Success 200 {object} object{success=bool,data=[]model.Article,pagination=object} "Paginated list of articles by category"
-// @Failure 400 {object} object{success=bool,error=object} "Invalid pagination parameters"
-// @Failure 500 {object} object{success=bool,error=object} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "Paginated list of articles by category"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid pagination parameters"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /article/c/{cat_name}/paginated [get]
-func (ac *ArticleController) GetByCategoryWithPaginationHandler(ctx *gin.Context) {
-	categoryName := ctx.Param("cat_name")
+func (ac *ArticleController) GetByCategoryWithPaginationHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 20*time.Second)
+	defer cancel()
+
+	categoryName := ginCtx.Param("cat_name")
+	if categoryName == "" {
+		appErr := ac.errorHandler.ValidationError(requestCtx, "cat_name", "Category name is required")
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
 
 	// Get pagination parameters from query string
 	page := 1
 	limit := 10
 
-	if pageStr := ctx.Query("page"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+	if pageStr := ginCtx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err != nil || p <= 0 {
+			appErr := ac.errorHandler.ValidationError(requestCtx, "page", "Page must be a positive integer")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		} else {
 			page = p
 		}
 	}
 
-	if limitStr := ctx.Query("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+	if limitStr := ginCtx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err != nil || l <= 0 || l > 100 {
+			appErr := ac.errorHandler.ValidationError(requestCtx, "limit", "Limit must be a positive integer between 1 and 100")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		} else {
 			limit = l
 		}
 	}
 
-	// Get context with request ID if available
-	requestCtx := ctx.Request.Context()
-	if requestID := ctx.GetString("request_id"); requestID != "" {
-		requestCtx = context.WithValue(requestCtx, "request_id", requestID)
-	}
-
-	// Call service with pagination
+	// Call service with pagination and context
 	result, err := ac.service.FindByCategoryWithPagination(requestCtx, categoryName, page, limit)
 	if err != nil {
-		// Check if it's a context cancellation error
-		if requestCtx.Err() != nil {
-			ctx.JSON(http.StatusRequestTimeout, gin.H{
-				"success": false,
-				"error": gin.H{
-					"code":    "REQUEST_TIMEOUT",
-					"message": "Request was cancelled or timed out",
-				},
-			})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := ac.errorHandler.TimeoutError(requestCtx, "get paginated articles by category")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := ac.errorHandler.CancellationError(requestCtx, "get paginated articles by category")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": err.Error(),
-			},
-		})
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := ac.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve paginated articles by category")
+		appErr.StatusCode = 500
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	// Return standardized response
-	ctx.JSON(http.StatusOK, gin.H{
-		"success":    true,
-		"data":       result.Data,
+	// Create success response with context and pagination
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":    "Articles retrieved successfully",
+		"articles":   result.Data,
 		"pagination": result.Metadata,
-		"meta": gin.H{
-			"request_id": result.RequestID,
-		},
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Delete an article
@@ -481,52 +736,108 @@ func (ac *ArticleController) GetByCategoryWithPaginationHandler(ctx *gin.Context
 // @Tags Articles
 // @Produce json
 // @Param article_id path int true "ID of the article to delete"
-// @Success 200 {object} object{message=string} "Article deleted successfully"
-// @Failure 400 {object} object{error=string} "Invalid article ID"
-// @Failure 401 {object} object{message=string} "Unauthorized"
-// @Failure 403 {object} object{message=string} "Forbidden (user does not own the article)"
-// @Failure 404 {object} object{message=string} "Article not found"
-// @Failure 500 {object} object{error=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "Article deleted successfully"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 403 {object} middleware.ErrorResponse "Forbidden (user does not own the article)"
+// @Failure 404 {object} middleware.ErrorResponse "Article not found"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /article/{article_id} [delete]
-func (ac *ArticleController) DeleteArticleHandler(ctx *gin.Context) {
-	userId, err := ac.getUserID(ctx)
+func (ac *ArticleController) DeleteArticleHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 30*time.Second)
+	defer cancel()
+
+	userId, err := ac.getUserID(ginCtx)
 	if err != nil {
 		if err.Error() == "unauthorized" {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			appErr := ac.errorHandler.WrapError(requestCtx, err, utils.ErrUnauthorized, "Authentication required")
+			appErr.StatusCode = 401
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+			appErr := ac.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Invalid user ID type")
+			appErr.StatusCode = 500
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		}
 		return
 	}
 
-	articleId, err := ac.parseArticleID(ctx)
+	articleId, err := ac.parseArticleID(ginCtx)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid article ID"})
+		appErr := ac.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	// Cek ownership
-	article, err := ac.service.FindById(articleId)
+	// Check ownership
+	article, err := ac.service.FindById(requestCtx, articleId)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Article not found"})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := ac.errorHandler.TimeoutError(requestCtx, "find article")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := ac.errorHandler.CancellationError(requestCtx, "find article")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := ac.errorHandler.WrapError(requestCtx, err, utils.ErrNotFound, "Article not found")
+		appErr.StatusCode = 404
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
+
 	if article.User.Id != userId {
-		ctx.JSON(http.StatusForbidden, gin.H{"message": "You do not own this article"})
+		appErr := ac.errorHandler.WrapError(requestCtx, fmt.Errorf("user does not own article"), utils.ErrForbidden, "You do not own this article")
+		appErr.StatusCode = 403
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	// Delete article
-	err = ac.service.DeleteArticle(articleId)
+	// Delete article with context
+	err = ac.service.DeleteArticle(requestCtx, articleId)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete article"})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := ac.errorHandler.TimeoutError(requestCtx, "delete article")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := ac.errorHandler.CancellationError(requestCtx, "delete article")
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := ac.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to delete article")
+		appErr.StatusCode = 500
+		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success delete article",
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message": "Article deleted successfully",
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 
@@ -550,10 +861,11 @@ func (c *ArticleController) Route() {
 }
 
 
-func NewArticleController(aS service.ArticleService, md middleware.AuthMiddleware, rg *gin.RouterGroup) *ArticleController {
+func NewArticleController(aS service.ArticleService, md middleware.AuthMiddleware, rg *gin.RouterGroup, errorHandler middleware.ErrorHandler) *ArticleController {
 	return &ArticleController{
-		service: aS,
-		md:      md,
-		rg:      rg,
+		service:      aS,
+		md:           md,
+		rg:           rg,
+		errorHandler: errorHandler,
 	}
 }

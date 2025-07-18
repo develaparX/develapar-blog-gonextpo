@@ -418,15 +418,14 @@ func (u *UserController) Route() {
 	{
 		r.POST("/login", u.loginHandler)
 		r.POST("/register", u.registerUser)
-		r.POST("/refresh", RefreshTokenHandler(u.service))
+		r.POST("/refresh", u.refreshTokenHandler)
 	}
-
 }
 
-func NewUserController(uS service.UserService, rg *gin.RouterGroup) *UserController {
+func NewUserController(uS service.UserService, rg *gin.RouterGroup, errorHandler middleware.ErrorHandler) *UserController {
 	return &UserController{
-
-		service: uS,
-		rg:      rg,
+		service:      uS,
+		rg:           rg,
+		errorHandler: errorHandler,
 	}
 }

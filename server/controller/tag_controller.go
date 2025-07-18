@@ -1,19 +1,23 @@
 package controller
 
 import (
+	"context"
 	"develapar-server/middleware"
 	"develapar-server/model"
 	"develapar-server/service"
+	"develapar-server/utils"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type TagController struct {
-	service service.TagService
-	rg      *gin.RouterGroup
-	md      middleware.AuthMiddleware
+	service      service.TagService
+	rg           *gin.RouterGroup
+	md           middleware.AuthMiddleware
+	errorHandler middleware.ErrorHandler
 }
 
 // @Summary Create a new tag
@@ -22,55 +26,110 @@ type TagController struct {
 // @Accept json
 // @Produce json
 // @Param payload body model.Tags true "Tag creation details"
-// @Success 200 {object} object{message=string,data=model.Tags} "Tag successfully created"
-// @Failure 400 {object} object{message=string} "Invalid payload"
-// @Failure 401 {object} object{message=string} "Unauthorized"
-// @Failure 500 {object} object{message=string} "Internal server error"
+// @Success 201 {object} middleware.SuccessResponse "Tag successfully created"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
 // @Router /tags [post]
-func (t *TagController) CreateTagHandler(ctx *gin.Context) {
+func (t *TagController) CreateTagHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
 	var payload model.Tags
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid payload: " + err.Error(),
-		})
+	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
+		appErr := t.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
+		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	data, err := t.service.CreateTag(payload)
+	// Call service with context
+	data, err := t.service.CreateTag(requestCtx, payload)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to create category: " + err.Error(),
-		})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := t.errorHandler.TimeoutError(requestCtx, "create tag")
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := t.errorHandler.CancellationError(requestCtx, "create tag")
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := t.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to create tag")
+		appErr.StatusCode = 500
+		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Create New Category",
-		"data":    data,
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message": "Tag created successfully",
+		"tag":     data,
 	})
+
+	ginCtx.JSON(http.StatusCreated, successResponse)
 }
 
 // @Summary Get all tags
 // @Description Get a list of all tags
 // @Tags Tags
 // @Produce json
-// @Success 200 {object} object{message=string,data=[]model.Tags} "List of tags"
-// @Failure 500 {object} object{message=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "List of tags"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /tags [get]
-func (t *TagController) GetAllTagHandler(ctx *gin.Context) {
-	data, err := t.service.FindAll()
+func (t *TagController) GetAllTagHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	// Call service with context
+	data, err := t.service.FindAll(requestCtx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err},
-		)
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := t.errorHandler.TimeoutError(requestCtx, "get all tags")
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := t.errorHandler.CancellationError(requestCtx, "get all tags")
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := t.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve tags")
+		appErr.StatusCode = 500
+		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Create New User",
-		"data":    data,
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message": "Tags retrieved successfully",
+		"tags":    data,
 	})
+
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Get tag by ID
@@ -78,27 +137,58 @@ func (t *TagController) GetAllTagHandler(ctx *gin.Context) {
 // @Tags Tags
 // @Produce json
 // @Param tags_id path int true "ID of the tag to retrieve"
-// @Success 200 {object} object{message=string,data=model.Tags} "Tag details"
-// @Failure 400 {object} object{error=string} "Invalid tag ID"
-// @Failure 500 {object} object{error=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "Tag details"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid tag ID"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /tags/{tags_id} [get]
-func (t *TagController) GetByTagIdHandler(ctx *gin.Context) {
-	tagId, err := strconv.Atoi(ctx.Param("tags_id"))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
+func (t *TagController) GetByTagIdHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
+	defer cancel()
 
-	tags, err := t.service.FindById(tagId)
+	tagId, err := strconv.Atoi(ginCtx.Param("tags_id"))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		appErr := t.errorHandler.ValidationError(requestCtx, "tags_id", "Invalid tag ID: "+err.Error())
+		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Get Tags",
-		"data":    tags,
+	// Call service with context
+	tags, err := t.service.FindById(requestCtx, tagId)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := t.errorHandler.TimeoutError(requestCtx, "get tag by ID")
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := t.errorHandler.CancellationError(requestCtx, "get tag by ID")
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := t.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve tag")
+		appErr.StatusCode = 500
+		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message": "Tag retrieved successfully",
+		"tag":     tags,
 	})
 
+	ginCtx.JSON(http.StatusOK, successResponse)
 }
 
 func (t *TagController) Route() {
@@ -110,10 +200,11 @@ func (t *TagController) Route() {
 	routerAuth.POST("/", t.CreateTagHandler)
 }
 
-func NewTagController(tS service.TagService, rg *gin.RouterGroup, md middleware.AuthMiddleware) *TagController {
+func NewTagController(tS service.TagService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *TagController {
 	return &TagController{
-		service: tS,
-		rg:      rg,
-		md:      md,
+		service:      tS,
+		rg:           rg,
+		md:           md,
+		errorHandler: errorHandler,
 	}
 }
