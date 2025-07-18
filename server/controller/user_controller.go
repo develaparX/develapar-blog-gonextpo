@@ -2,9 +2,11 @@ package controller
 
 import (
 	"context"
+	"develapar-server/middleware"
 	"develapar-server/model"
 	"develapar-server/model/dto"
 	"develapar-server/service"
+	"develapar-server/utils"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,8 +15,9 @@ import (
 )
 
 type UserController struct {
-	service service.UserService
-	rg      *gin.RouterGroup
+	service      service.UserService
+	rg           *gin.RouterGroup
+	errorHandler middleware.ErrorHandler
 }
 
 // @Summary User login
@@ -23,38 +26,69 @@ type UserController struct {
 // @Accept json
 // @Produce json
 // @Param payload body dto.LoginDto true "Login credentials"
-// @Success 200 {object} object{message=string,accessToken=string} "Success Login"
-// @Failure 401 {object} object{error=string} "Invalid credentials"
+// @Success 200 {object} middleware.SuccessResponse "Success Login"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid request payload"
+// @Failure 401 {object} middleware.ErrorResponse "Invalid credentials"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Router /auth/login [post]
-func (u *UserController) loginHandler(ctx *gin.Context) {
+func (u *UserController) loginHandler(c *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	defer cancel()
+
 	var payload dto.LoginDto
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		appErr := u.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
+		u.errorHandler.HandleError(requestCtx, c, appErr)
 		return
 	}
 
-	response, err := u.service.Login(payload)
+	// Call service with context
+	response, err := u.service.Login(requestCtx, payload)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := u.errorHandler.TimeoutError(requestCtx, "login")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := u.errorHandler.CancellationError(requestCtx, "login")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Wrap as unauthorized error
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrUnauthorized, "Authentication failed")
+		appErr.StatusCode = 401
+		u.errorHandler.HandleError(requestCtx, c, appErr)
 		return
 	}
 
-	// Set HttpOnly cookie untuk refresh token
-	ctx.SetCookie(
+	// Set HttpOnly cookie for refresh token
+	c.SetCookie(
 		"refreshToken",
 		response.RefreshToken,
-		60*60*24*7, // 7 hari
+		60*60*24*7, // 7 days
 		"/",
-		"localhost", // ganti ke domain di production
-		false,       // secure: true jika HTTPS
+		"localhost", // change to domain in production
+		false,       // secure: true if HTTPS
 		true,        // httpOnly
 	)
 
-	// Jangan kirim refresh token ke frontend
-	ctx.JSON(http.StatusOK, gin.H{
-		"message":     "Success Login",
-		"accessToken": response.AccessToken,
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":      "Login successful",
+		"access_token": response.AccessToken,
 	})
+
+	c.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Register a new user
@@ -63,31 +97,59 @@ func (u *UserController) loginHandler(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param payload body model.User true "User registration details"
-// @Success 200 {object} object{message=string,data=model.User} "User successfully registered"
-// @Failure 400 {object} object{message=string} "Invalid payload"
-// @Failure 500 {object} object{message=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "User successfully registered"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 409 {object} middleware.ErrorResponse "User already exists"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /auth/register [post]
-func (u *UserController) registerUser(ctx *gin.Context) {
+func (u *UserController) registerUser(c *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	defer cancel()
+
 	var payload model.User
-
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error()},
-		)
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		appErr := u.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
+		u.errorHandler.HandleError(requestCtx, c, appErr)
 		return
 	}
 
-	data, err := u.service.CreateNewUser(payload)
+	// Call service with context
+	data, err := u.service.CreateNewUser(requestCtx, payload)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error()},
-		)
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := u.errorHandler.TimeoutError(requestCtx, "user registration")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := u.errorHandler.CancellationError(requestCtx, "user registration")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to create user")
+		appErr.StatusCode = 500
+		u.errorHandler.HandleError(requestCtx, c, appErr)
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Create New User",
-		"data":    data,
+
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message": "User successfully registered",
+		"user":    data,
 	})
+
+	c.JSON(http.StatusCreated, successResponse)
 }
 
 // @Summary Get user by ID
@@ -95,42 +157,109 @@ func (u *UserController) registerUser(ctx *gin.Context) {
 // @Tags Users
 // @Produce json
 // @Param user_id path string true "ID of the user to retrieve"
-// @Success 200 {object} object{message=string,data=model.User} "User details"
-// @Failure 500 {object} object{error=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "User details"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
+// @Failure 404 {object} middleware.ErrorResponse "User not found"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /users/{user_id} [get]
-func (u *UserController) findUserByIdHandler(ctx *gin.Context) {
-	userId := ctx.Param("user_id")
+func (u *UserController) findUserByIdHandler(c *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+	defer cancel()
 
-	user, err := u.service.FindUserById(userId)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	userId := c.Param("user_id")
+	if userId == "" {
+		appErr := u.errorHandler.ValidationError(requestCtx, "user_id", "User ID is required")
+		u.errorHandler.HandleError(requestCtx, c, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Get User",
-		"data":    user,
+	// Call service with context
+	user, err := u.service.FindUserById(requestCtx, userId)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := u.errorHandler.TimeoutError(requestCtx, "get user")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := u.errorHandler.CancellationError(requestCtx, "get user")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve user")
+		appErr.StatusCode = 500
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message": "User retrieved successfully",
+		"user":    user,
 	})
+
+	c.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Get all users
 // @Description Get a list of all registered users
 // @Tags Users
 // @Produce json
-// @Success 200 {object} object{message=string,data=[]model.User} "List of users"
-// @Failure 500 {object} object{error=string} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "List of users"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /users [get]
-func (u *UserController) findAllUserHandler(ctx *gin.Context) {
-	user, err := u.service.FindAllUser()
+func (u *UserController) findAllUserHandler(c *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	// Call service with context
+	users, err := u.service.FindAllUser(requestCtx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := u.errorHandler.TimeoutError(requestCtx, "get all users")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := u.errorHandler.CancellationError(requestCtx, "get all users")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve users")
+		appErr.StatusCode = 500
+		u.errorHandler.HandleError(requestCtx, c, appErr)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Get All User",
-		"data":    user,
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message": "Users retrieved successfully",
+		"users":   users,
 	})
+
+	c.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Get all users with pagination
@@ -139,102 +268,140 @@ func (u *UserController) findAllUserHandler(ctx *gin.Context) {
 // @Produce json
 // @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Number of items per page (default: 10, max: 100)"
-// @Success 200 {object} object{success=bool,data=[]model.User,pagination=object} "Paginated list of users"
-// @Failure 400 {object} object{success=bool,error=object} "Invalid pagination parameters"
-// @Failure 500 {object} object{success=bool,error=object} "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse "Paginated list of users"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid pagination parameters"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Router /users/paginated [get]
-func (u *UserController) findAllUserWithPaginationHandler(ctx *gin.Context) {
+func (u *UserController) findAllUserWithPaginationHandler(c *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(c.Request.Context(), 20*time.Second)
+	defer cancel()
+
 	// Get pagination parameters from query string
 	page := 1
 	limit := 10
 
-	if pageStr := ctx.Query("page"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err != nil || p <= 0 {
+			appErr := u.errorHandler.ValidationError(requestCtx, "page", "Page must be a positive integer")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		} else {
 			page = p
 		}
 	}
 
-	if limitStr := ctx.Query("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err != nil || l <= 0 || l > 100 {
+			appErr := u.errorHandler.ValidationError(requestCtx, "limit", "Limit must be a positive integer between 1 and 100")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		} else {
 			limit = l
 		}
 	}
 
-	// Get context with request ID if available
-	requestCtx := ctx.Request.Context()
-	if requestID := ctx.GetString("request_id"); requestID != "" {
-		requestCtx = context.WithValue(requestCtx, "request_id", requestID)
-	}
-
-	// Call service with pagination
+	// Call service with pagination and context
 	result, err := u.service.FindAllUserWithPagination(requestCtx, page, limit)
 	if err != nil {
-		// Check if it's a context cancellation error
-		if requestCtx.Err() != nil {
-			ctx.JSON(http.StatusRequestTimeout, gin.H{
-				"success": false,
-				"error": gin.H{
-					"code":    "REQUEST_TIMEOUT",
-					"message": "Request was cancelled or timed out",
-				},
-			})
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := u.errorHandler.TimeoutError(requestCtx, "get paginated users")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := u.errorHandler.CancellationError(requestCtx, "get paginated users")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": err.Error(),
-			},
-		})
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve paginated users")
+		appErr.StatusCode = 500
+		u.errorHandler.HandleError(requestCtx, c, appErr)
 		return
 	}
 
-	// Return standardized response
-	ctx.JSON(http.StatusOK, gin.H{
-		"success":    true,
-		"data":       result.Data,
+	// Create success response with context and pagination
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":    "Users retrieved successfully",
+		"users":      result.Data,
 		"pagination": result.Metadata,
-		"meta": gin.H{
-			"request_id":      result.RequestID,
-			"processing_time": time.Since(time.Now()).Milliseconds(),
-		},
 	})
+
+	c.JSON(http.StatusOK, successResponse)
 }
 
 // @Summary Refresh access token
 // @Description Refresh access token using refresh token from cookie
 // @Tags Users
 // @Produce json
-// @Success 200 {object} object{access_token=string} "Access token refreshed successfully"
-// @Failure 401 {object} object{error=string} "Refresh token not found or invalid"
+// @Success 200 {object} middleware.SuccessResponse "Access token refreshed successfully"
+// @Failure 400 {object} middleware.ErrorResponse "Refresh token not found"
+// @Failure 401 {object} middleware.ErrorResponse "Invalid or expired refresh token"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Router /auth/refresh [post]
-func RefreshTokenHandler(userService service.UserService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Ambil dari cookie, bukan dari JSON body
-		cookie, err := c.Cookie("refreshToken")
-		if err != nil || cookie == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "refresh token not found in cookies"})
-			return
-		}
+func (u *UserController) refreshTokenHandler(c *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+	defer cancel()
 
-		// Proses refresh
-		tokenResp, err := userService.RefreshToken(cookie)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Set ulang refreshToken ke cookie (opsional: rotate token)
-		refreshExpiry := time.Now().Add(7 * 24 * time.Hour)
-		c.SetCookie("refreshToken", tokenResp.RefreshToken, int(refreshExpiry.Sub(time.Now()).Seconds()), "/", "", true, true)
-
-		// Return hanya access token ke frontend (refresh tetap di cookie)
-		c.JSON(http.StatusOK, gin.H{
-			"access_token": tokenResp.AccessToken,
-		})
+	// Get refresh token from cookie
+	cookie, err := c.Cookie("refreshToken")
+	if err != nil || cookie == "" {
+		appErr := u.errorHandler.ValidationError(requestCtx, "refresh_token", "Refresh token not found in cookies")
+		appErr.StatusCode = 400
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
 	}
+
+	// Call service with context
+	tokenResp, err := u.service.RefreshToken(requestCtx, cookie)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := u.errorHandler.TimeoutError(requestCtx, "refresh token")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := u.errorHandler.CancellationError(requestCtx, "refresh token")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Wrap as unauthorized error
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrUnauthorized, "Invalid or expired refresh token")
+		appErr.StatusCode = 401
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	// Set new refresh token in cookie
+	refreshExpiry := time.Now().Add(7 * 24 * time.Hour)
+	c.SetCookie("refreshToken", tokenResp.RefreshToken, int(refreshExpiry.Sub(time.Now()).Seconds()), "/", "", true, true)
+
+	// Create success response with context
+	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+		"message":      "Token refreshed successfully",
+		"access_token": tokenResp.AccessToken,
+	})
+
+	c.JSON(http.StatusOK, successResponse)
 }
 
 
