@@ -7,7 +7,6 @@ import (
 	"develapar-server/model/dto"
 	"develapar-server/service"
 	"develapar-server/utils"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -15,10 +14,11 @@ import (
 )
 
 type CategoryController struct {
-	service      service.CategoryService
-	rg           *gin.RouterGroup
-	md           middleware.AuthMiddleware
-	errorHandler middleware.ErrorHandler
+	service        service.CategoryService
+	rg             *gin.RouterGroup
+	md             middleware.AuthMiddleware
+	errorHandler   middleware.ErrorHandler
+	responseHelper *utils.ResponseHelper
 }
 
 // @Summary Create a new category
@@ -74,12 +74,11 @@ func (c *CategoryController) CreateCategoryHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":  "Category created successfully",
 		"category": data,
-	})
-
-	ginCtx.JSON(http.StatusCreated, successResponse)
+	}
+	c.responseHelper.SendCreated(ginCtx, responseData)
 }
 
 // @Summary Get all categories
@@ -124,12 +123,11 @@ func (c *CategoryController) GetAllCategoryHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":    "Categories retrieved successfully",
 		"categories": data,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Update a category
@@ -194,12 +192,11 @@ func (c *CategoryController) UpdateCategoryHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":  "Category updated successfully",
 		"category": cat,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Delete a category
@@ -255,11 +252,10 @@ func (c *CategoryController) DeleteCategoryHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Category deleted successfully",
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 func (c *CategoryController) Route() {
@@ -274,9 +270,10 @@ func (c *CategoryController) Route() {
 
 func NewCategoryController(cS service.CategoryService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *CategoryController {
 	return &CategoryController{
-		service:      cS,
-		rg:           rg,
-		md:           md,
-		errorHandler: errorHandler,
+		service:        cS,
+		rg:             rg,
+		md:             md,
+		errorHandler:   errorHandler,
+		responseHelper: utils.NewResponseHelper(),
 	}
 }

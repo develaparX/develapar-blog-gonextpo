@@ -6,7 +6,6 @@ import (
 	"develapar-server/model/dto"
 	"develapar-server/service"
 	"develapar-server/utils"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -80,11 +79,10 @@ func (c *ArticleTagController) AssignTagToArticleByNameHandler(ginCtx *gin.Conte
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Tags assigned successfully",
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 func (c *ArticleTagController) AssignTagToArticleByIdHandler(ginCtx *gin.Context) {
@@ -128,11 +126,10 @@ func (c *ArticleTagController) AssignTagToArticleByIdHandler(ginCtx *gin.Context
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Tags assigned successfully",
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Get tags by article ID
@@ -186,11 +183,10 @@ func (c *ArticleTagController) GetTagsByArticleIDHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"tags": tags,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Get articles by tag ID
@@ -244,11 +240,10 @@ func (c *ArticleTagController) GetArticlesByTagIDHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"articles": articles,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Remove a tag from an article
@@ -312,11 +307,10 @@ func (c *ArticleTagController) RemoveTagFromArticleHandler(ginCtx *gin.Context) 
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Tag removed from article successfully",
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 func (at *ArticleTagController) Route() {

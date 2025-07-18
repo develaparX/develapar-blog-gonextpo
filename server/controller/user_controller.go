@@ -7,7 +7,6 @@ import (
 	"develapar-server/model/dto"
 	"develapar-server/service"
 	"develapar-server/utils"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -114,6 +113,7 @@ func (u *UserController) registerUser(c *gin.Context) {
 		u.errorHandler.HandleError(requestCtx, c, appErr)
 		return
 	}
+
 
 	// Call service with context
 	data, err := u.service.CreateNewUser(requestCtx, payload)
@@ -332,7 +332,7 @@ func (u *UserController) findAllUserWithPaginationHandler(c *gin.Context) {
 		"message": "Users retrieved successfully",
 		"users":   result.Data,
 	}
-	u.responseHelper.SendSuccessWithPagination(c, responseData, result.Metadata)
+	u.responseHelper.SendSuccessWithServicePagination(c, responseData, result.Metadata)
 }
 
 // @Summary Refresh access token

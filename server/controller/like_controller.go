@@ -6,7 +6,6 @@ import (
 	"develapar-server/model"
 	"develapar-server/service"
 	"develapar-server/utils"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -14,10 +13,11 @@ import (
 )
 
 type LikeController struct {
-	service      service.LikeService
-	rg           *gin.RouterGroup
-	md           middleware.AuthMiddleware
-	errorHandler middleware.ErrorHandler
+	service        service.LikeService
+	rg             *gin.RouterGroup
+	md             middleware.AuthMiddleware
+	errorHandler   middleware.ErrorHandler
+	responseHelper *utils.ResponseHelper
 }
 
 // @Summary Add a like to an article
@@ -93,12 +93,11 @@ func (l *LikeController) AddLikeHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Like added successfully",
 		"like":    data,
-	})
-
-	ginCtx.JSON(http.StatusCreated, successResponse)
+	}
+	l.responseHelper.SendCreated(ginCtx, responseData)
 }
 
 // @Summary Get likes by article ID
@@ -152,12 +151,11 @@ func (l *LikeController) GetLikeByArticleIdHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Likes retrieved successfully",
 		"likes":   likes,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	l.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Get likes by user ID
@@ -211,12 +209,11 @@ func (l *LikeController) GetLikeByUserIdHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Likes retrieved successfully",
 		"likes":   likes,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	l.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Remove a like from an article
@@ -290,11 +287,10 @@ func (l *LikeController) DeleteLikeHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Like deleted successfully",
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	l.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Check if an article is liked by the current user
@@ -366,11 +362,10 @@ func (c *LikeController) CheckLikeHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"liked": liked,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 func (l *LikeController) Route() {
@@ -386,9 +381,10 @@ func (l *LikeController) Route() {
 
 func NewLikeController(lS service.LikeService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *LikeController {
 	return &LikeController{
-		service:      lS,
-		rg:           rg,
-		md:           md,
-		errorHandler: errorHandler,
+		service:        lS,
+		rg:             rg,
+		md:             md,
+		errorHandler:   errorHandler,
+		responseHelper: utils.NewResponseHelper(),
 	}
 }

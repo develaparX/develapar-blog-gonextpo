@@ -29,6 +29,7 @@ type Server struct {
 	lS          service.LikeService
 	jS          service.JwtService
 	mD          middleware.AuthMiddleware
+	eMD			middleware.ErrorHandler
 	hC          *controller.HealthController
 	poolManager config.ConnectionPoolManager
 	engine      *gin.Engine
@@ -37,14 +38,14 @@ type Server struct {
 
 func (s *Server) initiateRoute() {
 	routerGroup := s.engine.Group("/api/v1")
-	controller.NewUserController(s.uS, routerGroup).Route()
-	controller.NewCategoryController(s.cS, routerGroup, s.mD).Route()
-	controller.NewArticleController(s.aS, s.mD, routerGroup).Route()
-	controller.NewBookmarkController(s.bS, routerGroup, s.mD).Route()
-	controller.NewTagController(s.tS, routerGroup, s.mD).Route()
-	controller.NewArticleTagController(s.atS, routerGroup, s.mD).Route()
-	controller.NewCommentController(s.coS, routerGroup, s.mD).Route()
-	controller.NewLikeController(s.lS, routerGroup, s.mD).Route()
+	controller.NewUserController(s.uS, routerGroup,s.eMD).Route()
+	controller.NewCategoryController(s.cS, routerGroup, s.mD,s.eMD).Route()
+	controller.NewArticleController(s.aS, s.mD, routerGroup,s.eMD).Route()
+	controller.NewBookmarkController(s.bS, routerGroup, s.mD,s.eMD).Route()
+	controller.NewTagController(s.tS, routerGroup, s.mD,s.eMD).Route()
+	controller.NewArticleTagController(s.atS, routerGroup, s.mD,s.eMD).Route()
+	controller.NewCommentController(s.coS, routerGroup, s.mD,s.eMD).Route()
+	controller.NewLikeController(s.lS, routerGroup, s.mD,s.eMD).Route()
 
 	// Health check routes (no authentication required)
 	s.hC.Route(routerGroup)
@@ -146,14 +147,14 @@ func NewServer() *Server {
 	validationService := service.NewValidationService(errorWrapper)
 	paginationService := service.NewPaginationService(validationService, errorWrapper)
 	
-	userService := service.NewUserservice(userRepo, jwtService, passwordHasher, paginationService)
-	categoryService := service.NewCategoryService(categoryRepo)
-	articleTagService := service.NewArticleTagService(tagRepo, articleTagRepo)
-	articleService := service.NewArticleService(articleRepo, articleTagService, paginationService)
-	bookmarkService := service.NewBookmarkService(bookmarkRepo)
-	tagService := service.NewTagService(tagRepo)
-	commentService := service.NewCommentService(commentRepo)
-	likeService := service.NewLikeService(likeRepo)
+	userService := service.NewUserservice(userRepo, jwtService, passwordHasher, paginationService,validationService)
+	categoryService := service.NewCategoryService(categoryRepo,validationService)
+	articleTagService := service.NewArticleTagService(tagRepo, articleTagRepo, validationService)
+	articleService := service.NewArticleService(articleRepo, articleTagService, paginationService, validationService)
+	bookmarkService := service.NewBookmarkService(bookmarkRepo, validationService)
+	tagService := service.NewTagService(tagRepo, validationService)
+	commentService := service.NewCommentService(commentRepo, validationService)
+	likeService := service.NewLikeService(likeRepo, validationService)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	healthController := controller.NewHealthController(poolManager)
@@ -169,6 +170,7 @@ func NewServer() *Server {
 		coS:         commentService,
 		lS:          likeService,
 		mD:          authMiddleware,
+		eMD: errorHandler,
 		hC:          healthController,
 		poolManager: poolManager,
 		portApp:     portApp,

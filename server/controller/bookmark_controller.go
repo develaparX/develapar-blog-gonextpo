@@ -6,7 +6,6 @@ import (
 	"develapar-server/model"
 	"develapar-server/service"
 	"develapar-server/utils"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -14,10 +13,11 @@ import (
 )
 
 type BookmarkController struct {
-	service      service.BookmarkService
-	rg           *gin.RouterGroup
-	md           middleware.AuthMiddleware
-	errorHandler middleware.ErrorHandler
+	service        service.BookmarkService
+	rg             *gin.RouterGroup
+	md             middleware.AuthMiddleware
+	errorHandler   middleware.ErrorHandler
+	responseHelper *utils.ResponseHelper
 }
 
 // @Summary Create a new bookmark
@@ -92,12 +92,11 @@ func (b *BookmarkController) CreateBookmarkHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":  "Bookmark created successfully",
 		"bookmark": data,
-	})
-
-	ginCtx.JSON(http.StatusCreated, successResponse)
+	}
+	b.responseHelper.SendCreated(ginCtx, responseData)
 }
 
 // @Summary Get bookmarks by user ID
@@ -151,12 +150,11 @@ func (b *BookmarkController) GetBookmarkByUserId(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":   "Bookmarks retrieved successfully",
 		"bookmarks": bookmarks,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	b.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Delete a bookmark
@@ -230,11 +228,10 @@ func (b *BookmarkController) DeleteBookmarkHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Bookmark deleted successfully",
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	b.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Check if an article is bookmarked by the current user
@@ -306,11 +303,10 @@ func (c *BookmarkController) CheckBookmarkHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"bookmarked": bookmarked,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 func (c *BookmarkController) Route() {
@@ -326,9 +322,10 @@ func (c *BookmarkController) Route() {
 
 func NewBookmarkController(bS service.BookmarkService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *BookmarkController {
 	return &BookmarkController{
-		service:      bS,
-		rg:           rg,
-		md:           md,
-		errorHandler: errorHandler,
+		service:        bS,
+		rg:             rg,
+		md:             md,
+		errorHandler:   errorHandler,
+		responseHelper: utils.NewResponseHelper(),
 	}
 }

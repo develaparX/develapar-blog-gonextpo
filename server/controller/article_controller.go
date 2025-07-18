@@ -7,7 +7,6 @@ import (
 	"develapar-server/service"
 	"develapar-server/utils"
 	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -486,12 +485,11 @@ func (ac *ArticleController) GetByUserIdHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":  "Articles retrieved successfully",
 		"articles": articles,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	ac.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Get articles by user ID with pagination
@@ -572,13 +570,11 @@ func (ac *ArticleController) GetByUserIdWithPaginationHandler(ginCtx *gin.Contex
 	}
 
 	// Create success response with context and pagination
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
-		"message":    "Articles retrieved successfully",
-		"articles":   result.Data,
-		"pagination": result.Metadata,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	responseData := gin.H{
+		"message":  "Articles retrieved successfully",
+		"articles": result.Data,
+	}
+	ac.responseHelper.SendSuccessWithServicePagination(ginCtx, responseData, result.Metadata)
 }
 
 // @Summary Get articles by category name
@@ -632,12 +628,11 @@ func (ac *ArticleController) GetByCategory(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":  "Articles retrieved successfully",
 		"articles": articles,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	ac.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Get articles by category name with pagination
@@ -717,13 +712,11 @@ func (ac *ArticleController) GetByCategoryWithPaginationHandler(ginCtx *gin.Cont
 	}
 
 	// Create success response with context and pagination
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
-		"message":    "Articles retrieved successfully",
-		"articles":   result.Data,
-		"pagination": result.Metadata,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	responseData := gin.H{
+		"message":  "Articles retrieved successfully",
+		"articles": result.Data,
+	}
+	ac.responseHelper.SendSuccessWithServicePagination(ginCtx, responseData, result.Metadata)
 }
 
 // @Summary Delete an article
@@ -828,11 +821,10 @@ func (ac *ArticleController) DeleteArticleHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Article deleted successfully",
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	ac.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 

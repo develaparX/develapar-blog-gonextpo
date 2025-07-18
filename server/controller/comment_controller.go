@@ -7,7 +7,6 @@ import (
 	"develapar-server/service"
 	"develapar-server/utils"
 	"errors"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -15,10 +14,11 @@ import (
 )
 
 type CommentController struct {
-	service      service.CommentService
-	rg           *gin.RouterGroup
-	md           middleware.AuthMiddleware
-	errorHandler middleware.ErrorHandler
+	service        service.CommentService
+	rg             *gin.RouterGroup
+	md             middleware.AuthMiddleware
+	errorHandler   middleware.ErrorHandler
+	responseHelper *utils.ResponseHelper
 }
 
 // @Summary Create a new comment
@@ -94,12 +94,11 @@ func (c *CommentController) CreateCommentHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Comment created successfully",
 		"comment": data,
-	})
-
-	ginCtx.JSON(http.StatusCreated, successResponse)
+	}
+	c.responseHelper.SendCreated(ginCtx, responseData)
 }
 
 // @Summary Get comments by article ID
@@ -153,12 +152,11 @@ func (c *CommentController) FindCommentByArticleIdHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":  "Comments retrieved successfully",
 		"comments": comments,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Get comments by user ID
@@ -212,12 +210,11 @@ func (c *CommentController) FindCommentByUserIdHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":  "Comments retrieved successfully",
 		"comments": comments,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Update a comment
@@ -294,11 +291,10 @@ func (c *CommentController) UpdateCommentHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Comment updated successfully",
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Delete a comment
@@ -355,11 +351,10 @@ func (c *CommentController) DeleteCommentHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Comment deleted successfully",
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 func (c *CommentController) Route() {
@@ -376,9 +371,10 @@ func (c *CommentController) Route() {
 
 func NewCommentController(cS service.CommentService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *CommentController {
 	return &CommentController{
-		service:      cS,
-		rg:           rg,
-		md:           md,
-		errorHandler: errorHandler,
+		service:        cS,
+		rg:             rg,
+		md:             md,
+		errorHandler:   errorHandler,
+		responseHelper: utils.NewResponseHelper(),
 	}
 }

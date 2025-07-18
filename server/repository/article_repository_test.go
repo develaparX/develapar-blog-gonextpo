@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"regexp"
@@ -41,7 +42,7 @@ func (suite *ArticleRepositoryTestSuite) TestGetAll() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(query)).WillReturnRows(rows)
 
-	articles, err := suite.repo.GetAll()
+	articles, err := suite.repo.GetAll(context.Background())
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), articles, 2)
 	assert.Equal(suite.T(), "Title 1", articles[0].Title)
@@ -53,7 +54,7 @@ func (suite *ArticleRepositoryTestSuite) TestGetAll_Error() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(query)).WillReturnError(errors.New("db error"))
 
-	articles, err := suite.repo.GetAll()
+	articles, err := suite.repo.GetAll(context.Background())
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), articles)
 }
@@ -76,7 +77,7 @@ func (suite *ArticleRepositoryTestSuite) TestCreateArticle() {
 		WithArgs(article.Title, article.Content, article.Slug, article.User.Id, article.Category.Id).
 		WillReturnRows(rows)
 
-	createdArticle, err := suite.repo.CreateArticle(article)
+	createdArticle, err := suite.repo.CreateArticle(context.Background(), article)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), article.Title, createdArticle.Title)
 }
@@ -96,7 +97,7 @@ func (suite *ArticleRepositoryTestSuite) TestCreateArticle_Error() {
 		WithArgs(article.Title, article.Content, article.Slug, article.User.Id, article.Category.Id).
 		WillReturnError(errors.New("db error"))
 
-	createdArticle, err := suite.repo.CreateArticle(article)
+	createdArticle, err := suite.repo.CreateArticle(context.Background(), article)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), model.Article{}, createdArticle)
 }
@@ -119,7 +120,7 @@ func (suite *ArticleRepositoryTestSuite) TestUpdateArticle() {
 		WithArgs(article.Title, article.Slug, article.Content, article.Category.Id, article.Id).
 		WillReturnRows(rows)
 
-	updatedArticle, err := suite.repo.UpdateArticle(article)
+	updatedArticle, err := suite.repo.UpdateArticle(context.Background(), article)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), article.Title, updatedArticle.Title)
 }
@@ -139,7 +140,7 @@ func (suite *ArticleRepositoryTestSuite) TestUpdateArticle_Error() {
 		WithArgs(article.Title, article.Slug, article.Content, article.Category.Id, article.Id).
 		WillReturnError(errors.New("db error"))
 
-	updatedArticle, err := suite.repo.UpdateArticle(article)
+	updatedArticle, err := suite.repo.UpdateArticle(context.Background(), article)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), model.Article{}, updatedArticle)
 }
@@ -152,7 +153,7 @@ func (suite *ArticleRepositoryTestSuite) TestGetArticleById() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(1).WillReturnRows(rows)
 
-	article, err := suite.repo.GetArticleById(1)
+	article, err := suite.repo.GetArticleById(context.Background(), 1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Title 1", article.Title)
 }
@@ -162,7 +163,7 @@ func (suite *ArticleRepositoryTestSuite) TestGetArticleById_Error() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(1).WillReturnError(errors.New("db error"))
 
-	article, err := suite.repo.GetArticleById(1)
+	article, err := suite.repo.GetArticleById(context.Background(), 1)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), model.Article{}, article)
 }
@@ -175,7 +176,7 @@ func (suite *ArticleRepositoryTestSuite) TestGetArticleByUserId() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(1).WillReturnRows(rows)
 
-	articles, err := suite.repo.GetArticleByUserId(1)
+	articles, err := suite.repo.GetArticleByUserId(context.Background(), 1)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), articles, 1)
 	assert.Equal(suite.T(), "Title 1", articles[0].Title)
@@ -186,7 +187,7 @@ func (suite *ArticleRepositoryTestSuite) TestGetArticleByUserId_Error() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(1).WillReturnError(errors.New("db error"))
 
-	articles, err := suite.repo.GetArticleByUserId(1)
+	articles, err := suite.repo.GetArticleByUserId(context.Background(), 1)
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), articles)
 }
@@ -199,7 +200,7 @@ func (suite *ArticleRepositoryTestSuite) TestGetArticleBySlug() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs("slug-1").WillReturnRows(rows)
 
-	article, err := suite.repo.GetArticleBySlug("slug-1")
+	article, err := suite.repo.GetArticleBySlug(context.Background(), "slug-1")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Title 1", article.Title)
 }
@@ -209,7 +210,7 @@ func (suite *ArticleRepositoryTestSuite) TestGetArticleBySlug_Error() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs("slug-1").WillReturnError(errors.New("db error"))
 
-	article, err := suite.repo.GetArticleBySlug("slug-1")
+	article, err := suite.repo.GetArticleBySlug(context.Background(), "slug-1")
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), model.Article{}, article)
 }
@@ -222,7 +223,7 @@ func (suite *ArticleRepositoryTestSuite) TestGetArticleByCategory() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs("Category 1").WillReturnRows(rows)
 
-	articles, err := suite.repo.GetArticleByCategory("Category 1")
+	articles, err := suite.repo.GetArticleByCategory(context.Background(), "Category 1")
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), articles, 1)
 	assert.Equal(suite.T(), "Title 1", articles[0].Title)
@@ -233,7 +234,7 @@ func (suite *ArticleRepositoryTestSuite) TestGetArticleByCategory_Error() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs("Category 1").WillReturnError(errors.New("db error"))
 
-	articles, err := suite.repo.GetArticleByCategory("Category 1")
+	articles, err := suite.repo.GetArticleByCategory(context.Background(), "Category 1")
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), articles)
 }
@@ -243,7 +244,7 @@ func (suite *ArticleRepositoryTestSuite) TestDeleteArticle() {
 
 	suite.mock.ExpectExec(regexp.QuoteMeta(query)).WithArgs(1).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := suite.repo.DeleteArticle(1)
+	err := suite.repo.DeleteArticle(context.Background(), 1)
 	assert.NoError(suite.T(), err)
 }
 
@@ -252,7 +253,7 @@ func (suite *ArticleRepositoryTestSuite) TestDeleteArticle_Error() {
 
 	suite.mock.ExpectExec(regexp.QuoteMeta(query)).WithArgs(1).WillReturnError(errors.New("db error"))
 
-	err := suite.repo.DeleteArticle(1)
+	err := suite.repo.DeleteArticle(context.Background(), 1)
 	assert.Error(suite.T(), err)
 }
 
