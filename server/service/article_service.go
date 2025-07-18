@@ -229,7 +229,7 @@ func (a *articleService) UpdateArticle(ctx context.Context, id int, req dto.Upda
 	if len(req.Tags) > 0 {
 		// Remove existing tags first, then assign new ones
 		// This is a simple approach - in production you might want to be more selective
-		err = a.assignTagsToArticle(updatedArticle.Id, req.Tags)
+		err = a.assignTagsToArticle(ctx, updatedArticle.Id, req.Tags)
 		if err != nil {
 			// Log error but don't fail the update
 			// In production, you might want to use database transactions
@@ -242,8 +242,8 @@ func (a *articleService) UpdateArticle(ctx context.Context, id int, req dto.Upda
 
 // assignTagsToArticle is a helper method to assign tags to an article
 // Uses ArticleTagService to avoid code duplication
-func (a *articleService) assignTagsToArticle(articleId int, tagNames []string) error {
-	return a.articleTagService.AsignTagsByName(articleId, tagNames)
+func (a *articleService) assignTagsToArticle(ctx context.Context, articleId int, tagNames []string) error {
+	return a.articleTagService.AsignTagsByName(ctx, articleId, tagNames)
 }
 
 // CreateArticleWithTags implements ArticleService.
@@ -299,7 +299,7 @@ func (a *articleService) CreateArticleWithTags(ctx context.Context, req dto.Crea
 
 	// Assign tags if provided
 	if len(req.Tags) > 0 {
-		err = a.assignTagsToArticle(createdArticle.Id, req.Tags)
+		err = a.assignTagsToArticle(ctx, createdArticle.Id, req.Tags)
 		if err != nil {
 			// If tag assignment fails, we could either:
 			// 1. Delete the created article (rollback)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"develapar-server/utils"
+	"develapar-server/model/dto"
 )
 
 // RateLimiter interface defines rate limiting operations with context support
@@ -648,33 +649,11 @@ func (rlm *RateLimitMiddleware) Middleware() gin.HandlerFunc {
 				"count":     stats.Count,
 			})
 			
-			// Create rate limit error
-			rateLimitErr := rlm.wrapper.RateLimitError(ctx, limit, window)
-			
 			// Set additional headers for rate limited requests
 			c.Header("Retry-After", fmt.Sprintf("%.0f", window.Seconds()))
 			
-			// Create error response
-			errorResponse := ErrorResponse{
-				Success: false,
-				Error: &ErrorDetail{
-					Code:      rateLimitErr.Code,
-					Message:   rateLimitErr.Message,
-					RequestID: rateLimitErr.RequestID,
-					Timestamp: rateLimitErr.Timestamp,
-					Details: map[string]string{
-						"limit":     fmt.Sprintf("%d", limit),
-						"window":    window.String(),
-						"reset_at":  stats.ResetTime.Format(time.RFC3339),
-					},
-				},
-				Meta: &ResponseMetadata{
-					RequestID:      rateLimitErr.RequestID,
-					ProcessingTime: rlm.calculateProcessingTime(ctx),
-					Version:        "1.0.0",
-					Timestamp:      time.Now(),
-				},
-			}
+			// Create error response using standardized structure
+			errorResponse := dto.RateLimitErrorResponse(ctx, int(window.Seconds()))
 			
 			c.JSON(429, errorResponse)
 			c.Abort()
@@ -1127,33 +1106,11 @@ func (mrlm *MonitoredRateLimitMiddleware) MonitoredMiddleware() gin.HandlerFunc 
 			// Rate limit exceeded - log violation
 			mrlm.monitor.LogViolation(ctx, key, clientIP, userID, limit, window, stats.Count)
 			
-			// Create rate limit error
-			rateLimitErr := mrlm.wrapper.RateLimitError(ctx, limit, window)
-			
 			// Set additional headers for rate limited requests
 			c.Header("Retry-After", fmt.Sprintf("%.0f", window.Seconds()))
 			
-			// Create error response
-			errorResponse := ErrorResponse{
-				Success: false,
-				Error: &ErrorDetail{
-					Code:      rateLimitErr.Code,
-					Message:   rateLimitErr.Message,
-					RequestID: rateLimitErr.RequestID,
-					Timestamp: rateLimitErr.Timestamp,
-					Details: map[string]string{
-						"limit":     fmt.Sprintf("%d", limit),
-						"window":    window.String(),
-						"reset_at":  stats.ResetTime.Format(time.RFC3339),
-					},
-				},
-				Meta: &ResponseMetadata{
-					RequestID:      rateLimitErr.RequestID,
-					ProcessingTime: mrlm.calculateProcessingTime(ctx),
-					Version:        "1.0.0",
-					Timestamp:      time.Now(),
-				},
-			}
+			// Create error response using standardized structure
+			errorResponse := dto.RateLimitErrorResponse(ctx, int(window.Seconds()))
 			
 			c.JSON(429, errorResponse)
 			c.Abort()

@@ -15,10 +15,11 @@ import (
 )
 
 type ArticleController struct {
-	service      service.ArticleService
-	md           middleware.AuthMiddleware
-	rg           *gin.RouterGroup
-	errorHandler middleware.ErrorHandler
+	service        service.ArticleService
+	md             middleware.AuthMiddleware
+	rg             *gin.RouterGroup
+	errorHandler   middleware.ErrorHandler
+	responseHelper *utils.ResponseHelper
 }
 
 // Helper function to extract user ID from context
@@ -114,12 +115,11 @@ func (c *ArticleController) CreateArticleHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Article created successfully",
 		"article": data,
-	})
-
-	ginCtx.JSON(http.StatusCreated, successResponse)
+	}
+	c.responseHelper.SendCreated(ginCtx, responseData)
 }
 
 // @Summary Get all articles
@@ -164,12 +164,11 @@ func (c *ArticleController) GetAllArticleHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":  "Articles retrieved successfully",
 		"articles": data,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Get all articles with pagination
@@ -241,13 +240,11 @@ func (c *ArticleController) GetAllArticleWithPaginationHandler(ginCtx *gin.Conte
 	}
 
 	// Create success response with context and pagination
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
-		"message":    "Articles retrieved successfully",
-		"articles":   result.Data,
-		"pagination": result.Metadata,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	responseData := gin.H{
+		"message":  "Articles retrieved successfully",
+		"articles": result.Data,
+	}
+	c.responseHelper.SendSuccessWithServicePagination(ginCtx, responseData, result.Metadata)
 }
 
 // @Summary Update an article
@@ -362,12 +359,11 @@ func (c *ArticleController) UpdateArticleHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Article updated successfully",
 		"article": updatedArticle,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 
@@ -431,12 +427,11 @@ func (c *ArticleController) GetBySlugHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Article retrieved successfully",
 		"article": article,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Get articles by user ID
@@ -863,9 +858,10 @@ func (c *ArticleController) Route() {
 
 func NewArticleController(aS service.ArticleService, md middleware.AuthMiddleware, rg *gin.RouterGroup, errorHandler middleware.ErrorHandler) *ArticleController {
 	return &ArticleController{
-		service:      aS,
-		md:           md,
-		rg:           rg,
-		errorHandler: errorHandler,
+		service:        aS,
+		md:             md,
+		rg:             rg,
+		errorHandler:   errorHandler,
+		responseHelper: utils.NewResponseHelper(),
 	}
 }

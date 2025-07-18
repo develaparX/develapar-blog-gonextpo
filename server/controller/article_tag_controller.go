@@ -14,10 +14,11 @@ import (
 )
 
 type ArticleTagController struct {
-	service      service.ArticleTagService
-	rg           *gin.RouterGroup
-	md           middleware.AuthMiddleware
-	errorHandler middleware.ErrorHandler
+	service        service.ArticleTagService
+	rg             *gin.RouterGroup
+	md             middleware.AuthMiddleware
+	errorHandler   middleware.ErrorHandler
+	responseHelper *utils.ResponseHelper
 }
 
 type AssignTagRequest struct {
@@ -332,9 +333,10 @@ func (at *ArticleTagController) Route() {
 
 func NewArticleTagController(s service.ArticleTagService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *ArticleTagController {
 	return &ArticleTagController{
-		service:      s,
-		rg:           rg,
-		md:           md,
-		errorHandler: errorHandler,
+		service:        s,
+		rg:             rg,
+		md:             md,
+		errorHandler:   errorHandler,
+		responseHelper: utils.NewResponseHelper(),
 	}
 }

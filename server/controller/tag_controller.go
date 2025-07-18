@@ -14,10 +14,11 @@ import (
 )
 
 type TagController struct {
-	service      service.TagService
-	rg           *gin.RouterGroup
-	md           middleware.AuthMiddleware
-	errorHandler middleware.ErrorHandler
+	service        service.TagService
+	rg             *gin.RouterGroup
+	md             middleware.AuthMiddleware
+	errorHandler   middleware.ErrorHandler
+	responseHelper *utils.ResponseHelper
 }
 
 // @Summary Create a new tag
@@ -74,12 +75,11 @@ func (t *TagController) CreateTagHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Tag created successfully",
 		"tag":     data,
-	})
-
-	ginCtx.JSON(http.StatusCreated, successResponse)
+	}
+	t.responseHelper.SendCreated(ginCtx, responseData)
 }
 
 // @Summary Get all tags
@@ -124,12 +124,11 @@ func (t *TagController) GetAllTagHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Tags retrieved successfully",
 		"tags":    data,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	t.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 // @Summary Get tag by ID
@@ -183,12 +182,11 @@ func (t *TagController) GetByTagIdHandler(ginCtx *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Tag retrieved successfully",
 		"tag":     tags,
-	})
-
-	ginCtx.JSON(http.StatusOK, successResponse)
+	}
+	t.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
 func (t *TagController) Route() {
@@ -202,9 +200,10 @@ func (t *TagController) Route() {
 
 func NewTagController(tS service.TagService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *TagController {
 	return &TagController{
-		service:      tS,
-		rg:           rg,
-		md:           md,
-		errorHandler: errorHandler,
+		service:        tS,
+		rg:             rg,
+		md:             md,
+		errorHandler:   errorHandler,
+		responseHelper: utils.NewResponseHelper(),
 	}
 }

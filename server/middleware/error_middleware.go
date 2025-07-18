@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"develapar-server/utils"
+	"develapar-server/model/dto"
 )
 
 // ErrorHandler interface for handling errors with context support
@@ -100,23 +101,15 @@ func (eh *errorHandler) HandleError(ctx context.Context, c *gin.Context, err err
 		c.Header("X-Request-ID", requestID)
 	}
 	
-	// Create error response
-	errorResponse := ErrorResponse{
-		Success: false,
-		Error: &ErrorDetail{
-			Code:      appErr.Code,
-			Message:   appErr.Message,
-			Details:   appErr.Details,
-			RequestID: appErr.RequestID,
-			Timestamp: appErr.Timestamp,
-		},
-		Meta: &ResponseMetadata{
-			RequestID:      appErr.RequestID,
-			ProcessingTime: eh.calculateProcessingTime(ctx),
-			Version:        "1.0.0",
-			Timestamp:      time.Now(),
-		},
+	// Create error response using standardized structure
+	details := make(map[string]interface{})
+	if appErr.Details != nil {
+		for k, v := range appErr.Details {
+			details[k] = v
+		}
 	}
+	
+	errorResponse := dto.ErrorResponseFromError(ctx, appErr.Code, appErr.Message, details)
 	
 	// Determine status code
 	statusCode := utils.GetStatusCode(appErr)
@@ -229,61 +222,4 @@ func RecoveryMiddleware(handler ErrorHandler) gin.HandlerFunc {
 	}
 }
 
-// Response structures for consistent API responses
-
-// ErrorResponse represents the standard error response format
-type ErrorResponse struct {
-	Success bool              `json:"success"`
-	Error   *ErrorDetail      `json:"error"`
-	Meta    *ResponseMetadata `json:"meta,omitempty"`
-}
-
-// ErrorDetail contains error information
-type ErrorDetail struct {
-	Code      string            `json:"code"`
-	Message   string            `json:"message"`
-	Details   map[string]string `json:"details,omitempty"`
-	RequestID string            `json:"request_id,omitempty"`
-	Timestamp time.Time         `json:"timestamp"`
-}
-
-// ResponseMetadata contains response metadata
-type ResponseMetadata struct {
-	RequestID      string        `json:"request_id"`
-	ProcessingTime time.Duration `json:"processing_time_ms"`
-	Version        string        `json:"version"`
-	Timestamp      time.Time     `json:"timestamp"`
-}
-
-// SuccessResponse represents the standard success response format
-type SuccessResponse struct {
-	Success bool              `json:"success"`
-	Data    interface{}       `json:"data,omitempty"`
-	Meta    *ResponseMetadata `json:"meta,omitempty"`
-}
-
-// Helper function to create success response
-func CreateSuccessResponse(ctx context.Context, data interface{}) SuccessResponse {
-	requestID := ""
-	processingTime := time.Duration(0)
-	
-	if ctx != nil {
-		if rid, ok := ctx.Value("request_id").(string); ok {
-			requestID = rid
-		}
-		if startTime, ok := ctx.Value("start_time").(time.Time); ok {
-			processingTime = time.Since(startTime)
-		}
-	}
-	
-	return SuccessResponse{
-		Success: true,
-		Data:    data,
-		Meta: &ResponseMetadata{
-			RequestID:      requestID,
-			ProcessingTime: processingTime,
-			Version:        "1.0.0",
-			Timestamp:      time.Now(),
-		},
-	}
-}
+// Note: Response structures have been moved to model/dto/response.go for centralized management

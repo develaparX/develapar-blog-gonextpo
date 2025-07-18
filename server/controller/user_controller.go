@@ -15,9 +15,10 @@ import (
 )
 
 type UserController struct {
-	service      service.UserService
-	rg           *gin.RouterGroup
-	errorHandler middleware.ErrorHandler
+	service        service.UserService
+	rg             *gin.RouterGroup
+	errorHandler   middleware.ErrorHandler
+	responseHelper *utils.ResponseHelper
 }
 
 // @Summary User login
@@ -83,12 +84,11 @@ func (u *UserController) loginHandler(c *gin.Context) {
 	)
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":      "Login successful",
 		"access_token": response.AccessToken,
-	})
-
-	c.JSON(http.StatusOK, successResponse)
+	}
+	u.responseHelper.SendSuccess(c, responseData)
 }
 
 // @Summary Register a new user
@@ -144,12 +144,11 @@ func (u *UserController) registerUser(c *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "User successfully registered",
 		"user":    data,
-	})
-
-	c.JSON(http.StatusCreated, successResponse)
+	}
+	u.responseHelper.SendCreated(c, responseData)
 }
 
 // @Summary Get user by ID
@@ -204,12 +203,11 @@ func (u *UserController) findUserByIdHandler(c *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "User retrieved successfully",
 		"user":    user,
-	})
-
-	c.JSON(http.StatusOK, successResponse)
+	}
+	u.responseHelper.SendSuccess(c, responseData)
 }
 
 // @Summary Get all users
@@ -254,12 +252,11 @@ func (u *UserController) findAllUserHandler(c *gin.Context) {
 	}
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message": "Users retrieved successfully",
 		"users":   users,
-	})
-
-	c.JSON(http.StatusOK, successResponse)
+	}
+	u.responseHelper.SendSuccess(c, responseData)
 }
 
 // @Summary Get all users with pagination
@@ -331,13 +328,11 @@ func (u *UserController) findAllUserWithPaginationHandler(c *gin.Context) {
 	}
 
 	// Create success response with context and pagination
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
-		"message":    "Users retrieved successfully",
-		"users":      result.Data,
-		"pagination": result.Metadata,
-	})
-
-	c.JSON(http.StatusOK, successResponse)
+	responseData := gin.H{
+		"message": "Users retrieved successfully",
+		"users":   result.Data,
+	}
+	u.responseHelper.SendSuccessWithPagination(c, responseData, result.Metadata)
 }
 
 // @Summary Refresh access token
@@ -396,12 +391,11 @@ func (u *UserController) refreshTokenHandler(c *gin.Context) {
 	c.SetCookie("refreshToken", tokenResp.RefreshToken, int(refreshExpiry.Sub(time.Now()).Seconds()), "/", "", true, true)
 
 	// Create success response with context
-	successResponse := middleware.CreateSuccessResponse(requestCtx, gin.H{
+	responseData := gin.H{
 		"message":      "Token refreshed successfully",
 		"access_token": tokenResp.AccessToken,
-	})
-
-	c.JSON(http.StatusOK, successResponse)
+	}
+	u.responseHelper.SendSuccess(c, responseData)
 }
 
 
@@ -424,8 +418,9 @@ func (u *UserController) Route() {
 
 func NewUserController(uS service.UserService, rg *gin.RouterGroup, errorHandler middleware.ErrorHandler) *UserController {
 	return &UserController{
-		service:      uS,
-		rg:           rg,
-		errorHandler: errorHandler,
+		service:        uS,
+		rg:             rg,
+		errorHandler:   errorHandler,
+		responseHelper: utils.NewResponseHelper(),
 	}
 }
