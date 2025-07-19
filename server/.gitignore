@@ -1,2 +1,7 @@
 .env
 tmp
+develapar-server
+coverage.html
+coverage.out
+test-build
+test-server

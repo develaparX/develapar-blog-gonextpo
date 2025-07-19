@@ -12,11 +12,44 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// loggerAdapter adapts utils.Logger to middleware.Logger interface
+type loggerAdapter struct {
+	logger utils.Logger
+}
+
+func (la *loggerAdapter) Error(ctx context.Context, msg string, err error, fields map[string]interface{}) {
+	// Convert map[string]interface{} to []utils.Field
+	var utilsFields []utils.Field
+	for key, value := range fields {
+		utilsFields = append(utilsFields, utils.Field{Key: key, Value: value})
+	}
+	la.logger.Error(ctx, msg, err, utilsFields...)
+}
+
+func (la *loggerAdapter) Warn(ctx context.Context, msg string, fields map[string]interface{}) {
+	// Convert map[string]interface{} to []utils.Field
+	var utilsFields []utils.Field
+	for key, value := range fields {
+		utilsFields = append(utilsFields, utils.Field{Key: key, Value: value})
+	}
+	la.logger.Warn(ctx, msg, utilsFields...)
+}
+
+func (la *loggerAdapter) Info(ctx context.Context, msg string, fields map[string]interface{}) {
+	// Convert map[string]interface{} to []utils.Field
+	var utilsFields []utils.Field
+	for key, value := range fields {
+		utilsFields = append(utilsFields, utils.Field{Key: key, Value: value})
+	}
+	la.logger.Info(ctx, msg, utilsFields...)
+}
 
 type Server struct {
 	uS          service.UserService
@@ -125,6 +158,43 @@ func NewServer() *Server {
 	metricsController := controller.NewMetricsController(metricsService)
 	metricsMiddleware := middleware.NewMetricsMiddleware(metricsService, metricsLogger)
 
+	// Initialize rate limiting components
+	rateLimitUtilsLogger := utils.NewDefaultLogger("rate_limiter")
+	
+	// Create logger adapter to convert utils.Logger to middleware.Logger
+	rateLimitLogger := &loggerAdapter{logger: rateLimitUtilsLogger}
+	
+	rateLimitStore := middleware.NewInMemoryStore(rateLimitLogger)
+	rateLimiter := middleware.NewSlidingWindowRateLimiter(rateLimitStore, rateLimitLogger)
+	
+	// Create rate limit configuration from config
+	rateLimitConfig := &middleware.RateLimitConfig{
+		DefaultLimit:        co.RateLimitConfig.RequestsPerMinute,
+		DefaultWindow:       co.RateLimitConfig.WindowSize,
+		AuthenticatedLimit:  co.RateLimitConfig.AuthenticatedRPM,
+		AuthenticatedWindow: co.RateLimitConfig.WindowSize,
+		AnonymousLimit:      co.RateLimitConfig.AnonymousRPM,
+		AnonymousWindow:     co.RateLimitConfig.WindowSize,
+		SkipPaths:          []string{"/health", "/metrics", "/swagger"},
+		IncludeHeaders:     true,
+		KeyStrategy:        "ip",
+	}
+	
+	// Create monitored rate limiting middleware
+	rateLimitMiddleware := middleware.NewMonitoredRateLimitMiddleware(rateLimiter, rateLimitConfig, rateLimitLogger)
+	
+	// Start periodic cleanup for rate limiting
+	cleanupMiddleware := rateLimitMiddleware.CleanupMiddleware(co.RateLimitConfig.CleanupInterval)
+	
+	// Start periodic monitoring for rate limiting
+	rateLimitMonitor := rateLimitMiddleware.GetMonitor()
+	rateLimitMonitor.StartPeriodicLogging(ctx, 10*time.Minute) // Log stats every 10 minutes
+
+	// Initialize request logging middleware with context support
+	requestLogger := utils.NewDefaultLogger("request")
+	requestLoggingMiddleware := middleware.NewRequestLoggerWithMetrics(requestLogger)
+	log.Printf("Request logging middleware initialized with context support and metrics collection")
+
 	// Configure middleware order for proper context propagation
 	// 1. Recovery middleware (should be first to catch panics)
 	engine.Use(middleware.RecoveryMiddleware(errorHandler))
@@ -135,13 +205,26 @@ func NewServer() *Server {
 	// 3. Context middleware (injects request ID, user ID, start time)
 	engine.Use(contextMiddleware.InjectContext())
 	
-	// 4. Metrics middleware (collects request metrics with context)
+	// 4. Request logging middleware (after context injection for proper context correlation)
+	engine.Use(requestLoggingMiddleware.LogRequestsWithMetrics())
+	
+	// 5. Rate limiting middleware (after context and logging, before metrics)
+	if co.RateLimitConfig.Enabled {
+		engine.Use(rateLimitMiddleware.MonitoredMiddleware())
+		engine.Use(cleanupMiddleware)
+		log.Printf("Rate limiting enabled: %d RPM for anonymous, %d RPM for authenticated users", 
+			co.RateLimitConfig.AnonymousRPM, co.RateLimitConfig.AuthenticatedRPM)
+	} else {
+		log.Printf("Rate limiting disabled")
+	}
+	
+	// 6. Metrics middleware (collects request metrics with context)
 	engine.Use(metricsMiddleware.CollectMetrics())
 	
-	// 5. System metrics collection (background collection)
+	// 7. System metrics collection (background collection)
 	engine.Use(metricsMiddleware.CollectSystemMetrics())
 	
-	// 6. Error handling middleware (should be last to catch all errors)
+	// 8. Error handling middleware (should be last to catch all errors)
 	engine.Use(middleware.ErrorMiddleware(errorHandler))
 
 	portApp := co.AppPort
