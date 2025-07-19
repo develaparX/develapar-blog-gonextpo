@@ -58,7 +58,7 @@ func (c *ArticleController) parseArticleID(ctx *gin.Context) (int, error) {
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /article [post]
+// @Router /articles [post]
 func (c *ArticleController) CreateArticleHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 30*time.Second)
@@ -128,7 +128,7 @@ func (c *ArticleController) CreateArticleHandler(ginCtx *gin.Context) {
 // @Success 200 {object} middleware.SuccessResponse "List of articles"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /article [get]
+// @Router /articles [get]
 func (c *ArticleController) GetAllArticleHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -180,7 +180,7 @@ func (c *ArticleController) GetAllArticleHandler(ginCtx *gin.Context) {
 // @Failure 400 {object} middleware.ErrorResponse "Invalid pagination parameters"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /article/paginated [get]
+// @Router /articles/paginated [get]
 func (c *ArticleController) GetAllArticleWithPaginationHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 20*time.Second)
@@ -261,7 +261,7 @@ func (c *ArticleController) GetAllArticleWithPaginationHandler(ginCtx *gin.Conte
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /article/{article_id} [put]
+// @Router /articles/{article_id} [put]
 func (c *ArticleController) UpdateArticleHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 30*time.Second)
@@ -376,7 +376,7 @@ func (c *ArticleController) UpdateArticleHandler(ginCtx *gin.Context) {
 // @Failure 404 {object} middleware.ErrorResponse "Article not found"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /article/{slug} [get]
+// @Router /articles/{slug} [get]
 func (c *ArticleController) GetBySlugHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -442,7 +442,7 @@ func (c *ArticleController) GetBySlugHandler(ginCtx *gin.Context) {
 // @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /article/u/{user_id} [get]
+// @Router /articles/author/{user_id} [get]
 func (ac *ArticleController) GetByUserIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -503,7 +503,7 @@ func (ac *ArticleController) GetByUserIdHandler(ginCtx *gin.Context) {
 // @Failure 400 {object} middleware.ErrorResponse "Invalid user ID or pagination parameters"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /article/u/{user_id}/paginated [get]
+// @Router /articles/author/{user_id}/paginated [get]
 func (ac *ArticleController) GetByUserIdWithPaginationHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 20*time.Second)
@@ -581,20 +581,20 @@ func (ac *ArticleController) GetByUserIdWithPaginationHandler(ginCtx *gin.Contex
 // @Description Get a list of articles by category name
 // @Tags Articles
 // @Produce json
-// @Param cat_name path string true "Name of the category to retrieve articles from"
+// @Param category_name path string true "Name of the category to retrieve articles from"
 // @Success 200 {object} middleware.SuccessResponse "List of articles by category"
 // @Failure 400 {object} middleware.ErrorResponse "Invalid category name"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /article/c/{cat_name} [get]
+// @Router /articles/category/{category_name} [get]
 func (ac *ArticleController) GetByCategory(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	categoryName := ginCtx.Param("cat_name")
+	categoryName := ginCtx.Param("category_name")
 	if categoryName == "" {
-		appErr := ac.errorHandler.ValidationError(requestCtx, "cat_name", "Category name is required")
+		appErr := ac.errorHandler.ValidationError(requestCtx, "category_name", "Category name is required")
 		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
@@ -639,22 +639,22 @@ func (ac *ArticleController) GetByCategory(ginCtx *gin.Context) {
 // @Description Get a paginated list of articles by category name
 // @Tags Articles
 // @Produce json
-// @Param cat_name path string true "Name of the category to retrieve articles from"
+// @Param category_name path string true "Name of the category to retrieve articles from"
 // @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Number of items per page (default: 10, max: 100)"
 // @Success 200 {object} middleware.SuccessResponse "Paginated list of articles by category"
 // @Failure 400 {object} middleware.ErrorResponse "Invalid pagination parameters"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /article/c/{cat_name}/paginated [get]
+// @Router /articles/category/{category_name}/paginated [get]
 func (ac *ArticleController) GetByCategoryWithPaginationHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 20*time.Second)
 	defer cancel()
 
-	categoryName := ginCtx.Param("cat_name")
+	categoryName := ginCtx.Param("category_name")
 	if categoryName == "" {
-		appErr := ac.errorHandler.ValidationError(requestCtx, "cat_name", "Category name is required")
+		appErr := ac.errorHandler.ValidationError(requestCtx, "category_name", "Category name is required")
 		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
@@ -732,7 +732,7 @@ func (ac *ArticleController) GetByCategoryWithPaginationHandler(ginCtx *gin.Cont
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /article/{article_id} [delete]
+// @Router /articles/{article_id} [delete]
 func (ac *ArticleController) DeleteArticleHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 30*time.Second)
@@ -829,18 +829,18 @@ func (ac *ArticleController) DeleteArticleHandler(ginCtx *gin.Context) {
 
 
 func (c *ArticleController) Route() {
-	// Public routes
-	publicRoutes := c.rg.Group("/article")
+	// Public routes - Changed from singular to plural
+	publicRoutes := c.rg.Group("/articles")
 	publicRoutes.GET("/", c.GetAllArticleHandler)
 	publicRoutes.GET("/paginated", c.GetAllArticleWithPaginationHandler)
 	publicRoutes.GET("/:slug", c.GetBySlugHandler)
-	publicRoutes.GET("/u/:user_id", c.GetByUserIdHandler)
-	publicRoutes.GET("/u/:user_id/paginated", c.GetByUserIdWithPaginationHandler)
-	publicRoutes.GET("/c/:cat_name", c.GetByCategory)
-	publicRoutes.GET("/c/:cat_name/paginated", c.GetByCategoryWithPaginationHandler)
+	publicRoutes.GET("/author/:user_id", c.GetByUserIdHandler)                        // Changed from /u/ to /author/
+	publicRoutes.GET("/author/:user_id/paginated", c.GetByUserIdWithPaginationHandler) // Changed from /u/ to /author/
+	publicRoutes.GET("/category/:category_name", c.GetByCategory)                      // Changed from /c/:cat_name to /category/:category_name
+	publicRoutes.GET("/category/:category_name/paginated", c.GetByCategoryWithPaginationHandler) // Changed from /c/:cat_name to /category/:category_name
 
-	// Protected routes
-	protectedRoutes := c.rg.Group("/article")
+	// Protected routes - Changed from singular to plural
+	protectedRoutes := c.rg.Group("/articles")
 	protectedRoutes.Use(c.md.CheckToken()) // hanya butuh login
 	protectedRoutes.POST("/", c.CreateArticleHandler)
 	protectedRoutes.PUT("/:article_id", c.UpdateArticleHandler)

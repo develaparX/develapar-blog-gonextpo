@@ -30,14 +30,15 @@ type AssignTagRequest struct {
 // @Tags Tags
 // @Accept json
 // @Produce json
-// @Param payload body dto.AssignTagsByNameDTO true "Article ID and list of tag names"
+// @Param article_id path int true "ID of the article"
+// @Param payload body dto.AssignTagsByNameDTO true "List of tag names"
 // @Success 200 {object} middleware.SuccessResponse "Tags assigned successfully"
 // @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
 // @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /article-to-tag [post]
+// @Router /articles/{article_id}/tags [post]
 func (c *ArticleTagController) AssignTagToArticleByNameHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -141,7 +142,7 @@ func (c *ArticleTagController) AssignTagToArticleByIdHandler(ginCtx *gin.Context
 // @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /article-to-tag/tags/{article_id} [get]
+// @Router /articles/{article_id}/tags [get]
 func (c *ArticleTagController) GetTagsByArticleIDHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
@@ -198,7 +199,7 @@ func (c *ArticleTagController) GetTagsByArticleIDHandler(ginCtx *gin.Context) {
 // @Failure 400 {object} middleware.ErrorResponse "Invalid tag ID"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /article-to-tag/article/{tag_id} [get]
+// @Router /tags/{tag_id}/articles [get]
 func (c *ArticleTagController) GetArticlesByTagIDHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -258,7 +259,7 @@ func (c *ArticleTagController) GetArticlesByTagIDHandler(ginCtx *gin.Context) {
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /article-to-tag/articles/{article_id}/tags/{tag_id} [delete]
+// @Router /articles/{article_id}/tags/{tag_id} [delete]
 func (c *ArticleTagController) RemoveTagFromArticleHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -314,15 +315,20 @@ func (c *ArticleTagController) RemoveTagFromArticleHandler(ginCtx *gin.Context) 
 }
 
 func (at *ArticleTagController) Route() {
-	router := at.rg.Group("/article-to-tag")
-	router.GET("/tags/:article_id", at.GetTagsByArticleIDHandler)
-	router.GET("/article/:tag_id", at.GetArticlesByTagIDHandler)
-
-	routerAuth := router.Group("/")
-	routerAuth.Use(at.md.CheckToken())
-	routerAuth.POST("/", at.AssignTagToArticleByNameHandler)
-	routerAuth.DELETE("/articles/:article_id/tags/:tag_id", at.RemoveTagFromArticleHandler)
-
+	// Simplified RESTful approach for article-tag relations
+	
+	// Article tags endpoints - nested under articles
+	articleTagsRouter := at.rg.Group("/articles/:article_id/tags")
+	articleTagsRouter.GET("/", at.GetTagsByArticleIDHandler)  // GET /articles/:article_id/tags
+	
+	articleTagsAuthRouter := articleTagsRouter.Group("/")
+	articleTagsAuthRouter.Use(at.md.CheckToken())
+	articleTagsAuthRouter.POST("/", at.AssignTagToArticleByNameHandler)           // POST /articles/:article_id/tags
+	articleTagsAuthRouter.DELETE("/:tag_id", at.RemoveTagFromArticleHandler)      // DELETE /articles/:article_id/tags/:tag_id
+	
+	// Tag articles endpoints - nested under tags
+	tagArticlesRouter := at.rg.Group("/tags/:tag_id/articles")
+	tagArticlesRouter.GET("/", at.GetArticlesByTagIDHandler)  // GET /tags/:tag_id/articles
 }
 
 func NewArticleTagController(s service.ArticleTagService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *ArticleTagController {

@@ -32,7 +32,7 @@ type BookmarkController struct {
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /bookmark [post]
+// @Router /bookmarks [post]
 func (b *BookmarkController) CreateBookmarkHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -108,7 +108,7 @@ func (b *BookmarkController) CreateBookmarkHandler(ginCtx *gin.Context) {
 // @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /bookmark/{user_id} [get]
+// @Router /bookmarks/{user_id} [get]
 func (b *BookmarkController) GetBookmarkByUserId(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -169,7 +169,7 @@ func (b *BookmarkController) GetBookmarkByUserId(ginCtx *gin.Context) {
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /bookmark/{article_id} [delete]
+// @Router /bookmarks [delete]
 func (b *BookmarkController) DeleteBookmarkHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -245,7 +245,7 @@ func (b *BookmarkController) DeleteBookmarkHandler(ginCtx *gin.Context) {
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /bookmark/check [get]
+// @Router /bookmarks/check [get]
 func (c *BookmarkController) CheckBookmarkHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
@@ -310,7 +310,7 @@ func (c *BookmarkController) CheckBookmarkHandler(ginCtx *gin.Context) {
 }
 
 func (c *BookmarkController) Route() {
-	router := c.rg.Group("/bookmark")
+	router := c.rg.Group("/bookmarks")  // Changed from singular to plural
 	router.GET("/:user_id", c.GetBookmarkByUserId)
 
 	routerAuth := router.Group("/")

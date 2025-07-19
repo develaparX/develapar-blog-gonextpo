@@ -134,20 +134,20 @@ func (t *TagController) GetAllTagHandler(ginCtx *gin.Context) {
 // @Description Get tag details by its ID
 // @Tags Tags
 // @Produce json
-// @Param tags_id path int true "ID of the tag to retrieve"
+// @Param tag_id path int true "ID of the tag to retrieve"
 // @Success 200 {object} middleware.SuccessResponse "Tag details"
 // @Failure 400 {object} middleware.ErrorResponse "Invalid tag ID"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /tags/{tags_id} [get]
+// @Router /tags/{tag_id} [get]
 func (t *TagController) GetByTagIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
 	defer cancel()
 
-	tagId, err := strconv.Atoi(ginCtx.Param("tags_id"))
+	tagId, err := strconv.Atoi(ginCtx.Param("tag_id"))
 	if err != nil {
-		appErr := t.errorHandler.ValidationError(requestCtx, "tags_id", "Invalid tag ID: "+err.Error())
+		appErr := t.errorHandler.ValidationError(requestCtx, "tag_id", "Invalid tag ID: "+err.Error())
 		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
@@ -188,13 +188,145 @@ func (t *TagController) GetByTagIdHandler(ginCtx *gin.Context) {
 	t.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
+// @Summary Update a tag
+// @Description Update an existing tag by ID
+// @Tags Tags
+// @Accept json
+// @Produce json
+// @Param tag_id path int true "ID of the tag to update"
+// @Param payload body model.Tags true "Tag update details"
+// @Success 200 {object} middleware.SuccessResponse "Tag updated successfully"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid tag ID or payload"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 404 {object} middleware.ErrorResponse "Tag not found"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /tags/{tag_id} [put]
+func (t *TagController) UpdateTagHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	tagId, err := strconv.Atoi(ginCtx.Param("tag_id"))
+	if err != nil {
+		appErr := t.errorHandler.ValidationError(requestCtx, "tag_id", "Invalid tag ID: "+err.Error())
+		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	var payload model.Tags
+	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
+		appErr := t.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
+		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	// Call service with context
+	updatedTag, err := t.service.UpdateTag(requestCtx, tagId, payload)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := t.errorHandler.TimeoutError(requestCtx, "update tag")
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := t.errorHandler.CancellationError(requestCtx, "update tag")
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := t.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to update tag")
+		appErr.StatusCode = 500
+		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	// Create success response with context
+	responseData := gin.H{
+		"message": "Tag updated successfully",
+		"tag":     updatedTag,
+	}
+	t.responseHelper.SendSuccess(ginCtx, responseData)
+}
+
+// @Summary Delete a tag
+// @Description Delete a tag by ID
+// @Tags Tags
+// @Produce json
+// @Param tag_id path int true "ID of the tag to delete"
+// @Success 200 {object} middleware.SuccessResponse "Tag deleted successfully"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid tag ID"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 404 {object} middleware.ErrorResponse "Tag not found"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /tags/{tag_id} [delete]
+func (t *TagController) DeleteTagHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	tagId, err := strconv.Atoi(ginCtx.Param("tag_id"))
+	if err != nil {
+		appErr := t.errorHandler.ValidationError(requestCtx, "tag_id", "Invalid tag ID: "+err.Error())
+		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	// Call service with context
+	err = t.service.DeleteTag(requestCtx, tagId)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := t.errorHandler.TimeoutError(requestCtx, "delete tag")
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := t.errorHandler.CancellationError(requestCtx, "delete tag")
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := t.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to delete tag")
+		appErr.StatusCode = 500
+		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	// Create success response with context
+	responseData := gin.H{
+		"message": "Tag deleted successfully",
+	}
+	t.responseHelper.SendSuccess(ginCtx, responseData)
+}
+
 func (t *TagController) Route() {
 	router := t.rg.Group("/tags")
-	router.GET("/:tags_id", t.GetByTagIdHandler)
+	router.GET("/:tag_id", t.GetByTagIdHandler)  // Changed from tags_id to tag_id
 	router.GET("/", t.GetAllTagHandler)
 
 	routerAuth := router.Group("/", t.md.CheckToken())
 	routerAuth.POST("/", t.CreateTagHandler)
+	routerAuth.PUT("/:tag_id", t.UpdateTagHandler)    // Added missing update endpoint
+	routerAuth.DELETE("/:tag_id", t.DeleteTagHandler) // Added missing delete endpoint
 }
 
 func NewTagController(tS service.TagService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *TagController {

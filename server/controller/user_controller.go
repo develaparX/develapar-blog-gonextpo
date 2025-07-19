@@ -398,7 +398,137 @@ func (u *UserController) refreshTokenHandler(c *gin.Context) {
 	u.responseHelper.SendSuccess(c, responseData)
 }
 
+// @Summary Update user profile
+// @Description Update user profile information
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param user_id path string true "ID of the user to update"
+// @Param payload body dto.UpdateUserRequest true "User update details"
+// @Success 200 {object} middleware.SuccessResponse "User updated successfully"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID or payload"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 403 {object} middleware.ErrorResponse "Forbidden"
+// @Failure 404 {object} middleware.ErrorResponse "User not found"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /users/{user_id} [put]
+func (u *UserController) updateUserHandler(c *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	defer cancel()
 
+	userId := c.Param("user_id")
+	if userId == "" {
+		appErr := u.errorHandler.ValidationError(requestCtx, "user_id", "User ID is required")
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	var payload dto.UpdateUserRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		appErr := u.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	// Call service with context
+	updatedUser, err := u.service.UpdateUser(requestCtx, userId, payload)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := u.errorHandler.TimeoutError(requestCtx, "update user")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := u.errorHandler.CancellationError(requestCtx, "update user")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to update user")
+		appErr.StatusCode = 500
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	// Create success response with context
+	responseData := gin.H{
+		"message": "User updated successfully",
+		"user":    updatedUser,
+	}
+	u.responseHelper.SendSuccess(c, responseData)
+}
+
+// @Summary Delete user account
+// @Description Delete user account by ID
+// @Tags Users
+// @Produce json
+// @Param user_id path string true "ID of the user to delete"
+// @Success 200 {object} middleware.SuccessResponse "User deleted successfully"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
+// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 403 {object} middleware.ErrorResponse "Forbidden"
+// @Failure 404 {object} middleware.ErrorResponse "User not found"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /users/{user_id} [delete]
+func (u *UserController) deleteUserHandler(c *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	defer cancel()
+
+	userId := c.Param("user_id")
+	if userId == "" {
+		appErr := u.errorHandler.ValidationError(requestCtx, "user_id", "User ID is required")
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	// Call service with context
+	err := u.service.DeleteUser(requestCtx, userId)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := u.errorHandler.TimeoutError(requestCtx, "delete user")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := u.errorHandler.CancellationError(requestCtx, "delete user")
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to delete user")
+		appErr.StatusCode = 500
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	// Create success response with context
+	responseData := gin.H{
+		"message": "User deleted successfully",
+	}
+	u.responseHelper.SendSuccess(c, responseData)
+}
 
 func (u *UserController) Route() {
 	router := u.rg.Group("/users")
@@ -406,6 +536,8 @@ func (u *UserController) Route() {
 		router.GET("/", u.findAllUserHandler)
 		router.GET("/paginated", u.findAllUserWithPaginationHandler)
 		router.GET("/:user_id", u.findUserByIdHandler)
+		router.PUT("/:user_id", u.updateUserHandler)    // Added missing update endpoint
+		router.DELETE("/:user_id", u.deleteUserHandler) // Added missing delete endpoint
 	}
 
 	r := u.rg.Group("/auth")

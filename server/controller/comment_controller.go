@@ -110,7 +110,7 @@ func (c *CommentController) CreateCommentHandler(ginCtx *gin.Context) {
 // @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /comment/article/c{article_id} [get]
+// @Router /comments/article/{article_id} [get]
 func (c *CommentController) FindCommentByArticleIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -168,7 +168,7 @@ func (c *CommentController) FindCommentByArticleIdHandler(ginCtx *gin.Context) {
 // @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /comment/user/{user_id} [get]
+// @Router /comments/user/{user_id} [get]
 func (c *CommentController) FindCommentByUserIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -222,7 +222,7 @@ func (c *CommentController) FindCommentByUserIdHandler(ginCtx *gin.Context) {
 // @Tags Comments
 // @Accept json
 // @Produce json
-// @Param id path int true "ID of the comment to update"
+// @Param comment_id path int true "ID of the comment to update"
 // @Param payload body object{content=string} true "Comment update details"
 // @Success 200 {object} middleware.SuccessResponse "Comment updated successfully"
 // @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
@@ -231,14 +231,14 @@ func (c *CommentController) FindCommentByUserIdHandler(ginCtx *gin.Context) {
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /comment/{id} [put]
+// @Router /comments/{comment_id} [put]
 func (c *CommentController) UpdateCommentHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
 	userId := ginCtx.GetInt("userId")
-	commentId, err := strconv.Atoi(ginCtx.Param("id"))
+	commentId, err := strconv.Atoi(ginCtx.Param("comment_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "id", "Invalid comment ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -301,14 +301,14 @@ func (c *CommentController) UpdateCommentHandler(ginCtx *gin.Context) {
 // @Description Delete a comment by ID
 // @Tags Comments
 // @Produce json
-// @Param id path int true "ID of the comment to delete"
+// @Param comment_id path int true "ID of the comment to delete"
 // @Success 200 {object} middleware.SuccessResponse "Comment deleted successfully"
 // @Failure 400 {object} middleware.ErrorResponse "Invalid comment ID"
 // @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /comment/{id} [delete]
+// @Router /comments/{comment_id} [delete]
 func (c *CommentController) DeleteCommentHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -316,9 +316,9 @@ func (c *CommentController) DeleteCommentHandler(ginCtx *gin.Context) {
 
 	userId := ginCtx.GetInt("userId")
 
-	commentId, err := strconv.Atoi(ginCtx.Param("id"))
+	commentId, err := strconv.Atoi(ginCtx.Param("comment_id"))
 	if err != nil {
-		appErr := c.errorHandler.ValidationError(requestCtx, "id", "Invalid comment ID: "+err.Error())
+		appErr := c.errorHandler.ValidationError(requestCtx, "comment_id", "Invalid comment ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
@@ -358,15 +358,15 @@ func (c *CommentController) DeleteCommentHandler(ginCtx *gin.Context) {
 }
 
 func (c *CommentController) Route() {
-	router := c.rg.Group("/comment")
-	router.GET("/article/c:article_id", c.FindCommentByArticleIdHandler)
+	router := c.rg.Group("/comments")  // Changed from singular to plural
+	router.GET("/article/:article_id", c.FindCommentByArticleIdHandler)  // Fixed typo: c:article_id to :article_id
 	router.GET("/user/:user_id", c.FindCommentByUserIdHandler)
 
 	routerAuth := router.Group("/", c.md.CheckToken())
 
 	routerAuth.POST("/", c.CreateCommentHandler)
-	routerAuth.PUT("/:id", c.UpdateCommentHandler)
-	routerAuth.DELETE("/:id", c.DeleteCommentHandler)
+	routerAuth.PUT("/:comment_id", c.UpdateCommentHandler)    // Changed from :id to :comment_id for consistency
+	routerAuth.DELETE("/:comment_id", c.DeleteCommentHandler) // Changed from :id to :comment_id for consistency
 }
 
 func NewCommentController(cS service.CommentService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *CommentController {

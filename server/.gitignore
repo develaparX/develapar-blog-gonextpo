@@ -5,3 +5,6 @@ coverage.html
 coverage.out
 test-build
 test-server
+database_analysis.md
+database_naming_analysis.md
+endpoint_analysis.md

@@ -32,7 +32,7 @@ type CategoryController struct {
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /category [post]
+// @Router /categories [post]
 func (c *CategoryController) CreateCategoryHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -88,7 +88,7 @@ func (c *CategoryController) CreateCategoryHandler(ginCtx *gin.Context) {
 // @Success 200 {object} middleware.SuccessResponse "List of categories"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /category [get]
+// @Router /categories [get]
 func (c *CategoryController) GetAllCategoryHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
@@ -130,28 +130,88 @@ func (c *CategoryController) GetAllCategoryHandler(ginCtx *gin.Context) {
 	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
+// @Summary Get category by ID
+// @Description Get category details by its ID
+// @Tags Categories
+// @Produce json
+// @Param category_id path int true "ID of the category to retrieve"
+// @Success 200 {object} middleware.SuccessResponse "Category details"
+// @Failure 400 {object} middleware.ErrorResponse "Invalid category ID"
+// @Failure 404 {object} middleware.ErrorResponse "Category not found"
+// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Router /categories/{category_id} [get]
+func (c *CategoryController) GetCategoryByIdHandler(ginCtx *gin.Context) {
+	// Get request context with timeout
+	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	categoryIdStr := ginCtx.Param("category_id")
+	categoryId, err := strconv.Atoi(categoryIdStr)
+	if err != nil {
+		appErr := c.errorHandler.ValidationError(requestCtx, "category_id", "Invalid category ID: "+err.Error())
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	// Call service with context
+	category, err := c.service.FindById(requestCtx, categoryId)
+	if err != nil {
+		// Check for context-specific errors
+		if requestCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(requestCtx, "get category")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+		if requestCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(requestCtx, "get category")
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Check if it's already an AppError
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+			return
+		}
+
+		// Wrap as internal error
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Failed to retrieve category")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	// Create success response with context
+	responseData := gin.H{
+		"message":  "Category retrieved successfully",
+		"category": category,
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
+}
+
 // @Summary Update a category
 // @Description Update an existing category by ID
 // @Tags Categories
 // @Accept json
 // @Produce json
-// @Param cat_id path int true "ID of the category to update"
+// @Param category_id path int true "ID of the category to update"
 // @Param payload body dto.UpdateCategoryRequest true "Category update details"
 // @Success 200 {object} middleware.SuccessResponse "Category updated successfully"
 // @Failure 400 {object} middleware.ErrorResponse "Invalid category ID or payload"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /category/{cat_id} [put]
+// @Router /categories/{category_id} [put]
 func (c *CategoryController) UpdateCategoryHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	idCat := ginCtx.Param("cat_id")
-	id, err := strconv.Atoi(idCat)
+	categoryIdStr := ginCtx.Param("category_id")
+	id, err := strconv.Atoi(categoryIdStr)
 	if err != nil {
-		appErr := c.errorHandler.ValidationError(requestCtx, "cat_id", "Invalid category ID: "+err.Error())
+		appErr := c.errorHandler.ValidationError(requestCtx, "category_id", "Invalid category ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
@@ -203,28 +263,28 @@ func (c *CategoryController) UpdateCategoryHandler(ginCtx *gin.Context) {
 // @Description Delete a category by ID
 // @Tags Categories
 // @Produce json
-// @Param cat_id path int true "ID of the category to delete"
+// @Param category_id path int true "ID of the category to delete"
 // @Success 200 {object} middleware.SuccessResponse "Category deleted successfully"
 // @Failure 400 {object} middleware.ErrorResponse "Invalid category ID"
 // @Failure 408 {object} middleware.ErrorResponse "Request timeout"
 // @Failure 500 {object} middleware.ErrorResponse "Internal server error"
 // @Security BearerAuth
-// @Router /category/{cat_id} [delete]
+// @Router /categories/{category_id} [delete]
 func (c *CategoryController) DeleteCategoryHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	Id := ginCtx.Param("cat_id")
-	catId, err := strconv.Atoi(Id)
+	categoryIdStr := ginCtx.Param("category_id")
+	categoryId, err := strconv.Atoi(categoryIdStr)
 	if err != nil {
-		appErr := c.errorHandler.ValidationError(requestCtx, "cat_id", "Invalid category ID: "+err.Error())
+		appErr := c.errorHandler.ValidationError(requestCtx, "category_id", "Invalid category ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
 	// Call service with context
-	err = c.service.DeleteCategory(requestCtx, catId)
+	err = c.service.DeleteCategory(requestCtx, categoryId)
 	if err != nil {
 		// Check for context-specific errors
 		if requestCtx.Err() == context.DeadlineExceeded {
@@ -259,13 +319,14 @@ func (c *CategoryController) DeleteCategoryHandler(ginCtx *gin.Context) {
 }
 
 func (c *CategoryController) Route() {
-	router := c.rg.Group("/category")
+	router := c.rg.Group("/categories")  // Changed from singular to plural
 	router.GET("/", c.GetAllCategoryHandler)
+	router.GET("/:category_id", c.GetCategoryByIdHandler)  // Added missing endpoint
 
 	routerAuth := router.Group("/", c.md.CheckToken())
 	routerAuth.POST("/", c.CreateCategoryHandler)
-	routerAuth.PUT("/:cat_id", c.UpdateCategoryHandler)
-	routerAuth.DELETE("/:cat_id", c.DeleteCategoryHandler)
+	routerAuth.PUT("/:category_id", c.UpdateCategoryHandler)    // Changed from cat_id to category_id
+	routerAuth.DELETE("/:category_id", c.DeleteCategoryHandler) // Changed from cat_id to category_id
 }
 
 func NewCategoryController(cS service.CategoryService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *CategoryController {
