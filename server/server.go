@@ -31,6 +31,7 @@ type Server struct {
 	mD          middleware.AuthMiddleware
 	eMD			middleware.ErrorHandler
 	hC          *controller.HealthController
+	mC          *controller.MetricsController
 	poolManager config.ConnectionPoolManager
 	engine      *gin.Engine
 	portApp     string
@@ -49,6 +50,9 @@ func (s *Server) initiateRoute() {
 
 	// Health check routes (no authentication required)
 	s.hC.Route(routerGroup)
+
+	// Metrics routes (no authentication required for monitoring)
+	s.mC.Route(routerGroup)
 
 	// Swagger UI
 	s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -115,6 +119,12 @@ func NewServer() *Server {
 	contextMiddleware := middleware.NewContextMiddleware(contextManager)
 	errorHandler := middleware.NewErrorHandler(nil) // Using default logger
 
+	// Initialize metrics service and related components
+	metricsLogger := utils.NewDefaultLogger("metrics")
+	metricsService := service.NewMetricsService(metricsLogger)
+	metricsController := controller.NewMetricsController(metricsService)
+	metricsMiddleware := middleware.NewMetricsMiddleware(metricsService, metricsLogger)
+
 	// Configure middleware order for proper context propagation
 	// 1. Recovery middleware (should be first to catch panics)
 	engine.Use(middleware.RecoveryMiddleware(errorHandler))
@@ -125,7 +135,13 @@ func NewServer() *Server {
 	// 3. Context middleware (injects request ID, user ID, start time)
 	engine.Use(contextMiddleware.InjectContext())
 	
-	// 4. Error handling middleware (should be last to catch all errors)
+	// 4. Metrics middleware (collects request metrics with context)
+	engine.Use(metricsMiddleware.CollectMetrics())
+	
+	// 5. System metrics collection (background collection)
+	engine.Use(metricsMiddleware.CollectSystemMetrics())
+	
+	// 6. Error handling middleware (should be last to catch all errors)
 	engine.Use(middleware.ErrorMiddleware(errorHandler))
 
 	portApp := co.AppPort
@@ -170,8 +186,9 @@ func NewServer() *Server {
 		coS:         commentService,
 		lS:          likeService,
 		mD:          authMiddleware,
-		eMD: errorHandler,
+		eMD:         errorHandler,
 		hC:          healthController,
+		mC:          metricsController,
 		poolManager: poolManager,
 		portApp:     portApp,
 		engine:      engine,

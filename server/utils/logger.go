@@ -247,6 +247,11 @@ func GetUserIDFromContext(ctx context.Context) string {
 // contextKey type for context keys (matching middleware package)
 type contextKey string
 
+// NewBackgroundContext creates a new background context for system operations
+func NewBackgroundContext() context.Context {
+	return context.Background()
+}
+
 // Helper functions to create common fields
 func StringField(key, value string) Field {
 	return Field{Key: key, Value: value}

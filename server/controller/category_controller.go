@@ -262,7 +262,7 @@ func (c *CategoryController) Route() {
 	router := c.rg.Group("/category")
 	router.GET("/", c.GetAllCategoryHandler)
 
-	routerAuth := router.Group("/", c.md.CheckToken("admin"))
+	routerAuth := router.Group("/", c.md.CheckToken())
 	routerAuth.POST("/", c.CreateCategoryHandler)
 	routerAuth.PUT("/:cat_id", c.UpdateCategoryHandler)
 	routerAuth.DELETE("/:cat_id", c.DeleteCategoryHandler)
