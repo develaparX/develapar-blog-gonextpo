@@ -12,6 +12,8 @@ type TagService interface {
 	CreateTag(ctx context.Context, payload model.Tags) (model.Tags, error)
 	FindAll(ctx context.Context) ([]model.Tags, error)
 	FindById(ctx context.Context, id int) (model.Tags, error)
+	UpdateTag(ctx context.Context, id int, payload model.Tags) (model.Tags, error)
+	DeleteTag(ctx context.Context, id int) error
 }
 
 type tagService struct {
@@ -103,6 +105,76 @@ func (t *tagService) FindById(ctx context.Context, id int) (model.Tags, error) {
 	}
 
 	return tag, nil
+}
+
+// UpdateTag implements TagService.
+func (t *tagService) UpdateTag(ctx context.Context, id int, payload model.Tags) (model.Tags, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return model.Tags{}, ctx.Err()
+	default:
+	}
+
+	// Validate ID
+	if id <= 0 {
+		return model.Tags{}, fmt.Errorf("tag ID must be greater than 0")
+	}
+
+	// Validate tag data
+	if strings.TrimSpace(payload.Name) == "" {
+		return model.Tags{}, fmt.Errorf("tag name is required")
+	}
+
+	// Normalize tag name
+	payload.Name = strings.ToLower(strings.TrimSpace(payload.Name))
+	payload.Id = id
+
+	// Check context cancellation before update
+	select {
+	case <-ctx.Done():
+		return model.Tags{}, ctx.Err()
+	default:
+	}
+
+	// Update tag in repository with context
+	updatedTag, err := t.repo.UpdateTag(ctx, payload)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return model.Tags{}, ctx.Err()
+		}
+		return model.Tags{}, fmt.Errorf("failed to update tag: %v", err)
+	}
+
+	return updatedTag, nil
+}
+
+// DeleteTag implements TagService.
+func (t *tagService) DeleteTag(ctx context.Context, id int) error {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	// Validate ID
+	if id <= 0 {
+		return fmt.Errorf("tag ID must be greater than 0")
+	}
+
+	// Delete tag from repository with context
+	err := t.repo.DeleteTag(ctx, id)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		return fmt.Errorf("failed to delete tag: %v", err)
+	}
+
+	return nil
 }
 
 func NewTagService(repository repository.TagRepository, validationService ValidationService) TagService {

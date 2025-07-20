@@ -11,6 +11,8 @@ type TagRepository interface {
 	GetAllTag(ctx context.Context) ([]model.Tags, error)
 	GetTagById(ctx context.Context, id int) (model.Tags, error)
 	GetTagByName(ctx context.Context, name string) (model.Tags, error)
+	UpdateTag(ctx context.Context, payload model.Tags) (model.Tags, error)
+	DeleteTag(ctx context.Context, id int) error
 }
 
 type tagRepository struct {
@@ -81,6 +83,22 @@ func (t *tagRepository) GetTagById(ctx context.Context, id int) (model.Tags, err
 	}
 
 	return tag, nil
+}
+
+// UpdateTag implements TagRepository.
+func (t *tagRepository) UpdateTag(ctx context.Context, payload model.Tags) (model.Tags, error) {
+	var tag model.Tags
+	err := t.db.QueryRowContext(ctx, `UPDATE tags SET name = $1 WHERE id = $2 RETURNING id, name`, payload.Name, payload.Id).Scan(&tag.Id, &tag.Name)
+	if err != nil {
+		return model.Tags{}, err
+	}
+	return tag, nil
+}
+
+// DeleteTag implements TagRepository.
+func (t *tagRepository) DeleteTag(ctx context.Context, id int) error {
+	_, err := t.db.ExecContext(ctx, `DELETE FROM tags WHERE id = $1`, id)
+	return err
 }
 
 func NewTagRepository(database *sql.DB) TagRepository {

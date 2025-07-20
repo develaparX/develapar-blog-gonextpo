@@ -419,9 +419,16 @@ func (u *UserController) updateUserHandler(c *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
 	defer cancel()
 
-	userId := c.Param("user_id")
-	if userId == "" {
+	userIdStr := c.Param("user_id")
+	if userIdStr == "" {
 		appErr := u.errorHandler.ValidationError(requestCtx, "user_id", "User ID is required")
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	userId, err := strconv.Atoi(userIdStr)
+	if err != nil {
+		appErr := u.errorHandler.ValidationError(requestCtx, "user_id", "Invalid user ID format")
 		u.errorHandler.HandleError(requestCtx, c, appErr)
 		return
 	}
@@ -488,15 +495,22 @@ func (u *UserController) deleteUserHandler(c *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
 	defer cancel()
 
-	userId := c.Param("user_id")
-	if userId == "" {
+	userIdStr := c.Param("user_id")
+	if userIdStr == "" {
 		appErr := u.errorHandler.ValidationError(requestCtx, "user_id", "User ID is required")
 		u.errorHandler.HandleError(requestCtx, c, appErr)
 		return
 	}
 
+	userId, err := strconv.Atoi(userIdStr)
+	if err != nil {
+		appErr := u.errorHandler.ValidationError(requestCtx, "user_id", "Invalid user ID format")
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
 	// Call service with context
-	err := u.service.DeleteUser(requestCtx, userId)
+	err = u.service.DeleteUser(requestCtx, userId)
 	if err != nil {
 		// Check for context-specific errors
 		if requestCtx.Err() == context.DeadlineExceeded {

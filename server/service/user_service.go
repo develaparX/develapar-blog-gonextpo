@@ -20,6 +20,8 @@ type UserService interface {
 	FindAllUserWithPagination(ctx context.Context, page, limit int) (PaginationResult, error)
 	Login(ctx context.Context, payload dto.LoginDto) (dto.LoginResponseDto, error)
 	RefreshToken(ctx context.Context, refreshToken string) (dto.LoginResponseDto, error)
+	UpdateUser(ctx context.Context, id int, req dto.UpdateUserRequest) (model.User, error)
+	DeleteUser(ctx context.Context, id int) error
 }
 
 type userService struct {
@@ -305,6 +307,95 @@ func (u *userService) RefreshToken(ctx context.Context, refreshToken string) (dt
 	}
 
 	return tokenResp, nil
+}
+
+// UpdateUser implements UserService.
+func (u *userService) UpdateUser(ctx context.Context, id int, req dto.UpdateUserRequest) (model.User, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return model.User{}, ctx.Err()
+	default:
+	}
+
+	// Validate ID
+	if id <= 0 {
+		return model.User{}, fmt.Errorf("user ID must be greater than 0")
+	}
+
+	// Get existing user with context
+	user, err := u.repo.GetUserById(ctx, id)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return model.User{}, ctx.Err()
+		}
+		return model.User{}, fmt.Errorf("failed to fetch user for update: %v", err)
+	}
+
+	// Update fields if provided
+	if req.Name != nil {
+		user.Name = *req.Name
+	}
+	if req.Email != nil {
+		user.Email = *req.Email
+	}
+	if req.Password != nil {
+		// Hash new password
+		hashedPassword, err := u.passwordHasher.EncryptPassword(*req.Password)
+		if err != nil {
+			return model.User{}, fmt.Errorf("failed to encrypt password: %v", err)
+		}
+		user.Password = hashedPassword
+	}
+
+	// Check context cancellation before update
+	select {
+	case <-ctx.Done():
+		return model.User{}, ctx.Err()
+	default:
+	}
+
+	// Update user in repository with context
+	updatedUser, err := u.repo.UpdateUser(ctx, user)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return model.User{}, ctx.Err()
+		}
+		return model.User{}, fmt.Errorf("failed to update user: %v", err)
+	}
+
+	// Remove password from response for security
+	updatedUser.Password = "-"
+	return updatedUser, nil
+}
+
+// DeleteUser implements UserService.
+func (u *userService) DeleteUser(ctx context.Context, id int) error {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	// Validate ID
+	if id <= 0 {
+		return fmt.Errorf("user ID must be greater than 0")
+	}
+
+	// Delete user from repository with context
+	err := u.repo.DeleteUser(ctx, id)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		return fmt.Errorf("failed to delete user: %v", err)
+	}
+
+	return nil
 }
 
 func NewUserservice(repository repository.UserRepository, jS JwtService, ph utils.PasswordHasher, paginationService PaginationService, validationService ValidationService) UserService {

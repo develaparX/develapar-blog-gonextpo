@@ -317,14 +317,14 @@ func (c *ArticleTagController) RemoveTagFromArticleHandler(ginCtx *gin.Context) 
 func (at *ArticleTagController) Route() {
 	// Simplified RESTful approach for article-tag relations
 	
-	// Article tags endpoints - nested under articles
-	articleTagsRouter := at.rg.Group("/articles/:article_id/tags")
-	articleTagsRouter.GET("/", at.GetTagsByArticleIDHandler)  // GET /articles/:article_id/tags
+	// Article tags endpoints - using article-tags prefix to avoid conflict
+	articleTagsRouter := at.rg.Group("/article-tags/:article_id")
+	articleTagsRouter.GET("/", at.GetTagsByArticleIDHandler)  // GET /article-tags/:article_id
 	
 	articleTagsAuthRouter := articleTagsRouter.Group("/")
 	articleTagsAuthRouter.Use(at.md.CheckToken())
-	articleTagsAuthRouter.POST("/", at.AssignTagToArticleByNameHandler)           // POST /articles/:article_id/tags
-	articleTagsAuthRouter.DELETE("/:tag_id", at.RemoveTagFromArticleHandler)      // DELETE /articles/:article_id/tags/:tag_id
+	articleTagsAuthRouter.POST("/", at.AssignTagToArticleByNameHandler)           // POST /article-tags/:article_id
+	articleTagsAuthRouter.DELETE("/:tag_id", at.RemoveTagFromArticleHandler)      // DELETE /article-tags/:article_id/:tag_id
 	
 	// Tag articles endpoints - nested under tags
 	tagArticlesRouter := at.rg.Group("/tags/:tag_id/articles")

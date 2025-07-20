@@ -20,6 +20,8 @@ type UserRepository interface {
 	DeleteAllRefreshTOkensByUser(ctx context.Context, userId int) error
 	FindRefreshToken(ctx context.Context, token string) (model.RefreshToken, error)
 	UpdateRefreshToken(ctx context.Context, oldToken string, newToken string, expiresAt time.Time) error
+	UpdateUser(ctx context.Context, payload model.User) (model.User, error)
+	DeleteUser(ctx context.Context, id int) error
 }
 
 type userRepository struct {
@@ -245,6 +247,26 @@ func (u *userRepository) CreateNewUser(ctx context.Context, payload model.User) 
 		return model.User{}, err
 	}
 	return user, nil
+}
+
+// UpdateUser implements UserRepository.
+func (u *userRepository) UpdateUser(ctx context.Context, payload model.User) (model.User, error) {
+	var user model.User
+	err := u.db.QueryRowContext(ctx, `UPDATE users SET name = $1, email = $2, password = $3, updated_at = $4 WHERE id = $5 RETURNING id, name, email, role, created_at, updated_at`, payload.Name, payload.Email, payload.Password, time.Now(), payload.Id).Scan(&user.Id, &user.Name, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		// Check if context was cancelled or timed out
+		if ctx.Err() != nil {
+			return model.User{}, ctx.Err()
+		}
+		return model.User{}, err
+	}
+	return user, nil
+}
+
+// DeleteUser implements UserRepository.
+func (u *userRepository) DeleteUser(ctx context.Context, id int) error {
+	_, err := u.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
+	return err
 }
 
 func NewUserRepository(database *sql.DB) UserRepository {

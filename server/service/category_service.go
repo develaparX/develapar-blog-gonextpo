@@ -12,6 +12,7 @@ import (
 type CategoryService interface {
 	CreateCategory(ctx context.Context, payload model.Category) (model.Category, error)
 	FindAll(ctx context.Context) ([]model.Category, error)
+	FindById(ctx context.Context, id int) (model.Category, error)
 	UpdateCategory(ctx context.Context, id int, req dto.UpdateCategoryRequest) (model.Category, error)
 	DeleteCategory(ctx context.Context, id int) error
 }
@@ -159,6 +160,33 @@ func (c *categoryService) FindAll(ctx context.Context) ([]model.Category, error)
 	}
 
 	return categories, nil
+}
+
+// FindById implements CategoryService.
+func (c *categoryService) FindById(ctx context.Context, id int) (model.Category, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return model.Category{}, ctx.Err()
+	default:
+	}
+
+	// Validate ID
+	if id <= 0 {
+		return model.Category{}, fmt.Errorf("category ID must be greater than 0")
+	}
+
+	// Get category by ID from repository with context
+	category, err := c.repo.GetCategoryById(ctx, id)
+	if err != nil {
+		// Check if context was cancelled during repository operation
+		if ctx.Err() != nil {
+			return model.Category{}, ctx.Err()
+		}
+		return model.Category{}, fmt.Errorf("failed to fetch category: %v", err)
+	}
+
+	return category, nil
 }
 
 func NewCategoryService(repository repository.CategoryRepository, validationService ValidationService) CategoryService {
