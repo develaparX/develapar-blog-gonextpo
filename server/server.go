@@ -72,7 +72,7 @@ type Server struct {
 
 func (s *Server) initiateRoute() {
 	routerGroup := s.engine.Group("/api/v1")
-	controller.NewUserController(s.uS, routerGroup,s.eMD).Route()
+	controller.NewUserController(s.uS, s.mD, routerGroup,s.eMD).Route()
 	controller.NewCategoryController(s.cS, routerGroup, s.mD,s.eMD).Route()
 	controller.NewArticleController(s.aS, s.mD, routerGroup,s.eMD).Route()
 	controller.NewBookmarkController(s.bS, routerGroup, s.mD,s.eMD).Route()

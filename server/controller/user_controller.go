@@ -15,6 +15,7 @@ import (
 
 type UserController struct {
 	service        service.UserService
+	mD             middleware.AuthMiddleware
 	rg             *gin.RouterGroup
 	errorHandler   middleware.ErrorHandler
 	responseHelper *utils.ResponseHelper
@@ -433,6 +434,47 @@ func (u *UserController) updateUserHandler(c *gin.Context) {
 		return
 	}
 
+	// Extract user ID and role from Gin context (set by auth middleware)
+	requestingUserID, err := utils.GetUserIDFromGinContext(c)
+	if err != nil {
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrUnauthorized, "Failed to extract user ID from context")
+		appErr.StatusCode = 401
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	requestingUserRole, err := utils.GetUserRoleFromContext(c)
+	if err != nil {
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrUnauthorized, "Failed to extract user role from context")
+		appErr.StatusCode = 401
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	// Validate authorization using helper function
+	if err := utils.ValidateUserPermissions(requestingUserID, requestingUserRole, userId); err != nil {
+		// Check if it's an authorization error
+		if utils.IsAuthorizationError(err) {
+			authErr := err.(*utils.AuthorizationError)
+			if authErr.Code == utils.ErrForbidden {
+				appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrForbidden, authErr.Message)
+				appErr.StatusCode = 403
+				u.errorHandler.HandleError(requestCtx, c, appErr)
+				return
+			}
+			// Handle other authorization errors as bad request
+			appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrBadRequest, authErr.Message)
+			appErr.StatusCode = 400
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+		// Handle unexpected errors
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Authorization validation failed")
+		appErr.StatusCode = 500
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
 	var payload dto.UpdateUserRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		appErr := u.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
@@ -509,6 +551,47 @@ func (u *UserController) deleteUserHandler(c *gin.Context) {
 		return
 	}
 
+	// Extract user ID and role from Gin context (set by auth middleware)
+	requestingUserID, err := utils.GetUserIDFromGinContext(c)
+	if err != nil {
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrUnauthorized, "Failed to extract user ID from context")
+		appErr.StatusCode = 401
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	requestingUserRole, err := utils.GetUserRoleFromContext(c)
+	if err != nil {
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrUnauthorized, "Failed to extract user role from context")
+		appErr.StatusCode = 401
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
+	// Validate authorization using helper function
+	if err := utils.ValidateUserPermissions(requestingUserID, requestingUserRole, userId); err != nil {
+		// Check if it's an authorization error
+		if utils.IsAuthorizationError(err) {
+			authErr := err.(*utils.AuthorizationError)
+			if authErr.Code == utils.ErrForbidden {
+				appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrForbidden, authErr.Message)
+				appErr.StatusCode = 403
+				u.errorHandler.HandleError(requestCtx, c, appErr)
+				return
+			}
+			// Handle other authorization errors as bad request
+			appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrBadRequest, authErr.Message)
+			appErr.StatusCode = 400
+			u.errorHandler.HandleError(requestCtx, c, appErr)
+			return
+		}
+		// Handle unexpected errors
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Authorization validation failed")
+		appErr.StatusCode = 500
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
 	// Call service with context
 	err = u.service.DeleteUser(requestCtx, userId)
 	if err != nil {
@@ -550,8 +633,8 @@ func (u *UserController) Route() {
 		router.GET("/", u.findAllUserHandler)
 		router.GET("/paginated", u.findAllUserWithPaginationHandler)
 		router.GET("/:user_id", u.findUserByIdHandler)
-		router.PUT("/:user_id", u.updateUserHandler)    // Added missing update endpoint
-		router.DELETE("/:user_id", u.deleteUserHandler) // Added missing delete endpoint
+		router.PUT("/:user_id", u.mD.CheckToken(), u.updateUserHandler)
+		router.DELETE("/:user_id", u.mD.CheckToken(), u.deleteUserHandler)
 	}
 
 	r := u.rg.Group("/auth")
@@ -562,9 +645,10 @@ func (u *UserController) Route() {
 	}
 }
 
-func NewUserController(uS service.UserService, rg *gin.RouterGroup, errorHandler middleware.ErrorHandler) *UserController {
+func NewUserController(uS service.UserService, mD middleware.AuthMiddleware, rg *gin.RouterGroup, errorHandler middleware.ErrorHandler) *UserController {
 	return &UserController{
 		service:        uS,
+		mD:             mD,
 		rg:             rg,
 		errorHandler:   errorHandler,
 		responseHelper: utils.NewResponseHelper(),

@@ -74,6 +74,16 @@ func (m *MockUserRepository) DeleteAllRefreshTOkensByUser(ctx context.Context, u
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) UpdateUser(ctx context.Context, payload model.User) (model.User, error) {
+	args := m.Called(ctx, payload)
+	return args.Get(0).(model.User), args.Error(1)
+}
+
+func (m *MockUserRepository) DeleteUser(ctx context.Context, id int) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
 // Mock JwtService
 type MockJwtService struct {
 	mock.Mock
@@ -1014,6 +1024,113 @@ func TestRefreshToken_WithContext(t *testing.T) {
 			mockPasswordHasher.AssertExpectations(t)
 			mockPaginationService.AssertExpectations(t)
 			mockValidationService.AssertExpectations(t)
+		})
+	}
+}
+
+// Test for DeleteUser authorization
+func TestDeleteUser_Authorization(t *testing.T) {
+	tests := []struct {
+		name               string
+		requestingUserID   int
+		requestingUserRole string
+		targetUserID       int
+		expectError        bool
+		expectedErrorMsg   string
+		setupMocks         func(mockRepo *MockUserRepository)
+	}{
+		{
+			name:               "successful self-deletion",
+			requestingUserID:   1,
+			requestingUserRole: "user",
+			targetUserID:       1,
+			expectError:        false,
+			setupMocks: func(mockRepo *MockUserRepository) {
+				mockRepo.On("DeleteUser", mock.AnythingOfType("*context.valueCtx"), 1).Return(nil).Once()
+			},
+		},
+		{
+			name:               "successful admin deletion of other user",
+			requestingUserID:   1,
+			requestingUserRole: "admin",
+			targetUserID:       2,
+			expectError:        false,
+			setupMocks: func(mockRepo *MockUserRepository) {
+				mockRepo.On("DeleteUser", mock.AnythingOfType("*context.valueCtx"), 2).Return(nil).Once()
+			},
+		},
+		{
+			name:               "authorization failure - regular user cannot delete other user",
+			requestingUserID:   1,
+			requestingUserRole: "user",
+			targetUserID:       2,
+			expectError:        true,
+			expectedErrorMsg:   "Forbidden: You can only modify your own account",
+			setupMocks: func(mockRepo *MockUserRepository) {
+				// No repository mock needed as authorization should fail first
+			},
+		},
+		{
+			name:               "authorization failure - invalid requesting user ID",
+			requestingUserID:   0,
+			requestingUserRole: "user",
+			targetUserID:       1,
+			expectError:        true,
+			expectedErrorMsg:   "Invalid requesting user ID",
+			setupMocks: func(mockRepo *MockUserRepository) {
+				// No repository mock needed as authorization should fail first
+			},
+		},
+		{
+			name:               "authorization failure - invalid target user ID",
+			requestingUserID:   1,
+			requestingUserRole: "user",
+			targetUserID:       0,
+			expectError:        true,
+			expectedErrorMsg:   "Invalid target user ID",
+			setupMocks: func(mockRepo *MockUserRepository) {
+				// No repository mock needed as authorization should fail first
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mocks
+			mockRepo := &MockUserRepository{}
+			mockJwt := &MockJwtService{}
+			mockPH := &MockPasswordHasher{}
+			mockPS := &MockPaginationService{}
+			mockVS := &MockValidationService{}
+
+			// Setup mocks
+			tt.setupMocks(mockRepo)
+
+			// Create service
+			userService := NewUserservice(mockRepo, mockJwt, mockPH, mockPS, mockVS)
+
+			// Create context
+			ctx := context.WithValue(context.Background(), "request_id", "test_req")
+
+			// Call DeleteUser
+			err := userService.DeleteUser(ctx, tt.requestingUserID, tt.requestingUserRole, tt.targetUserID)
+
+			// Verify results
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.expectedErrorMsg != "" {
+					assert.Contains(t, err.Error(), tt.expectedErrorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+
+			// Assert mock expectations
+			mockRepo.AssertExpectations(t)
+			mockJwt.AssertExpectations(t)
+			mockPH.AssertExpectations(t)
+			mockPS.AssertExpectations(t)
+			mockVS.AssertExpectations(t)
 		})
 	}
 }

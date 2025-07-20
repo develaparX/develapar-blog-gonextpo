@@ -20,8 +20,8 @@ type UserService interface {
 	FindAllUserWithPagination(ctx context.Context, page, limit int) (PaginationResult, error)
 	Login(ctx context.Context, payload dto.LoginDto) (dto.LoginResponseDto, error)
 	RefreshToken(ctx context.Context, refreshToken string) (dto.LoginResponseDto, error)
-	UpdateUser(ctx context.Context, id int, req dto.UpdateUserRequest) (model.User, error)
-	DeleteUser(ctx context.Context, id int) error
+	UpdateUser(ctx context.Context, requestingUserID int, requestingUserRole string, targetUserID int, req dto.UpdateUserRequest) (model.User, error)
+	DeleteUser(ctx context.Context, requestingUserID int, requestingUserRole string, targetUserID int) error
 }
 
 type userService struct {
@@ -310,7 +310,7 @@ func (u *userService) RefreshToken(ctx context.Context, refreshToken string) (dt
 }
 
 // UpdateUser implements UserService.
-func (u *userService) UpdateUser(ctx context.Context, id int, req dto.UpdateUserRequest) (model.User, error) {
+func (u *userService) UpdateUser(ctx context.Context, requestingUserID int, requestingUserRole string, targetUserID int, req dto.UpdateUserRequest) (model.User, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -318,13 +318,27 @@ func (u *userService) UpdateUser(ctx context.Context, id int, req dto.UpdateUser
 	default:
 	}
 
-	// Validate ID
-	if id <= 0 {
+	// Secondary authorization validation using authorization helper
+	if err := utils.ValidateUserPermissions(requestingUserID, requestingUserRole, targetUserID); err != nil {
+		// Log security event for authorization failure
+		log.Printf("[SECURITY] UpdateUser authorization failed - Requesting User: %d, Role: %s, Target User: %d, Error: %v", 
+			requestingUserID, requestingUserRole, targetUserID, err)
+		return model.User{}, err
+	}
+
+	// Log admin operations for audit purposes
+	if utils.ValidateAdminRole(requestingUserRole) && requestingUserID != targetUserID {
+		log.Printf("[AUDIT] Admin user %d (role: %s) updating user %d", 
+			requestingUserID, requestingUserRole, targetUserID)
+	}
+
+	// Validate target user ID
+	if targetUserID <= 0 {
 		return model.User{}, fmt.Errorf("user ID must be greater than 0")
 	}
 
 	// Get existing user with context
-	user, err := u.repo.GetUserById(ctx, id)
+	user, err := u.repo.GetUserById(ctx, targetUserID)
 	if err != nil {
 		// Check if context was cancelled during repository operation
 		if ctx.Err() != nil {
@@ -366,13 +380,17 @@ func (u *userService) UpdateUser(ctx context.Context, id int, req dto.UpdateUser
 		return model.User{}, fmt.Errorf("failed to update user: %v", err)
 	}
 
+	// Log successful update operation
+	log.Printf("[INFO] User %d successfully updated by user %d (role: %s)", 
+		targetUserID, requestingUserID, requestingUserRole)
+
 	// Remove password from response for security
 	updatedUser.Password = "-"
 	return updatedUser, nil
 }
 
 // DeleteUser implements UserService.
-func (u *userService) DeleteUser(ctx context.Context, id int) error {
+func (u *userService) DeleteUser(ctx context.Context, requestingUserID int, requestingUserRole string, targetUserID int) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -380,13 +398,34 @@ func (u *userService) DeleteUser(ctx context.Context, id int) error {
 	default:
 	}
 
-	// Validate ID
-	if id <= 0 {
+	// Secondary authorization validation using authorization helper
+	if err := utils.ValidateUserPermissions(requestingUserID, requestingUserRole, targetUserID); err != nil {
+		// Log security event for authorization failure
+		log.Printf("[SECURITY] DeleteUser authorization failed - Requesting User: %d, Role: %s, Target User: %d, Error: %v", 
+			requestingUserID, requestingUserRole, targetUserID, err)
+		return err
+	}
+
+	// Log admin operations for audit purposes
+	if utils.ValidateAdminRole(requestingUserRole) && requestingUserID != targetUserID {
+		log.Printf("[AUDIT] Admin user %d (role: %s) deleting user %d", 
+			requestingUserID, requestingUserRole, targetUserID)
+	}
+
+	// Validate target user ID
+	if targetUserID <= 0 {
 		return fmt.Errorf("user ID must be greater than 0")
 	}
 
+	// Check context cancellation before deletion
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Delete user from repository with context
-	err := u.repo.DeleteUser(ctx, id)
+	err := u.repo.DeleteUser(ctx, targetUserID)
 	if err != nil {
 		// Check if context was cancelled during repository operation
 		if ctx.Err() != nil {
@@ -394,6 +433,10 @@ func (u *userService) DeleteUser(ctx context.Context, id int) error {
 		}
 		return fmt.Errorf("failed to delete user: %v", err)
 	}
+
+	// Log successful delete operation
+	log.Printf("[INFO] User %d successfully deleted by user %d (role: %s)", 
+		targetUserID, requestingUserID, requestingUserRole)
 
 	return nil
 }

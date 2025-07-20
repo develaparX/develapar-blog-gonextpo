@@ -55,6 +55,16 @@ func (m *MockUserServiceIntegration) RefreshToken(ctx context.Context, refreshTo
 	return args.Get(0).(dto.LoginResponseDto), args.Error(1)
 }
 
+func (m *MockUserServiceIntegration) UpdateUser(ctx context.Context, id int, req dto.UpdateUserRequest) (model.User, error) {
+	args := m.Called(ctx, id, req)
+	return args.Get(0).(model.User), args.Error(1)
+}
+
+func (m *MockUserServiceIntegration) DeleteUser(ctx context.Context, id int) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
 // MockCategoryServiceIntegration implements service.CategoryService for integration testing
 type MockCategoryServiceIntegration struct {
 	mock.Mock
@@ -68,6 +78,11 @@ func (m *MockCategoryServiceIntegration) CreateCategory(ctx context.Context, pay
 func (m *MockCategoryServiceIntegration) FindAll(ctx context.Context) ([]model.Category, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]model.Category), args.Error(1)
+}
+
+func (m *MockCategoryServiceIntegration) FindById(ctx context.Context, id int) (model.Category, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(model.Category), args.Error(1)
 }
 
 func (m *MockCategoryServiceIntegration) UpdateCategory(ctx context.Context, id int, req dto.UpdateCategoryRequest) (model.Category, error) {
@@ -167,10 +182,11 @@ func TestIntegration_UserController_ContextPropagation(t *testing.T) {
 	// Setup
 	mockService := new(MockUserServiceIntegration)
 	mockErrorHandler := new(MockErrorHandlerIntegration)
+	mockAuthMiddleware := new(MockAuthMiddlewareIntegration)
 	
 	router := setupIntegrationTestRouter()
 	rg := router.Group("/api")
-	controller := NewUserController(mockService, rg, mockErrorHandler)
+	controller := NewUserController(mockService, mockAuthMiddleware, rg, mockErrorHandler)
 	controller.Route()
 	
 	requestID := "integration-test-123"
@@ -215,10 +231,11 @@ func TestIntegration_UserController_LoginWithContextTimeout(t *testing.T) {
 	// Setup
 	mockService := new(MockUserServiceIntegration)
 	mockErrorHandler := new(MockErrorHandlerIntegration)
+	mockAuthMiddleware := new(MockAuthMiddlewareIntegration)
 	
 	router := setupIntegrationTestRouter()
 	rg := router.Group("/api")
-	controller := NewUserController(mockService, rg, mockErrorHandler)
+	controller := NewUserController(mockService, mockAuthMiddleware, rg, mockErrorHandler)
 	controller.Route()
 	
 	requestID := "timeout-test-123"
@@ -275,10 +292,11 @@ func TestIntegration_UserController_RegisterWithContextCancellation(t *testing.T
 	// Setup
 	mockService := new(MockUserServiceIntegration)
 	mockErrorHandler := new(MockErrorHandlerIntegration)
+	mockAuthMiddleware := new(MockAuthMiddlewareIntegration)
 	
 	router := setupIntegrationTestRouter()
 	rg := router.Group("/api")
-	controller := NewUserController(mockService, rg, mockErrorHandler)
+	controller := NewUserController(mockService, mockAuthMiddleware, rg, mockErrorHandler)
 	controller.Route()
 	
 	requestID := "cancellation-test-123"
@@ -379,10 +397,11 @@ func TestIntegration_UserController_PaginationWithContext(t *testing.T) {
 	// Setup
 	mockService := new(MockUserServiceIntegration)
 	mockErrorHandler := new(MockErrorHandlerIntegration)
+	mockAuthMiddleware := new(MockAuthMiddlewareIntegration)
 	
 	router := setupIntegrationTestRouter()
 	rg := router.Group("/api")
-	controller := NewUserController(mockService, rg, mockErrorHandler)
+	controller := NewUserController(mockService, mockAuthMiddleware, rg, mockErrorHandler)
 	controller.Route()
 	
 	requestID := "pagination-test-123"
@@ -433,10 +452,11 @@ func TestIntegration_UserController_ValidationErrorWithContext(t *testing.T) {
 	// Setup
 	mockService := new(MockUserServiceIntegration)
 	mockErrorHandler := new(MockErrorHandlerIntegration)
+	mockAuthMiddleware := new(MockAuthMiddlewareIntegration)
 	
 	router := setupIntegrationTestRouter()
 	rg := router.Group("/api")
-	controller := NewUserController(mockService, rg, mockErrorHandler)
+	controller := NewUserController(mockService, mockAuthMiddleware, rg, mockErrorHandler)
 	controller.Route()
 	
 	requestID := "validation-test-123"
@@ -480,10 +500,11 @@ func TestIntegration_MultipleRequestsContextIsolation(t *testing.T) {
 	// Setup
 	mockService := new(MockUserServiceIntegration)
 	mockErrorHandler := new(MockErrorHandlerIntegration)
+	mockAuthMiddleware := new(MockAuthMiddlewareIntegration)
 	
 	router := setupIntegrationTestRouter()
 	rg := router.Group("/api")
-	controller := NewUserController(mockService, rg, mockErrorHandler)
+	controller := NewUserController(mockService, mockAuthMiddleware, rg, mockErrorHandler)
 	controller.Route()
 	
 	// Test that contexts are isolated between requests
@@ -537,10 +558,11 @@ func TestIntegration_ContextMetadataInResponses(t *testing.T) {
 	// Setup
 	mockService := new(MockUserServiceIntegration)
 	mockErrorHandler := new(MockErrorHandlerIntegration)
+	mockAuthMiddleware := new(MockAuthMiddlewareIntegration)
 	
 	router := setupIntegrationTestRouter()
 	rg := router.Group("/api")
-	controller := NewUserController(mockService, rg, mockErrorHandler)
+	controller := NewUserController(mockService, mockAuthMiddleware, rg, mockErrorHandler)
 	controller.Route()
 	
 	requestID := "metadata-test-123"
@@ -580,10 +602,11 @@ func TestIntegration_ErrorContextPropagation(t *testing.T) {
 	// Setup
 	mockService := new(MockUserServiceIntegration)
 	mockErrorHandler := new(MockErrorHandlerIntegration)
+	mockAuthMiddleware := new(MockAuthMiddlewareIntegration)
 	
 	router := setupIntegrationTestRouter()
 	rg := router.Group("/api")
-	controller := NewUserController(mockService, rg, mockErrorHandler)
+	controller := NewUserController(mockService, mockAuthMiddleware, rg, mockErrorHandler)
 	controller.Route()
 	
 	requestID := "error-test-123"

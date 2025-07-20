@@ -841,7 +841,7 @@ func (c *ArticleController) Route() {
 
 	// Protected routes - Changed from singular to plural
 	protectedRoutes := c.rg.Group("/articles")
-	protectedRoutes.Use(c.md.CheckToken()) // hanya butuh login
+	protectedRoutes.Use(c.md.CheckToken("user","admin")) // hanya butuh login
 	protectedRoutes.POST("/", c.CreateArticleHandler)
 	protectedRoutes.PUT("/:article_id", c.UpdateArticleHandler)
 	protectedRoutes.DELETE("/:article_id", c.DeleteArticleHandler)
