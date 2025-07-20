@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { TagsInput } from "./TagsInput";
 import { slugify } from "../utils/slugify";
-import TinyMCEEditor from "./TinyMCEditor";
 
 // import QuillEditor from "./QuillEditor";
 // import CKEditor5Component from "./CKEditor5Component";
@@ -79,10 +78,10 @@ const AddArticle: React.FC = () => {
   };
 
   // Handler untuk content change dari WYSIWYG editor
-  const handleContentChange = (newContent: string) => {
-    setContent(newContent);
-    setValue("content", newContent);
-  };
+  // const handleContentChange = (newContent: string) => {
+  //   setContent(newContent);
+  //   setValue("content", newContent);
+  // };
 
   return (
     <div className="w-full mx-auto p-6 bg-white rounded-lg shadow-md">
@@ -176,11 +175,6 @@ const AddArticle: React.FC = () => {
           </label>
 
           {/* TinyMCE Editor */}
-          <TinyMCEEditor
-            value={content}
-            onChange={handleContentChange}
-            height={500}
-          />
 
           {/* Alternatif dengan Quill Editor */}
           {/* <QuillEditor
