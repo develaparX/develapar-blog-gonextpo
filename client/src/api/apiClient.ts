@@ -12,44 +12,8 @@ import type { ApiResponse, LoginResponse } from './types';
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const DEFAULT_BASE_URL = '/api/v1';
 
-// ============================================================================
-// Token Management Utilities
-// ============================================================================
-
-class TokenManager {
-    private static readonly ACCESS_TOKEN_KEY = 'access_token';
-    private static readonly REFRESH_TOKEN_KEY = 'refresh_token';
-
-    static getAccessToken(): string | null {
-        return localStorage.getItem(this.ACCESS_TOKEN_KEY);
-    }
-
-    static setAccessToken(token: string): void {
-        localStorage.setItem(this.ACCESS_TOKEN_KEY, token);
-    }
-
-    static getRefreshToken(): string | null {
-        return localStorage.getItem(this.REFRESH_TOKEN_KEY);
-    }
-
-    static setRefreshToken(token: string): void {
-        localStorage.setItem(this.REFRESH_TOKEN_KEY, token);
-    }
-
-    static setTokens(accessToken: string, refreshToken: string): void {
-        this.setAccessToken(accessToken);
-        this.setRefreshToken(refreshToken);
-    }
-
-    static clearTokens(): void {
-        localStorage.removeItem(this.ACCESS_TOKEN_KEY);
-        localStorage.removeItem(this.REFRESH_TOKEN_KEY);
-    }
-
-    static hasValidTokens(): boolean {
-        return !!(this.getAccessToken() && this.getRefreshToken());
-    }
-}
+// Import enhanced token manager
+import { tokenManager, TokenManager } from './tokenManager';
 
 // ============================================================================
 // API Client Configuration
@@ -89,7 +53,10 @@ class ApiClient {
     private setupRequestInterceptor(): void {
         this.axiosInstance.interceptors.request.use(
             (config) => {
-                const token = TokenManager.getAccessToken();
+                // Clean up expired tokens before making request
+                tokenManager.cleanupExpiredTokens();
+
+                const token = tokenManager.getAccessToken();
                 if (token) {
                     config.headers.Authorization = `Bearer ${token}`;
                 }
@@ -124,17 +91,22 @@ class ApiClient {
                     this.isRefreshing = true;
 
                     try {
-                        const refreshToken = TokenManager.getRefreshToken();
+                        const refreshToken = tokenManager.getRefreshToken();
                         if (!refreshToken) {
                             throw new Error('No refresh token available');
+                        }
+
+                        // Check if we recently refreshed to avoid rapid refresh attempts
+                        if (tokenManager.wasRecentlyRefreshed()) {
+                            throw new Error('Token was recently refreshed, avoiding rapid refresh');
                         }
 
                         // Attempt to refresh the token
                         const response = await this.refreshAccessToken();
                         const { access_token, refresh_token } = response;
 
-                        // Update stored tokens
-                        TokenManager.setTokens(access_token, refresh_token);
+                        // Update stored tokens using enhanced manager
+                        tokenManager.setTokens(access_token, refresh_token);
 
                         // Process failed queue
                         this.processQueue(null);
@@ -144,7 +116,7 @@ class ApiClient {
                     } catch (refreshError) {
                         // Refresh failed, clear tokens and redirect to login
                         this.processQueue(refreshError);
-                        TokenManager.clearTokens();
+                        tokenManager.clearTokens();
                         this.handleAuthenticationFailure();
                         return Promise.reject(refreshError);
                     } finally {
@@ -243,17 +215,17 @@ class ApiClient {
     // ============================================================================
 
     setAuthToken(token: string): void {
-        TokenManager.setAccessToken(token);
+        tokenManager.setAccessToken(token);
         this.axiosInstance.defaults.headers.Authorization = `Bearer ${token}`;
     }
 
     clearAuthToken(): void {
-        TokenManager.clearTokens();
+        tokenManager.clearTokens();
         delete this.axiosInstance.defaults.headers.Authorization;
     }
 
     isAuthenticated(): boolean {
-        return TokenManager.hasValidTokens();
+        return tokenManager.hasValidTokens();
     }
 }
 
