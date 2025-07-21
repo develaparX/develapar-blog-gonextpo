@@ -241,7 +241,7 @@ export interface PaginationParams {
 
 export interface PaginatedResponse<T> {
     data: T;
-    pagination: PaginationMetadata;
+    pagination?: PaginationMetadata;
 }
 
 // ============================================================================

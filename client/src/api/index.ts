@@ -70,5 +70,8 @@ export {
     NetworkDetector
 } from './errorHandler';
 
+// Export API services
+export { userApi, UserApi } from './userApi';
+
 // Export default API client instance
 export { default as api } from './apiClient';
