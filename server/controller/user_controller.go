@@ -483,7 +483,7 @@ func (u *UserController) updateUserHandler(c *gin.Context) {
 	}
 
 	// Call service with context
-	updatedUser, err := u.service.UpdateUser(requestCtx, userId, payload)
+	updatedUser, err := u.service.UpdateUser(requestCtx,requestingUserID, requestingUserRole, userId, payload)
 	if err != nil {
 		// Check for context-specific errors
 		if requestCtx.Err() == context.DeadlineExceeded {
@@ -593,7 +593,7 @@ func (u *UserController) deleteUserHandler(c *gin.Context) {
 	}
 
 	// Call service with context
-	err = u.service.DeleteUser(requestCtx, userId)
+	err = u.service.DeleteUser(requestCtx,requestingUserID, requestingUserRole, userId)
 	if err != nil {
 		// Check for context-specific errors
 		if requestCtx.Err() == context.DeadlineExceeded {
