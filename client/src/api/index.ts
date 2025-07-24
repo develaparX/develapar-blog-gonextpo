@@ -71,7 +71,17 @@ export {
 } from './errorHandler';
 
 // Export API services
+export { authApi, AuthApi } from './authApi';
 export { userApi, UserApi } from './userApi';
+export { articleApi, ArticleApi } from './articleApi';
+export { categoryApi, CategoryApi } from './categoryApi';
+export { tagApi, TagApi } from './tagApi';
+export { commentApi, CommentApi } from './commentApi';
+export { likeApi, LikeApi } from './likeApi';
+export { bookmarkApi, BookmarkApi } from './bookmarkApi';
+
+// Export token management utilities
+export { tokenManager, EnhancedTokenManager, TokenRefreshManager } from './tokenManager';
 
 // Export default API client instance
 export { default as api } from './apiClient';

@@ -17,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"strings"
 )
 
 // loggerAdapter adapts utils.Logger to middleware.Logger interface
@@ -96,6 +97,24 @@ func (s *Server) Start() {
 	s.engine.Run(s.portApp)
 }
 
+// parseLogLevel converts string log level to utils.LogLevel
+func parseLogLevel(level string) utils.LogLevel {
+	switch strings.ToUpper(level) {
+	case "DEBUG":
+		return utils.DebugLevel
+	case "INFO":
+		return utils.InfoLevel
+	case "WARN", "WARNING":
+		return utils.WarnLevel
+	case "ERROR":
+		return utils.ErrorLevel
+	case "FATAL":
+		return utils.FatalLevel
+	default:
+		return utils.InfoLevel // Default fallback
+	}
+}
+
 // CORSMiddleware adalah middleware yang akan menangani CORS
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -152,14 +171,18 @@ func NewServer() *Server {
 	contextMiddleware := middleware.NewContextMiddleware(contextManager)
 	errorHandler := middleware.NewErrorHandler(nil) // Using default logger
 
+	// Initialize logger factory with config-based log level
+	logLevel := parseLogLevel(co.LoggingConfig.Level)
+	loggerFactory := utils.NewLoggerFactory(logLevel)
+	
 	// Initialize metrics service and related components
-	metricsLogger := utils.NewDefaultLogger("metrics")
+	metricsLogger := loggerFactory.GetLogger("metrics")
 	metricsService := service.NewMetricsService(metricsLogger)
 	metricsController := controller.NewMetricsController(metricsService)
 	metricsMiddleware := middleware.NewMetricsMiddleware(metricsService, metricsLogger)
 
 	// Initialize rate limiting components
-	rateLimitUtilsLogger := utils.NewDefaultLogger("rate_limiter")
+	rateLimitUtilsLogger := loggerFactory.GetLogger("rate_limiter")
 	
 	// Create logger adapter to convert utils.Logger to middleware.Logger
 	rateLimitLogger := &loggerAdapter{logger: rateLimitUtilsLogger}
@@ -191,7 +214,7 @@ func NewServer() *Server {
 	rateLimitMonitor.StartPeriodicLogging(ctx, 10*time.Minute) // Log stats every 10 minutes
 
 	// Initialize request logging middleware with context support
-	requestLogger := utils.NewDefaultLogger("request")
+	requestLogger := loggerFactory.GetLogger("request")
 	requestLoggingMiddleware := middleware.NewRequestLoggerWithMetrics(requestLogger)
 	log.Printf("Request logging middleware initialized with context support and metrics collection")
 

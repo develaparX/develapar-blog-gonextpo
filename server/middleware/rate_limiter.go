@@ -109,10 +109,13 @@ func (s *inMemoryStore) Increment(ctx context.Context, key string, window time.D
 		entry.LastReset = now
 		entry.Window = window
 		
-		s.logger.Info(ctx, "Rate limit window reset", map[string]interface{}{
-			"key":    key,
-			"window": window,
-		})
+		// Reduce logging during high load
+		if entry.Count%100 == 0 { // Log every 100th reset
+			s.logger.Info(ctx, "Rate limit window reset", map[string]interface{}{
+				"key":    key,
+				"window": window,
+			})
+		}
 		
 		return 1, nil
 	}

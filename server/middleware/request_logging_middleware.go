@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"develapar-server/utils"
-	"io"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -48,11 +47,10 @@ func (rl *requestLogger) LogRequests() gin.HandlerFunc {
 		// Get context from request
 		ctx := c.Request.Context()
 		
-		// Create response writer wrapper to capture response data
-		responseBody := &bytes.Buffer{}
+		// Create lightweight response writer wrapper (no body capture for performance)
 		writer := &responseWriter{
 			ResponseWriter: c.Writer,
-			body:          responseBody,
+			body:          &bytes.Buffer{}, // Empty buffer to avoid nil pointer
 			status:        200, // Default status
 		}
 		c.Writer = writer
@@ -73,16 +71,16 @@ func (rl *requestLogger) LogRequests() gin.HandlerFunc {
 
 // logIncomingRequest logs details about the incoming request
 func (rl *requestLogger) logIncomingRequest(ctx context.Context, c *gin.Context, startTime time.Time) {
-	// Read and restore request body for logging
+	// Skip request body logging for performance during stress tests
 	var requestBody string
-	if c.Request.Body != nil {
-		bodyBytes, err := io.ReadAll(c.Request.Body)
-		if err == nil {
-			requestBody = string(bodyBytes)
-			// Restore the request body for further processing
-			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-		}
-	}
+	// Disable body reading to reduce memory usage
+	// if c.Request.Body != nil {
+	//     bodyBytes, err := io.ReadAll(c.Request.Body)
+	//     if err == nil {
+	//         requestBody = string(bodyBytes)
+	//         c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	//     }
+	// }
 
 	// Get user agent and IP
 	userAgent := c.GetHeader("User-Agent")
@@ -304,14 +302,16 @@ func (rlm *RequestLoggerWithMetrics) LogRequestsWithMetrics() gin.HandlerFunc {
 
 // logIncomingRequest logs incoming request (same as regular request logger)
 func (rlm *RequestLoggerWithMetrics) logIncomingRequest(ctx context.Context, c *gin.Context, startTime time.Time) {
+	// Skip request body reading for performance during stress tests
 	var requestBody string
-	if c.Request.Body != nil {
-		bodyBytes, err := io.ReadAll(c.Request.Body)
-		if err == nil {
-			requestBody = string(bodyBytes)
-			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-		}
-	}
+	// Disable body reading to reduce memory usage
+	// if c.Request.Body != nil {
+	//     bodyBytes, err := io.ReadAll(c.Request.Body)
+	//     if err == nil {
+	//         requestBody = string(bodyBytes)
+	//         c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	//     }
+	// }
 
 	userAgent := c.GetHeader("User-Agent")
 	clientIP := c.ClientIP()
