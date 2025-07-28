@@ -23,14 +23,14 @@ type UserController struct {
 
 // @Summary User login
 // @Description Authenticate user and return access token
-// @Tags Users
+// @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param payload body dto.LoginDto true "Login credentials"
-// @Success 200 {object} middleware.SuccessResponse "Success Login"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid request payload"
-// @Failure 401 {object} middleware.ErrorResponse "Invalid credentials"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,access_token=string,refresh_token=string}} "Success Login"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid request payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid credentials"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
 // @Router /auth/login [post]
 func (u *UserController) loginHandler(c *gin.Context) {
 	// Get request context with timeout
@@ -93,15 +93,15 @@ func (u *UserController) loginHandler(c *gin.Context) {
 
 // @Summary Register a new user
 // @Description Register a new user with name, email, and password
-// @Tags Users
+// @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param payload body model.User true "User registration details"
-// @Success 200 {object} middleware.SuccessResponse "User successfully registered"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 409 {object} middleware.ErrorResponse "User already exists"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 201 {object} dto.APIResponse{data=object{message=string,user=model.User}} "User successfully registered"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid payload"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 409 {object} dto.APIResponse{error=dto.ErrorResponse} "User already exists"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /auth/register [post]
 func (u *UserController) registerUser(c *gin.Context) {
 	// Get request context with timeout
@@ -157,11 +157,11 @@ func (u *UserController) registerUser(c *gin.Context) {
 // @Tags Users
 // @Produce json
 // @Param user_id path string true "ID of the user to retrieve"
-// @Success 200 {object} middleware.SuccessResponse "User details"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
-// @Failure 404 {object} middleware.ErrorResponse "User not found"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,user=model.User}} "User details"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid user ID"
+// @Failure 404 {object} dto.APIResponse{error=dto.ErrorResponse} "User not found"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /users/{user_id} [get]
 func (u *UserController) findUserByIdHandler(c *gin.Context) {
 	// Get request context with timeout
@@ -215,9 +215,9 @@ func (u *UserController) findUserByIdHandler(c *gin.Context) {
 // @Description Get a list of all registered users
 // @Tags Users
 // @Produce json
-// @Success 200 {object} middleware.SuccessResponse "List of users"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,users=[]model.User}} "List of users"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /users [get]
 func (u *UserController) findAllUserHandler(c *gin.Context) {
 	// Get request context with timeout
@@ -266,10 +266,10 @@ func (u *UserController) findAllUserHandler(c *gin.Context) {
 // @Produce json
 // @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Number of items per page (default: 10, max: 100)"
-// @Success 200 {object} middleware.SuccessResponse "Paginated list of users"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid pagination parameters"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,users=[]model.User},pagination=dto.PaginationMetadata} "Paginated list of users"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid pagination parameters"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /users/paginated [get]
 func (u *UserController) findAllUserWithPaginationHandler(c *gin.Context) {
 	// Get request context with timeout
@@ -338,12 +338,12 @@ func (u *UserController) findAllUserWithPaginationHandler(c *gin.Context) {
 
 // @Summary Refresh access token
 // @Description Refresh access token using refresh token from cookie
-// @Tags Users
+// @Tags Authentication
 // @Produce json
-// @Success 200 {object} middleware.SuccessResponse "Access token refreshed successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Refresh token not found"
-// @Failure 401 {object} middleware.ErrorResponse "Invalid or expired refresh token"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,access_token=string}} "Access token refreshed successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Refresh token not found"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid or expired refresh token"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
 // @Router /auth/refresh [post]
 func (u *UserController) refreshTokenHandler(c *gin.Context) {
 	// Get request context with timeout
@@ -406,13 +406,13 @@ func (u *UserController) refreshTokenHandler(c *gin.Context) {
 // @Produce json
 // @Param user_id path string true "ID of the user to update"
 // @Param payload body dto.UpdateUserRequest true "User update details"
-// @Success 200 {object} middleware.SuccessResponse "User updated successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID or payload"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 403 {object} middleware.ErrorResponse "Forbidden"
-// @Failure 404 {object} middleware.ErrorResponse "User not found"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,user=model.User}} "User updated successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid user ID or payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 403 {object} dto.APIResponse{error=dto.ErrorResponse} "Forbidden"
+// @Failure 404 {object} dto.APIResponse{error=dto.ErrorResponse} "User not found"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /users/{user_id} [put]
 func (u *UserController) updateUserHandler(c *gin.Context) {
@@ -523,13 +523,13 @@ func (u *UserController) updateUserHandler(c *gin.Context) {
 // @Tags Users
 // @Produce json
 // @Param user_id path string true "ID of the user to delete"
-// @Success 200 {object} middleware.SuccessResponse "User deleted successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 403 {object} middleware.ErrorResponse "Forbidden"
-// @Failure 404 {object} middleware.ErrorResponse "User not found"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string}} "User deleted successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid user ID"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 403 {object} dto.APIResponse{error=dto.ErrorResponse} "Forbidden"
+// @Failure 404 {object} dto.APIResponse{error=dto.ErrorResponse} "User not found"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /users/{user_id} [delete]
 func (u *UserController) deleteUserHandler(c *gin.Context) {

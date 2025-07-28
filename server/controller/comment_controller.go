@@ -27,11 +27,11 @@ type CommentController struct {
 // @Accept json
 // @Produce json
 // @Param payload body model.Comment true "Comment creation details"
-// @Success 201 {object} middleware.SuccessResponse "Comment successfully created"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 201 {object} dto.APIResponse{data=object{message=string,comment=model.Comment}} "Comment successfully created"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /comments [post]
 func (c *CommentController) CreateCommentHandler(ginCtx *gin.Context) {
@@ -106,10 +106,10 @@ func (c *CommentController) CreateCommentHandler(ginCtx *gin.Context) {
 // @Tags Comments
 // @Produce json
 // @Param article_id path int true "ID of the article to retrieve comments for"
-// @Success 200 {object} middleware.SuccessResponse "List of comments for the article"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,comments=[]model.Comment}} "List of comments for the article"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid article ID"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /comments/article/{article_id} [get]
 func (c *CommentController) FindCommentByArticleIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -164,10 +164,10 @@ func (c *CommentController) FindCommentByArticleIdHandler(ginCtx *gin.Context) {
 // @Tags Comments
 // @Produce json
 // @Param user_id path int true "ID of the user whose comments to retrieve"
-// @Success 200 {object} middleware.SuccessResponse "List of comments by the user"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,comments=[]model.Comment}} "List of comments by the user"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid user ID"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /comments/user/{user_id} [get]
 func (c *CommentController) FindCommentByUserIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -224,12 +224,12 @@ func (c *CommentController) FindCommentByUserIdHandler(ginCtx *gin.Context) {
 // @Produce json
 // @Param comment_id path int true "ID of the comment to update"
 // @Param payload body object{content=string} true "Comment update details"
-// @Success 200 {object} middleware.SuccessResponse "Comment updated successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 403 {object} middleware.ErrorResponse "Forbidden (user does not own the comment)"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string}} "Comment updated successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 403 {object} dto.APIResponse{error=dto.ErrorResponse} "Forbidden (user does not own the comment)"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /comments/{comment_id} [put]
 func (c *CommentController) UpdateCommentHandler(ginCtx *gin.Context) {
@@ -302,11 +302,11 @@ func (c *CommentController) UpdateCommentHandler(ginCtx *gin.Context) {
 // @Tags Comments
 // @Produce json
 // @Param comment_id path int true "ID of the comment to delete"
-// @Success 200 {object} middleware.SuccessResponse "Comment deleted successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid comment ID"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string}} "Comment deleted successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid comment ID"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /comments/{comment_id} [delete]
 func (c *CommentController) DeleteCommentHandler(ginCtx *gin.Context) {

@@ -26,11 +26,11 @@ type LikeController struct {
 // @Accept json
 // @Produce json
 // @Param payload body model.Likes true "Like creation details"
-// @Success 201 {object} middleware.SuccessResponse "Like successfully added"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 201 {object} dto.APIResponse{data=object{message=string,like=model.Likes}} "Like successfully added"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /likes [post]
 func (l *LikeController) AddLikeHandler(ginCtx *gin.Context) {
@@ -105,10 +105,10 @@ func (l *LikeController) AddLikeHandler(ginCtx *gin.Context) {
 // @Tags Likes
 // @Produce json
 // @Param article_id path int true "ID of the article to retrieve likes for"
-// @Success 200 {object} middleware.SuccessResponse "List of likes for the article"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,likes=[]model.Likes}} "List of likes for the article"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid article ID"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /likes/article/{article_id} [get]
 func (l *LikeController) GetLikeByArticleIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -163,10 +163,10 @@ func (l *LikeController) GetLikeByArticleIdHandler(ginCtx *gin.Context) {
 // @Tags Likes
 // @Produce json
 // @Param user_id path int true "ID of the user whose likes to retrieve"
-// @Success 200 {object} middleware.SuccessResponse "List of likes by the user"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,likes=[]model.Likes}} "List of likes by the user"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid user ID"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /likes/user/{user_id} [get]
 func (l *LikeController) GetLikeByUserIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -222,11 +222,11 @@ func (l *LikeController) GetLikeByUserIdHandler(ginCtx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param payload body object{article_id=int} true "Article ID to unlike"
-// @Success 200 {object} middleware.SuccessResponse "Like deleted successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string}} "Like deleted successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid article ID"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /likes [delete]
 func (l *LikeController) DeleteLikeHandler(ginCtx *gin.Context) {
@@ -298,11 +298,11 @@ func (l *LikeController) DeleteLikeHandler(ginCtx *gin.Context) {
 // @Tags Likes
 // @Produce json
 // @Param article_id query int true "ID of the article to check"
-// @Success 200 {object} middleware.SuccessResponse "Like status"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{liked=bool}} "Like status"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid article ID"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /likes/check [get]
 func (c *LikeController) CheckLikeHandler(ginCtx *gin.Context) {

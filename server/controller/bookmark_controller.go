@@ -26,11 +26,11 @@ type BookmarkController struct {
 // @Accept json
 // @Produce json
 // @Param payload body model.Bookmark true "Bookmark creation details"
-// @Success 201 {object} middleware.SuccessResponse "Bookmark successfully created"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 201 {object} dto.APIResponse{data=object{message=string,bookmark=model.Bookmark}} "Bookmark successfully created"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /bookmarks [post]
 func (b *BookmarkController) CreateBookmarkHandler(ginCtx *gin.Context) {
@@ -104,10 +104,10 @@ func (b *BookmarkController) CreateBookmarkHandler(ginCtx *gin.Context) {
 // @Tags Bookmarks
 // @Produce json
 // @Param user_id path int true "ID of the user whose bookmarks to retrieve"
-// @Success 200 {object} middleware.SuccessResponse "List of bookmarks for the user"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,bookmarks=[]model.Bookmark}} "List of bookmarks for the user"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid user ID"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /bookmarks/{user_id} [get]
 func (b *BookmarkController) GetBookmarkByUserId(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -163,11 +163,11 @@ func (b *BookmarkController) GetBookmarkByUserId(ginCtx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param article_id path int true "Article ID to unbookmark"
-// @Success 200 {object} middleware.SuccessResponse "Bookmark deleted successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string}} "Bookmark deleted successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid article ID"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /bookmarks [delete]
 func (b *BookmarkController) DeleteBookmarkHandler(ginCtx *gin.Context) {
@@ -239,11 +239,11 @@ func (b *BookmarkController) DeleteBookmarkHandler(ginCtx *gin.Context) {
 // @Tags Bookmarks
 // @Produce json
 // @Param article_id query int true "ID of the article to check"
-// @Success 200 {object} middleware.SuccessResponse "Bookmark status"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{bookmarked=bool}} "Bookmark status"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid article ID"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /bookmarks/check [get]
 func (c *BookmarkController) CheckBookmarkHandler(ginCtx *gin.Context) {

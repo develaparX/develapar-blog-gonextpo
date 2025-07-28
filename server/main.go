@@ -2,7 +2,7 @@ package main
 
 // @title Develapar API
 // @version 1.0
-// @description This is a sample server for a blog application.
+// @description REST API untuk aplikasi blog Develapar dengan fitur lengkap untuk manajemen artikel, komentar, kategori, tag, bookmark, dan like. API menggunakan standard response format dengan metadata, request tracking, rate limiting, dan comprehensive error handling.
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name API Support
@@ -12,8 +12,13 @@ package main
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host localhost:8080
+// @host localhost:4300
 // @BasePath /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 func main() {
 	NewServer().Start()
 

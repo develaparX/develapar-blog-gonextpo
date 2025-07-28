@@ -1,0 +1,1032 @@
+openapi: 3.0.3
+info:
+  title: Develapar API
+  description: |
+    REST API untuk aplikasi blog Develapar dengan fitur lengkap untuk manajemen artikel, komentar, kategori, tag, bookmark, dan like.
+
+    ## Features
+    - Standard response format dengan metadata
+    - Request tracking dengan unique IDs
+    - Rate limiting
+    - Comprehensive error handling
+    - Authentication & authorization
+    - Pagination support
+    - Health checks & monitoring
+
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: http://www.swagger.io/support
+    email: support@swagger.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://localhost:4300/api/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    APIResponse:
+      type: object
+      description: Standard API response format dengan metadata dan context information
+      properties:
+        success:
+          type: boolean
+          example: true
+          description: Indicates if the request was successful
+        data:
+          type: object
+          description: Response data (varies by endpoint)
+        error:
+          $ref: "#/components/schemas/ErrorResponse"
+        pagination:
+          $ref: "#/components/schemas/PaginationMetadata"
+        meta:
+          $ref: "#/components/schemas/ResponseMetadata"
+
+    ErrorResponse:
+      type: object
+      description: Error response structure dengan detailed error information
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+          description: Error code for programmatic handling
+        message:
+          type: string
+          example: Invalid input data
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details
+        request_id:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+          description: Request ID for tracking
+        timestamp:
+          type: string
+          format: date-time
+          example: 2025-07-24T20:43:16.123456789+07:00
+          description: Error timestamp
+
+    ResponseMetadata:
+      type: object
+      description: Response metadata containing request tracking and performance information
+      properties:
+        request_id:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+          description: Unique request identifier for tracking
+        processing_time_ms:
+          type: integer
+          example: 15000000
+          description: Request processing time in nanoseconds
+        version:
+          type: string
+          example: 1.0.0
+          description: API version
+        timestamp:
+          type: string
+          format: date-time
+          example: 2025-07-24T20:43:16.123456789+07:00
+          description: Response generation timestamp
+
+    PaginationMetadata:
+      type: object
+      description: Pagination metadata for paginated responses
+      properties:
+        page:
+          type: integer
+          example: 1
+          description: Current page number (1-based)
+        limit:
+          type: integer
+          example: 10
+          description: Number of items per page
+        total:
+          type: integer
+          example: 100
+          description: Total number of items
+        total_pages:
+          type: integer
+          example: 10
+          description: Total number of pages
+        has_next:
+          type: boolean
+          example: true
+          description: Whether there is a next page
+        has_prev:
+          type: boolean
+          example: false
+          description: Whether there is a previous page
+        request_id:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+          description: Request ID for tracking
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          writeOnly: true
+        role:
+          type: string
+          example: user
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Article:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Sample Article
+        slug:
+          type: string
+          example: sample-article
+        content:
+          type: string
+          example: This is the article content...
+        user:
+          $ref: "#/components/schemas/User"
+        category:
+          $ref: "#/components/schemas/Category"
+        views:
+          type: integer
+          example: 100
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Technology
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: JavaScript
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        content:
+          type: string
+          example: Great article!
+        user:
+          $ref: "#/components/schemas/User"
+        article:
+          $ref: "#/components/schemas/Article"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Bookmark:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        article_id:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+
+    Like:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        article_id:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+
+    # Request DTOs
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          minLength: 8
+          example: password123
+
+    LoginRequest:
+      type: object
+      required:
+        - identifier
+        - password
+      properties:
+        identifier:
+          type: string
+          example: john@example.com
+          description: Email or username
+        password:
+          type: string
+          example: password123
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    CreateArticleRequest:
+      type: object
+      required:
+        - title
+        - content
+        - category_id
+      properties:
+        title:
+          type: string
+          example: My New Article
+        content:
+          type: string
+          example: This is the article content...
+        category_id:
+          type: integer
+          example: 1
+
+    UpdateArticleRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Updated Article Title
+        content:
+          type: string
+          example: Updated article content...
+        category_id:
+          type: integer
+          example: 1
+
+    CreateCommentRequest:
+      type: object
+      required:
+        - content
+        - article_id
+      properties:
+        content:
+          type: string
+          example: Great article!
+        article_id:
+          type: integer
+          example: 1
+
+    UpdateCommentRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          example: Updated comment content
+
+    CreateBookmarkRequest:
+      type: object
+      required:
+        - article_id
+      properties:
+        article_id:
+          type: integer
+          example: 1
+
+    CreateLikeRequest:
+      type: object
+      required:
+        - article_id
+      properties:
+        article_id:
+          type: integer
+          example: 1
+
+  responses:
+    Success:
+      description: Successful response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/APIResponse"
+
+    Created:
+      description: Resource created successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/APIResponse"
+
+    BadRequest:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/APIResponse"
+              - type: object
+                properties:
+                  success:
+                    example: false
+                  error:
+                    $ref: "#/components/schemas/ErrorResponse"
+
+    Unauthorized:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/APIResponse"
+              - type: object
+                properties:
+                  success:
+                    example: false
+                  error:
+                    allOf:
+                      - $ref: "#/components/schemas/ErrorResponse"
+                      - type: object
+                        properties:
+                          code:
+                            example: UNAUTHORIZED
+                          message:
+                            example: Authentication required
+
+    Forbidden:
+      description: Forbidden - access denied
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/APIResponse"
+              - type: object
+                properties:
+                  success:
+                    example: false
+                  error:
+                    allOf:
+                      - $ref: "#/components/schemas/ErrorResponse"
+                      - type: object
+                        properties:
+                          code:
+                            example: FORBIDDEN
+                          message:
+                            example: Access denied
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/APIResponse"
+              - type: object
+                properties:
+                  success:
+                    example: false
+                  error:
+                    allOf:
+                      - $ref: "#/components/schemas/ErrorResponse"
+                      - type: object
+                        properties:
+                          code:
+                            example: NOT_FOUND
+                          message:
+                            example: Resource not found
+
+    RequestTimeout:
+      description: Request timeout
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/APIResponse"
+              - type: object
+                properties:
+                  success:
+                    example: false
+                  error:
+                    allOf:
+                      - $ref: "#/components/schemas/ErrorResponse"
+                      - type: object
+                        properties:
+                          code:
+                            example: TIMEOUT_ERROR
+                          message:
+                            example: Request timeout
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/APIResponse"
+              - type: object
+                properties:
+                  success:
+                    example: false
+                  error:
+                    allOf:
+                      - $ref: "#/components/schemas/ErrorResponse"
+                      - type: object
+                        properties:
+                          code:
+                            example: RATE_LIMIT_EXCEEDED
+                          message:
+                            example: Rate limit exceeded
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/APIResponse"
+              - type: object
+                properties:
+                  success:
+                    example: false
+                  error:
+                    allOf:
+                      - $ref: "#/components/schemas/ErrorResponse"
+                      - type: object
+                        properties:
+                          code:
+                            example: INTERNAL_ERROR
+                          message:
+                            example: An unexpected error occurred
+
+paths:
+  # Authentication
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register new user
+      description: Create a new user account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and get access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Articles
+  /articles:
+    get:
+      tags:
+        - Articles
+      summary: Get all articles
+      description: Retrieve a list of all articles
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags:
+        - Articles
+      summary: Create new article
+      description: Create a new blog article
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateArticleRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /articles/paginated:
+    get:
+      tags:
+        - Articles
+      summary: Get articles with pagination
+      description: Retrieve articles with pagination support
+      security: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /articles/{slug}:
+    get:
+      tags:
+        - Articles
+      summary: Get article by slug
+      description: Retrieve article details by its slug
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: Article slug
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /articles/{article_id}:
+    put:
+      tags:
+        - Articles
+      summary: Update article
+      description: Update an existing article
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          description: Article ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateArticleRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags:
+        - Articles
+      summary: Delete article
+      description: Delete an article
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          description: Article ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Categories
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: Get all categories
+      description: Retrieve a list of all categories
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags:
+        - Categories
+      summary: Create new category
+      description: Create a new category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Category"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /categories/{category_id}:
+    get:
+      tags:
+        - Categories
+      summary: Get category by ID
+      description: Retrieve category details by its ID
+      security: []
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          description: Category ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      tags:
+        - Categories
+      summary: Update category
+      description: Update an existing category
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          description: Category ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Category"
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags:
+        - Categories
+      summary: Delete category
+      description: Delete a category
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          description: Category ID
+          schema:
+            type: integer
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "408":
+          $ref: "#/components/responses/RequestTimeout"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # Health & Monitoring
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Basic health check
+      description: Check if the API is running
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /health/detailed:
+    get:
+      tags:
+        - Health
+      summary: Detailed health check
+      description: Detailed health check with database status
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /health/database:
+    get:
+      tags:
+        - Health
+      summary: Database health check
+      description: Check database connection and statistics
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /metrics:
+    get:
+      tags:
+        - Monitoring
+      summary: Get all metrics
+      description: Retrieve all application metrics
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /metrics/summary:
+    get:
+      tags:
+        - Monitoring
+      summary: Get metrics summary
+      description: Retrieve metrics summary
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /metrics/requests:
+    get:
+      tags:
+        - Monitoring
+      summary: Get request metrics
+      description: Retrieve request-related metrics
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /metrics/database:
+    get:
+      tags:
+        - Monitoring
+      summary: Get database metrics
+      description: Retrieve database-related metrics
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /metrics/application:
+    get:
+      tags:
+        - Monitoring
+      summary: Get application metrics
+      description: Retrieve application-related metrics
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /metrics/errors:
+    get:
+      tags:
+        - Monitoring
+      summary: Get error metrics
+      description: Retrieve error-related metrics
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /metrics/reset:
+    post:
+      tags:
+        - Monitoring
+      summary: Reset metrics
+      description: Reset all metrics counters
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Success"
+        "500":
+          $ref: "#/components/responses/InternalServerError"

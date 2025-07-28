@@ -9,12 +9,12 @@ import (
 )
 
 // Context keys for type safety
-type contextKey string
+type ContextKey string
 
 const (
-	RequestIDKey contextKey = "request_id"
-	UserIDKey    contextKey = "user_id"
-	StartTimeKey contextKey = "start_time"
+	RequestIDKey ContextKey = "request_id"
+	UserIDKey    ContextKey = "user_id"
+	StartTimeKey ContextKey = "start_time"
 )
 
 // ContextManager interface for managing request context

@@ -1,13 +1,174 @@
 basePath: /api/v1
 definitions:
-  dto.ArticleResponse:
+  config.ConnectionStats:
     properties:
-      id:
+      idle_connections:
         type: integer
-      slug:
+      in_use_connections:
+        type: integer
+      max_idle_closed:
+        type: integer
+      max_idle_time_closed:
+        type: integer
+      max_lifetime_closed:
+        type: integer
+      open_connections:
+        type: integer
+      wait_count:
+        type: integer
+      wait_duration:
+        type: integer
+    type: object
+  controller.ApplicationHealthStatus:
+    properties:
+      config_loaded:
+        type: boolean
+      goroutines:
+        type: integer
+      memory:
+        $ref: '#/definitions/controller.MemoryStats'
+      services_ready:
+        type: boolean
+      start_time:
         type: string
-      title:
+      status:
         type: string
+    type: object
+  controller.DatabaseHealthStatus:
+    properties:
+      last_checked:
+        type: string
+      message:
+        type: string
+      response_time_ms:
+        type: integer
+      status:
+        type: string
+    type: object
+  controller.DependencyHealthStatus:
+    properties:
+      last_checked:
+        type: string
+      message:
+        type: string
+      name:
+        type: string
+      response_time_ms:
+        type: integer
+      status:
+        type: string
+    type: object
+  controller.DetailedHealthResponse:
+    properties:
+      application:
+        $ref: '#/definitions/controller.ApplicationHealthStatus'
+      checks:
+        items:
+          $ref: '#/definitions/controller.HealthCheck'
+        type: array
+      connection_stats:
+        $ref: '#/definitions/config.ConnectionStats'
+      database:
+        $ref: '#/definitions/controller.DatabaseHealthStatus'
+      dependencies:
+        items:
+          $ref: '#/definitions/controller.DependencyHealthStatus'
+        type: array
+      request_id:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+      uptime:
+        type: integer
+      version:
+        type: string
+    type: object
+  controller.HealthCheck:
+    properties:
+      critical:
+        type: boolean
+      duration_ms:
+        type: integer
+      message:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  controller.HealthResponse:
+    properties:
+      application:
+        $ref: '#/definitions/controller.ApplicationHealthStatus'
+      connection_stats:
+        $ref: '#/definitions/config.ConnectionStats'
+      database:
+        $ref: '#/definitions/controller.DatabaseHealthStatus'
+      dependencies:
+        items:
+          $ref: '#/definitions/controller.DependencyHealthStatus'
+        type: array
+      request_id:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+      uptime:
+        type: integer
+      version:
+        type: string
+    type: object
+  controller.MemoryStats:
+    properties:
+      alloc_bytes:
+        type: integer
+      heap_alloc_bytes:
+        type: integer
+      heap_sys_bytes:
+        type: integer
+      num_gc:
+        type: integer
+      sys_bytes:
+        type: integer
+      total_alloc_bytes:
+        type: integer
+    type: object
+  controller.MetricsResponse:
+    properties:
+      data: {}
+      request_id:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  dto.APIResponse:
+    description: Standard API response format with metadata and context information
+    properties:
+      data:
+        description: Response data (varies by endpoint)
+      error:
+        allOf:
+        - $ref: '#/definitions/dto.ErrorResponse'
+        description: Error details (only present when success=false)
+      meta:
+        allOf:
+        - $ref: '#/definitions/dto.ResponseMetadata'
+        description: Response metadata with request tracking
+      pagination:
+        allOf:
+        - $ref: '#/definitions/dto.PaginationMetadata'
+        description: Pagination metadata (for paginated responses)
+      success:
+        description: Indicates if the request was successful
+        example: true
+        type: boolean
     type: object
   dto.AssignTagsByNameDTO:
     properties:
@@ -21,18 +182,46 @@ definitions:
     - article_id
     - tags
     type: object
-  dto.CommentResponse:
+  dto.CreateArticleRequest:
     properties:
-      article:
-        $ref: '#/definitions/dto.ArticleResponse'
+      category_id:
+        type: integer
       content:
         type: string
-      created_at:
+      tags:
+        items:
+          type: string
+        type: array
+      title:
         type: string
-      id:
-        type: integer
-      user:
-        $ref: '#/definitions/dto.UserResponse'
+    required:
+    - category_id
+    - content
+    - title
+    type: object
+  dto.ErrorResponse:
+    description: Error response structure with detailed error information
+    properties:
+      code:
+        description: Error code for programmatic handling
+        example: VALIDATION_ERROR
+        type: string
+      details:
+        additionalProperties: true
+        description: Additional error details
+        type: object
+      message:
+        description: Human-readable error message
+        example: Invalid input data
+        type: string
+      request_id:
+        description: Request ID for tracking
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      timestamp:
+        description: Error timestamp
+        example: "2025-07-24T20:43:16.123456789+07:00"
+        type: string
     type: object
   dto.LoginDto:
     properties:
@@ -43,14 +232,68 @@ definitions:
     required:
     - identifier
     type: object
+  dto.PaginationMetadata:
+    description: Pagination metadata for paginated responses
+    properties:
+      has_next:
+        description: Whether there is a next page
+        example: true
+        type: boolean
+      has_prev:
+        description: Whether there is a previous page
+        example: false
+        type: boolean
+      limit:
+        description: Number of items per page
+        example: 10
+        type: integer
+      page:
+        description: Current page number (1-based)
+        example: 1
+        type: integer
+      request_id:
+        description: Request ID for tracking
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      total:
+        description: Total number of items
+        example: 100
+        type: integer
+      total_pages:
+        description: Total number of pages
+        example: 10
+        type: integer
+    type: object
+  dto.ResponseMetadata:
+    description: Response metadata containing request tracking and performance information
+    properties:
+      processing_time_ms:
+        description: Request processing time in nanoseconds
+        example: 15000000
+        type: integer
+      request_id:
+        description: Unique request identifier for tracking
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      timestamp:
+        description: Response generation timestamp
+        example: "2025-07-24T20:43:16.123456789+07:00"
+        type: string
+      version:
+        description: API version
+        example: 1.0.0
+        type: string
+    type: object
   dto.UpdateArticleRequest:
     properties:
       category_id:
         type: integer
       content:
         type: string
-      slug:
-        type: string
+      tags:
+        items:
+          type: string
+        type: array
       title:
         type: string
     type: object
@@ -59,13 +302,13 @@ definitions:
       name:
         type: string
     type: object
-  dto.UserResponse:
+  dto.UpdateUserRequest:
     properties:
       email:
         type: string
-      id:
-        type: integer
       name:
+        type: string
+      password:
         type: string
     type: object
   model.Article:
@@ -155,13 +398,16 @@ definitions:
       updated_at:
         type: string
     type: object
-host: localhost:8080
+host: localhost:4300
 info:
   contact:
     email: support@swagger.io
     name: API Support
     url: http://www.swagger.io/support
-  description: This is a sample server for a blog application.
+  description: REST API untuk aplikasi blog Develapar dengan fitur lengkap untuk manajemen
+    artikel, komentar, kategori, tag, bookmark, dan like. API menggunakan standard
+    response format dengan metadata, request tracking, rate limiting, dan comprehensive
+    error handling.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -169,89 +415,73 @@ info:
   title: Develapar API
   version: "1.0"
 paths:
-  /article:
+  /article-tags/{article_id}:
     get:
-      description: Get a list of all blog articles
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of articles
-          schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Article'
-                type: array
-              message:
-                type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            properties:
-              message:
-                type: string
-            type: object
-      summary: Get all articles
-      tags:
-      - Articles
-    post:
-      consumes:
-      - application/json
-      description: Create a new blog article
+      description: Get a list of tags associated with a specific article ID
       parameters:
-      - description: Article creation details
-        in: body
-        name: payload
+      - description: ID of the article to retrieve tags for
+        in: path
+        name: article_id
         required: true
-        schema:
-          $ref: '#/definitions/model.Article'
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: Article successfully created
+          description: List of tags for the article
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.Article'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    tags:
+                      items:
+                        $ref: '#/definitions/model.Tags'
+                      type: array
+                  type: object
+              type: object
         "400":
-          description: Invalid payload
+          description: Invalid article ID
           schema:
-            properties:
-              message:
-                type: string
-            type: object
-        "401":
-          description: Unauthorized
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              message:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Create a new article
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get tags by article ID
       tags:
-      - Articles
-  /article-to-tag:
+      - Article Tags
     post:
       consumes:
       - application/json
       description: Assigns a list of tags (by name) to a specific article
       parameters:
-      - description: Article ID and list of tag names
+      - description: ID of the article
+        in: path
+        name: article_id
+        required: true
+        type: integer
+      - description: List of tag names
         in: body
         name: payload
         required: true
@@ -263,75 +493,61 @@ paths:
         "200":
           description: Tags assigned successfully
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    tags:
+                      items:
+                        $ref: '#/definitions/model.Tags'
+                      type: array
+                  type: object
+              type: object
         "400":
           description: Invalid payload
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Assign tags to an article by tag names
       tags:
-      - Tags
-  /article-to-tag/article/{tag_id}:
-    get:
-      description: Get a list of articles associated with a specific tag ID
-      parameters:
-      - description: ID of the tag to retrieve articles for
-        in: path
-        name: tag_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of articles with the specified tag
-          schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Article'
-                type: array
-            type: object
-        "400":
-          description: Invalid tag ID
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            properties:
-              error:
-                type: string
-            type: object
-      summary: Get articles by tag ID
-      tags:
-      - Articles
-  /article-to-tag/articles/{article_id}/tags/{tag_id}:
+      - Article Tags
+  /article-tags/{article_id}/{tag_id}:
     delete:
       description: Remove a specific tag from an article by their IDs
       parameters:
@@ -351,75 +567,169 @@ paths:
         "200":
           description: Tag removed from article successfully
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid article ID or tag ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Remove a tag from an article
       tags:
-      - Tags
-  /article-to-tag/tags/{article_id}:
+      - Article Tags
+  /articles:
     get:
-      description: Get a list of tags associated with a specific article ID
-      parameters:
-      - description: ID of the article to retrieve tags for
-        in: path
-        name: article_id
-        required: true
-        type: integer
+      description: Get a list of all blog articles
       produces:
       - application/json
       responses:
         "200":
-          description: List of tags for the article
+          description: List of articles
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Tags'
-                type: array
-            type: object
-        "400":
-          description: Invalid article ID
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    articles:
+                      items:
+                        $ref: '#/definitions/model.Article'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "408":
+          description: Request timeout
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
-      summary: Get tags by article ID
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get all articles
       tags:
-      - Tags
-  /article/{article_id}:
+      - Articles
+    post:
+      consumes:
+      - application/json
+      description: Create a new blog article with tags
+      parameters:
+      - description: Article creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateArticleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Article successfully created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    article:
+                      $ref: '#/definitions/model.Article'
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid payload
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new article
+      tags:
+      - Articles
+  /articles/{article_id}:
     delete:
       description: Delete an article by ID
       parameters:
@@ -434,45 +744,69 @@ paths:
         "200":
           description: Article deleted successfully
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid article ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "403":
           description: Forbidden (user does not own the article)
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "404":
           description: Article not found
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Delete an article
@@ -500,53 +834,77 @@ paths:
         "200":
           description: Article updated successfully
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.Article'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    article:
+                      $ref: '#/definitions/model.Article'
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid article ID or payload
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "403":
           description: Forbidden (user does not own the article)
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "404":
           description: Article not found
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Update an article
       tags:
       - Articles
-  /article/{slug}:
+  /articles/{slug}:
     get:
       description: Get article details by its slug
       parameters:
@@ -561,56 +919,57 @@ paths:
         "200":
           description: Article details
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.Article'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    article:
+                      $ref: '#/definitions/model.Article'
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid slug
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "404":
           description: Article not found
           schema:
-            properties:
-              error:
-                type: string
-            type: object
-      summary: Get article by slug
-      tags:
-      - Articles
-  /article/c/{cat_name}:
-    get:
-      description: Get a list of articles by category name
-      parameters:
-      - description: Name of the category to retrieve articles from
-        in: path
-        name: cat_name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of articles by category
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Article'
-                type: array
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
-      summary: Get articles by category name
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get article by slug
       tags:
       - Articles
-  /article/u/{user_id}:
+  /articles/author/{user_id}:
     get:
       description: Get a list of articles by a specific user ID
       parameters:
@@ -625,29 +984,304 @@ paths:
         "200":
           description: List of articles by user
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Article'
-                type: array
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    articles:
+                      items:
+                        $ref: '#/definitions/model.Article'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid user ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get articles by user ID
+      tags:
+      - Articles
+  /articles/author/{user_id}/paginated:
+    get:
+      description: Get a paginated list of articles by a specific user ID
+      parameters:
+      - description: ID of the user whose articles to retrieve
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated list of articles by user
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    articles:
+                      items:
+                        $ref: '#/definitions/model.Article'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+                pagination:
+                  $ref: '#/definitions/dto.PaginationMetadata'
+              type: object
+        "400":
+          description: Invalid user ID or pagination parameters
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get articles by user ID with pagination
+      tags:
+      - Articles
+  /articles/category/{category_name}:
+    get:
+      description: Get a list of articles by category name
+      parameters:
+      - description: Name of the category to retrieve articles from
+        in: path
+        name: category_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of articles by category
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    articles:
+                      items:
+                        $ref: '#/definitions/model.Article'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid category name
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get articles by category name
+      tags:
+      - Articles
+  /articles/category/{category_name}/paginated:
+    get:
+      description: Get a paginated list of articles by category name
+      parameters:
+      - description: Name of the category to retrieve articles from
+        in: path
+        name: category_name
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated list of articles by category
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    articles:
+                      items:
+                        $ref: '#/definitions/model.Article'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+                pagination:
+                  $ref: '#/definitions/dto.PaginationMetadata'
+              type: object
+        "400":
+          description: Invalid pagination parameters
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get articles by category name with pagination
+      tags:
+      - Articles
+  /articles/paginated:
+    get:
+      description: Get a paginated list of all blog articles
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated list of articles
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    articles:
+                      items:
+                        $ref: '#/definitions/model.Article'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+                pagination:
+                  $ref: '#/definitions/dto.PaginationMetadata'
+              type: object
+        "400":
+          description: Invalid pagination parameters
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get all articles with pagination
       tags:
       - Articles
   /auth/login:
@@ -668,22 +1302,49 @@ paths:
         "200":
           description: Success Login
           schema:
-            properties:
-              accessToken:
-                type: string
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    access_token:
+                      type: string
+                    message:
+                      type: string
+                    refresh_token:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Invalid credentials
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: User login
       tags:
-      - Users
+      - Authentication
   /auth/refresh:
     post:
       description: Refresh access token using refresh token from cookie
@@ -693,20 +1354,47 @@ paths:
         "200":
           description: Access token refreshed successfully
           schema:
-            properties:
-              access_token:
-                type: string
-            type: object
-        "401":
-          description: Refresh token not found or invalid
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    access_token:
+                      type: string
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Refresh token not found
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Invalid or expired refresh token
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Refresh access token
       tags:
-      - Users
+      - Authentication
   /auth/register:
     post:
       consumes:
@@ -722,78 +1410,121 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: User successfully registered
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.User'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    user:
+                      $ref: '#/definitions/model.User'
+                  type: object
+              type: object
         "400":
           description: Invalid payload
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "409":
+          description: User already exists
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Register a new user
       tags:
-      - Users
-  /bookmark:
+      - Authentication
+  /bookmarks:
     delete:
       consumes:
       - application/json
       description: Delete a bookmark for an article by article ID
       parameters:
       - description: Article ID to unbookmark
-        in: body
+        in: path
         name: article_id
         required: true
-        schema:
-          properties:
-            article_id:
-              type: integer
-          type: object
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: Bookmark deleted successfully
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid article ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Delete a bookmark
@@ -813,42 +1544,62 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Bookmark successfully created
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.Bookmark'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    bookmark:
+                      $ref: '#/definitions/model.Bookmark'
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid payload
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Create a new bookmark
       tags:
       - Bookmarks
-  /bookmark/{user_id}:
+  /bookmarks/{user_id}:
     get:
       description: Get a list of bookmarks for a specific user ID
       parameters:
@@ -863,25 +1614,50 @@ paths:
         "200":
           description: List of bookmarks for the user
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Bookmark'
-                type: array
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    bookmarks:
+                      items:
+                        $ref: '#/definitions/model.Bookmark'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get bookmarks by user ID
       tags:
       - Bookmarks
-  /bookmark/check:
+  /bookmarks/check:
     get:
       description: Check if a specific article is bookmarked by the authenticated
         user
@@ -897,37 +1673,57 @@ paths:
         "200":
           description: Bookmark status
           schema:
-            properties:
-              bookmarked:
-                type: boolean
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    bookmarked:
+                      type: boolean
+                  type: object
+              type: object
         "400":
           description: Invalid article ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Check if an article is bookmarked by the current user
       tags:
       - Bookmarks
-  /category:
+  /categories:
     get:
       description: Get a list of all categories
       produces:
@@ -936,21 +1732,37 @@ paths:
         "200":
           description: List of categories
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Category'
-                type: array
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    categories:
+                      items:
+                        $ref: '#/definitions/model.Category'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get all categories
       tags:
       - Categories
@@ -968,41 +1780,59 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Category successfully created
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.Category'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    category:
+                      $ref: '#/definitions/model.Category'
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid payload
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Create a new category
       tags:
       - Categories
-  /category/{cat_id}:
+  /categories/{category_id}:
     delete:
       description: Delete a category by ID
       parameters:
       - description: ID of the category to delete
         in: path
-        name: cat_id
+        name: category_id
         required: true
         type: integer
       produces:
@@ -1011,27 +1841,109 @@ paths:
         "200":
           description: Category deleted successfully
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid category ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Delete a category
+      tags:
+      - Categories
+    get:
+      description: Get category details by its ID
+      parameters:
+      - description: ID of the category to retrieve
+        in: path
+        name: category_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category details
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    category:
+                      $ref: '#/definitions/model.Category'
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid category ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Category not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get category by ID
       tags:
       - Categories
     put:
@@ -1041,7 +1953,7 @@ paths:
       parameters:
       - description: ID of the category to update
         in: path
-        name: cat_id
+        name: category_id
         required: true
         type: integer
       - description: Category update details
@@ -1056,38 +1968,126 @@ paths:
         "200":
           description: Category updated successfully
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.Category'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    category:
+                      $ref: '#/definitions/model.Category'
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid category ID or payload
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Update a category
       tags:
       - Categories
-  /comment/{id}:
+  /comments:
+    post:
+      consumes:
+      - application/json
+      description: Create a new comment on an article
+      parameters:
+      - description: Comment creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.Comment'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Comment successfully created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    comment:
+                      $ref: '#/definitions/model.Comment'
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid payload
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new comment
+      tags:
+      - Comments
+  /comments/{comment_id}:
     delete:
       description: Delete a comment by ID
       parameters:
       - description: ID of the comment to delete
         in: path
-        name: id
+        name: comment_id
         required: true
         type: integer
       produces:
@@ -1096,31 +2096,51 @@ paths:
         "200":
           description: Comment deleted successfully
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid comment ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Delete a comment
@@ -1133,7 +2153,7 @@ paths:
       parameters:
       - description: ID of the comment to update
         in: path
-        name: id
+        name: comment_id
         required: true
         type: integer
       - description: Comment update details
@@ -1151,44 +2171,66 @@ paths:
         "200":
           description: Comment updated successfully
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid payload
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "403":
           description: Forbidden (user does not own the comment)
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Update a comment
       tags:
       - Comments
-  /comment/article/c{article_id}:
+  /comments/article/{article_id}:
     get:
       description: Get a list of comments for a specific article ID
       parameters:
@@ -1203,32 +2245,50 @@ paths:
         "200":
           description: List of comments for the article
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Comment'
-                type: array
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    comments:
+                      items:
+                        $ref: '#/definitions/model.Comment'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid article ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get comments by article ID
       tags:
       - Comments
-  /comment/user/{user_id}:
+  /comments/user/{user_id}:
     get:
       description: Get a list of comments by a specific user ID
       parameters:
@@ -1243,81 +2303,102 @@ paths:
         "200":
           description: List of comments by the user
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/dto.CommentResponse'
-                type: array
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    comments:
+                      items:
+                        $ref: '#/definitions/model.Comment'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid user ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get comments by user ID
       tags:
       - Comments
-  /comments:
-    post:
+  /health:
+    get:
       consumes:
       - application/json
-      description: Create a new comment on an article
-      parameters:
-      - description: Comment creation details
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/model.Comment'
+      description: Get comprehensive application and database health status with context
       produces:
       - application/json
       responses:
         "200":
-          description: Comment successfully created
+          description: OK
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.Comment'
-              message:
-                type: string
-            type: object
-        "400":
-          description: Invalid payload
+            $ref: '#/definitions/controller.HealthResponse'
+        "503":
+          description: Service Unavailable
           schema:
-            properties:
-              message:
-                type: string
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            properties:
-              message:
-                type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            properties:
-              message:
-                type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Create a new comment
+            $ref: '#/definitions/controller.HealthResponse'
+      summary: Health check endpoint
       tags:
-      - Comments
+      - health
+  /health/database:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed database connection pool statistics with context
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/config.ConnectionStats'
+      summary: Database connection pool statistics
+      tags:
+      - health
+  /health/detailed:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive health information with individual check results
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.DetailedHealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/controller.DetailedHealthResponse'
+      summary: Detailed health check endpoint
+      tags:
+      - health
   /likes:
     delete:
       consumes:
@@ -1339,31 +2420,51 @@ paths:
         "200":
           description: Like deleted successfully
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid article ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Remove a like from an article
@@ -1383,36 +2484,56 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Like successfully added
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.Likes'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    like:
+                      $ref: '#/definitions/model.Likes'
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid payload
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Add a like to an article
@@ -1433,21 +2554,46 @@ paths:
         "200":
           description: List of likes for the article
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Likes'
-                type: array
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    likes:
+                      items:
+                        $ref: '#/definitions/model.Likes'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid article ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get likes by article ID
       tags:
       - Likes
@@ -1466,31 +2612,51 @@ paths:
         "200":
           description: Like status
           schema:
-            properties:
-              liked:
-                type: boolean
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    liked:
+                      type: boolean
+                  type: object
+              type: object
         "400":
           description: Invalid article ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Check if an article is liked by the current user
@@ -1511,31 +2677,188 @@ paths:
         "200":
           description: List of likes by the user
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Likes'
-                type: array
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    likes:
+                      items:
+                        $ref: '#/definitions/model.Likes'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+              type: object
         "400":
           description: Invalid user ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get likes by user ID
       tags:
       - Likes
+  /metrics:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive application metrics including request, database,
+        application, and error metrics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+      summary: Get all application metrics
+      tags:
+      - metrics
+  /metrics/application:
+    get:
+      consumes:
+      - application/json
+      description: Get application-level metrics including memory usage, goroutine
+        count, and uptime
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+      summary: Get application metrics
+      tags:
+      - metrics
+  /metrics/database:
+    get:
+      consumes:
+      - application/json
+      description: Get database performance metrics including query times, connection
+        pool stats, and error rates
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+      summary: Get database metrics
+      tags:
+      - metrics
+  /metrics/errors:
+    get:
+      consumes:
+      - application/json
+      description: Get error tracking metrics including error rates, error types,
+        and error distribution
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+      summary: Get error metrics
+      tags:
+      - metrics
+  /metrics/requests:
+    get:
+      consumes:
+      - application/json
+      description: Get HTTP request metrics including latency, throughput, and status
+        code distribution
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+      summary: Get request metrics
+      tags:
+      - metrics
+  /metrics/reset:
+    post:
+      consumes:
+      - application/json
+      description: Reset all collected metrics to zero (useful for testing or periodic
+        resets)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+      summary: Reset all metrics
+      tags:
+      - metrics
+  /metrics/summary:
+    get:
+      consumes:
+      - application/json
+      description: Get a high-level summary of key metrics for dashboard display
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.MetricsResponse'
+      summary: Get metrics summary
+      tags:
+      - metrics
   /tags:
     get:
       description: Get a list of all tags
@@ -1545,21 +2868,37 @@ paths:
         "200":
           description: List of tags
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.Tags'
-                type: array
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    tags:
+                      items:
+                        $ref: '#/definitions/model.Tags'
+                      type: array
+                  type: object
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get all tags
       tags:
       - Tags
@@ -1577,48 +2916,136 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Tag successfully created
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.Tags'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Tags'
+              type: object
         "400":
           description: Invalid payload
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Create a new tag
       tags:
       - Tags
-  /tags/{tags_id}:
+  /tags/{tag_id}:
+    delete:
+      description: Delete a tag by ID
+      parameters:
+      - description: ID of the tag to delete
+        in: path
+        name: tag_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag deleted successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid tag ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Tag not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a tag
+      tags:
+      - Tags
     get:
       description: Get tag details by its ID
       parameters:
       - description: ID of the tag to retrieve
         in: path
-        name: tags_id
+        name: tag_id
         required: true
         type: integer
       produces:
@@ -1627,29 +3054,186 @@ paths:
         "200":
           description: Tag details
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.Tags'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    tag:
+                      $ref: '#/definitions/model.Tags'
+                  type: object
+              type: object
         "400":
           description: Invalid tag ID
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get tag by ID
       tags:
       - Tags
+    put:
+      consumes:
+      - application/json
+      description: Update an existing tag by ID
+      parameters:
+      - description: ID of the tag to update
+        in: path
+        name: tag_id
+        required: true
+        type: integer
+      - description: Tag update details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/model.Tags'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    tag:
+                      $ref: '#/definitions/model.Tags'
+                  type: object
+              type: object
+        "400":
+          description: Invalid tag ID or payload
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Tag not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update a tag
+      tags:
+      - Tags
+  /tags/{tag_id}/articles:
+    get:
+      description: Get a list of articles associated with a specific tag ID
+      parameters:
+      - description: ID of the tag to retrieve articles for
+        in: path
+        name: tag_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of articles with the specified tag
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    articles:
+                      items:
+                        $ref: '#/definitions/model.Article'
+                      type: array
+                  type: object
+              type: object
+        "400":
+          description: Invalid tag ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get articles by tag ID
+      tags:
+      - Article Tags
   /users:
     get:
       description: Get a list of all registered users
@@ -1659,25 +3243,123 @@ paths:
         "200":
           description: List of users
           schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/definitions/model.User'
-                type: array
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    users:
+                      items:
+                        $ref: '#/definitions/model.User'
+                      type: array
+                  type: object
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get all users
       tags:
       - Users
   /users/{user_id}:
+    delete:
+      description: Delete user account by ID
+      parameters:
+      - description: ID of the user to delete
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User deleted successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: User not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Delete user account
+      tags:
+      - Users
     get:
       description: Get user details by their ID
       parameters:
@@ -1692,20 +3374,215 @@ paths:
         "200":
           description: User details
           schema:
-            properties:
-              data:
-                $ref: '#/definitions/model.User'
-              message:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    user:
+                      $ref: '#/definitions/model.User'
+                  type: object
+              type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: User not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
         "500":
           description: Internal server error
           schema:
-            properties:
-              error:
-                type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
       summary: Get user by ID
       tags:
       - Users
+    put:
+      consumes:
+      - application/json
+      description: Update user profile information
+      parameters:
+      - description: ID of the user to update
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: User update details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    user:
+                      $ref: '#/definitions/model.User'
+                  type: object
+              type: object
+        "400":
+          description: Invalid user ID or payload
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: User not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - Users
+  /users/paginated:
+    get:
+      description: Get a paginated list of all registered users
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated list of users
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    users:
+                      items:
+                        $ref: '#/definitions/model.User'
+                      type: array
+                  type: object
+                pagination:
+                  $ref: '#/definitions/dto.PaginationMetadata'
+              type: object
+        "400":
+          description: Invalid pagination parameters
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get all users with pagination
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

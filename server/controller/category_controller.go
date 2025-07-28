@@ -27,10 +27,10 @@ type CategoryController struct {
 // @Accept json
 // @Produce json
 // @Param payload body model.Category true "Category creation details"
-// @Success 201 {object} middleware.SuccessResponse "Category successfully created"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 201 {object} dto.APIResponse{data=object{message=string,category=model.Category}} "Category successfully created"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid payload"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /categories [post]
 func (c *CategoryController) CreateCategoryHandler(ginCtx *gin.Context) {
@@ -85,9 +85,9 @@ func (c *CategoryController) CreateCategoryHandler(ginCtx *gin.Context) {
 // @Description Get a list of all categories
 // @Tags Categories
 // @Produce json
-// @Success 200 {object} middleware.SuccessResponse "List of categories"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,categories=[]model.Category}} "List of categories"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /categories [get]
 func (c *CategoryController) GetAllCategoryHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -135,11 +135,11 @@ func (c *CategoryController) GetAllCategoryHandler(ginCtx *gin.Context) {
 // @Tags Categories
 // @Produce json
 // @Param category_id path int true "ID of the category to retrieve"
-// @Success 200 {object} middleware.SuccessResponse "Category details"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid category ID"
-// @Failure 404 {object} middleware.ErrorResponse "Category not found"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,category=model.Category}} "Category details"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid category ID"
+// @Failure 404 {object} dto.APIResponse{error=dto.ErrorResponse} "Category not found"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /categories/{category_id} [get]
 func (c *CategoryController) GetCategoryByIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -197,10 +197,10 @@ func (c *CategoryController) GetCategoryByIdHandler(ginCtx *gin.Context) {
 // @Produce json
 // @Param category_id path int true "ID of the category to update"
 // @Param payload body dto.UpdateCategoryRequest true "Category update details"
-// @Success 200 {object} middleware.SuccessResponse "Category updated successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid category ID or payload"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,category=model.Category}} "Category updated successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid category ID or payload"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /categories/{category_id} [put]
 func (c *CategoryController) UpdateCategoryHandler(ginCtx *gin.Context) {
@@ -264,10 +264,10 @@ func (c *CategoryController) UpdateCategoryHandler(ginCtx *gin.Context) {
 // @Tags Categories
 // @Produce json
 // @Param category_id path int true "ID of the category to delete"
-// @Success 200 {object} middleware.SuccessResponse "Category deleted successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid category ID"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string}} "Category deleted successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid category ID"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /categories/{category_id} [delete]
 func (c *CategoryController) DeleteCategoryHandler(ginCtx *gin.Context) {

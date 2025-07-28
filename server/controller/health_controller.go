@@ -23,7 +23,7 @@ type HealthResponse struct {
 	Timestamp    time.Time                 `json:"timestamp"`
 	RequestID    string                    `json:"request_id,omitempty"`
 	Version      string                    `json:"version"`
-	Uptime       time.Duration             `json:"uptime"`
+	Uptime       int64                     `json:"uptime"`
 	Database     DatabaseHealthStatus      `json:"database"`
 	Application  ApplicationHealthStatus   `json:"application"`
 	Dependencies []DependencyHealthStatus  `json:"dependencies"`
@@ -32,10 +32,10 @@ type HealthResponse struct {
 
 // DatabaseHealthStatus represents database health information
 type DatabaseHealthStatus struct {
-	Status       string        `json:"status"`
-	Message      string        `json:"message,omitempty"`
-	ResponseTime time.Duration `json:"response_time_ms"`
-	LastChecked  time.Time     `json:"last_checked"`
+	Status       string    `json:"status"`
+	Message      string    `json:"message,omitempty"`
+	ResponseTime int64     `json:"response_time_ms"`
+	LastChecked  time.Time `json:"last_checked"`
 }
 
 // ApplicationHealthStatus represents application-level health information
@@ -60,11 +60,11 @@ type MemoryStats struct {
 
 // DependencyHealthStatus represents external dependency health
 type DependencyHealthStatus struct {
-	Name         string        `json:"name"`
-	Status       string        `json:"status"`
-	Message      string        `json:"message,omitempty"`
-	ResponseTime time.Duration `json:"response_time_ms"`
-	LastChecked  time.Time     `json:"last_checked"`
+	Name         string    `json:"name"`
+	Status       string    `json:"status"`
+	Message      string    `json:"message,omitempty"`
+	ResponseTime int64     `json:"response_time_ms"`
+	LastChecked  time.Time `json:"last_checked"`
 }
 
 // DetailedHealthResponse provides comprehensive health information
@@ -75,12 +75,12 @@ type DetailedHealthResponse struct {
 
 // HealthCheck represents individual health check results
 type HealthCheck struct {
-	Name        string        `json:"name"`
-	Status      string        `json:"status"`
-	Message     string        `json:"message,omitempty"`
-	Duration    time.Duration `json:"duration_ms"`
-	Timestamp   time.Time     `json:"timestamp"`
-	Critical    bool          `json:"critical"`
+	Name        string    `json:"name"`
+	Status      string    `json:"status"`
+	Message     string    `json:"message,omitempty"`
+	Duration    int64     `json:"duration_ms"`
+	Timestamp   time.Time `json:"timestamp"`
+	Critical    bool      `json:"critical"`
 }
 
 var (
@@ -149,7 +149,7 @@ func (hc *HealthController) HealthCheck(c *gin.Context) {
 		Timestamp:    time.Now(),
 		RequestID:    requestID,
 		Version:      appVersion,
-		Uptime:       time.Since(appStartTime),
+		Uptime:       int64(time.Since(appStartTime)),
 		Database:     hc.checkDatabaseHealth(healthCtx),
 		Application:  hc.checkApplicationHealth(healthCtx),
 		Dependencies: hc.checkDependenciesHealth(healthCtx),
@@ -208,7 +208,7 @@ func (hc *HealthController) checkDatabaseHealth(ctx context.Context) DatabaseHea
 			utils.Field{Key: "error", Value: err.Error()})
 	}
 
-	status.ResponseTime = time.Since(startTime)
+	status.ResponseTime = int64(time.Since(startTime))
 	return status
 }
 
@@ -290,7 +290,7 @@ func (hc *HealthController) checkDatabaseDependency(ctx context.Context) Depende
 		}
 	}
 
-	dep.ResponseTime = time.Since(startTime)
+	dep.ResponseTime = int64(time.Since(startTime))
 	return dep
 }
 
@@ -345,7 +345,7 @@ func (hc *HealthController) getBasicHealthResponse(ctx context.Context, requestI
 		Timestamp:    time.Now(),
 		RequestID:    requestID,
 		Version:      appVersion,
-		Uptime:       time.Since(appStartTime),
+		Uptime:       int64(time.Since(appStartTime)),
 		Database:     hc.checkDatabaseHealth(ctx),
 		Application:  hc.checkApplicationHealth(ctx),
 		Dependencies: hc.checkDependenciesHealth(ctx),
@@ -393,7 +393,7 @@ func (hc *HealthController) checkDatabaseConnectivity(ctx context.Context) Healt
 		check.Message = "Database connection successful"
 	}
 
-	check.Duration = time.Since(startTime)
+	check.Duration = int64(time.Since(startTime))
 	return check
 }
 
@@ -425,7 +425,7 @@ func (hc *HealthController) checkDatabasePerformance(ctx context.Context) Health
 		}
 	}
 
-	check.Duration = time.Since(startTime)
+	check.Duration = int64(time.Since(startTime))
 	return check
 }
 
@@ -452,7 +452,7 @@ func (hc *HealthController) checkConnectionPoolHealth(ctx context.Context) Healt
 		check.Message = "Connection pool healthy"
 	}
 
-	check.Duration = time.Since(startTime)
+	check.Duration = int64(time.Since(startTime))
 	return check
 }
 
@@ -482,7 +482,7 @@ func (hc *HealthController) checkMemoryUsage(ctx context.Context) HealthCheck {
 		check.Message = "Memory usage normal"
 	}
 
-	check.Duration = time.Since(startTime)
+	check.Duration = int64(time.Since(startTime))
 	return check
 }
 
@@ -509,7 +509,7 @@ func (hc *HealthController) checkGoroutineCount(ctx context.Context) HealthCheck
 		check.Message = "Goroutine count normal"
 	}
 
-	check.Duration = time.Since(startTime)
+	check.Duration = int64(time.Since(startTime))
 	return check
 }
 

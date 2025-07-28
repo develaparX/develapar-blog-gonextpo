@@ -5,41 +5,53 @@ import (
 	"time"
 )
 
+// Context keys for type safety (must match middleware keys)
+type contextKey string
+
+const (
+	RequestIDKey contextKey = "request_id"
+	StartTimeKey contextKey = "start_time"
+)
+
 // APIResponse represents the standardized API response structure with context
+// @Description Standard API response format with metadata and context information
 type APIResponse struct {
-	Success    bool                   `json:"success"`
-	Data       interface{}            `json:"data,omitempty"`
-	Error      *ErrorResponse         `json:"error,omitempty"`
-	Pagination *PaginationMetadata    `json:"pagination,omitempty"`
-	Meta       *ResponseMetadata      `json:"meta,omitempty"`
+	Success    bool                   `json:"success" example:"true"`                    // Indicates if the request was successful
+	Data       interface{}            `json:"data,omitempty"`                           // Response data (varies by endpoint)
+	Error      *ErrorResponse         `json:"error,omitempty"`                          // Error details (only present when success=false)
+	Pagination *PaginationMetadata    `json:"pagination,omitempty"`                     // Pagination metadata (for paginated responses)
+	Meta       *ResponseMetadata      `json:"meta,omitempty"`                           // Response metadata with request tracking
 }
 
 // ErrorResponse represents the standard error response format with context
+// @Description Error response structure with detailed error information
 type ErrorResponse struct {
-	Code      string                 `json:"code"`
-	Message   string                 `json:"message"`
-	Details   map[string]interface{} `json:"details,omitempty"`
-	RequestID string                 `json:"request_id,omitempty"`
-	Timestamp time.Time              `json:"timestamp"`
+	Code      string                 `json:"code" example:"VALIDATION_ERROR"`          // Error code for programmatic handling
+	Message   string                 `json:"message" example:"Invalid input data"`     // Human-readable error message
+	Details   map[string]interface{} `json:"details,omitempty"`                        // Additional error details
+	RequestID string                 `json:"request_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"` // Request ID for tracking
+	Timestamp time.Time              `json:"timestamp" example:"2025-07-24T20:43:16.123456789+07:00"`             // Error timestamp
 }
 
 // ResponseMetadata contains response metadata with context information
+// @Description Response metadata containing request tracking and performance information
 type ResponseMetadata struct {
-	RequestID      string        `json:"request_id"`
-	ProcessingTime time.Duration `json:"processing_time_ms"`
-	Version        string        `json:"version"`
-	Timestamp      time.Time     `json:"timestamp"`
+	RequestID      string    `json:"request_id" example:"550e8400-e29b-41d4-a716-446655440000"`      // Unique request identifier for tracking
+	ProcessingTime int64     `json:"processing_time_ms" example:"15000000"`                          // Request processing time in nanoseconds
+	Version        string    `json:"version" example:"1.0.0"`                                        // API version
+	Timestamp      time.Time `json:"timestamp" example:"2025-07-24T20:43:16.123456789+07:00"`       // Response generation timestamp
 }
 
 // PaginationMetadata contains pagination information with context
+// @Description Pagination metadata for paginated responses
 type PaginationMetadata struct {
-	Page       int    `json:"page"`
-	Limit      int    `json:"limit"`
-	Total      int    `json:"total"`
-	TotalPages int    `json:"total_pages"`
-	HasNext    bool   `json:"has_next"`
-	HasPrev    bool   `json:"has_prev"`
-	RequestID  string `json:"request_id,omitempty"`
+	Page       int    `json:"page" example:"1"`                                                         // Current page number (1-based)
+	Limit      int    `json:"limit" example:"10"`                                                       // Number of items per page
+	Total      int    `json:"total" example:"100"`                                                      // Total number of items
+	TotalPages int    `json:"total_pages" example:"10"`                                                 // Total number of pages
+	HasNext    bool   `json:"has_next" example:"true"`                                                  // Whether there is a next page
+	HasPrev    bool   `json:"has_prev" example:"false"`                                                 // Whether there is a previous page
+	RequestID  string `json:"request_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`     // Request ID for tracking
 }
 
 // SuccessResponse creates a standardized success response with context
@@ -55,7 +67,7 @@ func SuccessResponse(ctx context.Context, data interface{}) APIResponse {
 func SuccessResponseWithPagination(ctx context.Context, data interface{}, pagination *PaginationMetadata) APIResponse {
 	// Add request ID to pagination metadata if available
 	if pagination != nil && ctx != nil {
-		if requestID, ok := ctx.Value("request_id").(string); ok {
+		if requestID, ok := ctx.Value(RequestIDKey).(string); ok {
 			pagination.RequestID = requestID
 		}
 	}
@@ -72,7 +84,7 @@ func SuccessResponseWithPagination(ctx context.Context, data interface{}, pagina
 func ErrorResponseFromError(ctx context.Context, code, message string, details map[string]interface{}) APIResponse {
 	requestID := ""
 	if ctx != nil {
-		if rid, ok := ctx.Value("request_id").(string); ok {
+		if rid, ok := ctx.Value(RequestIDKey).(string); ok {
 			requestID = rid
 		}
 	}
@@ -142,14 +154,14 @@ func RateLimitErrorResponse(ctx context.Context, retryAfter int) APIResponse {
 // buildResponseMetadata builds response metadata from context
 func buildResponseMetadata(ctx context.Context) *ResponseMetadata {
 	requestID := ""
-	processingTime := time.Duration(0)
+	var processingTime int64 = 0
 
 	if ctx != nil {
-		if rid, ok := ctx.Value("request_id").(string); ok {
+		if rid, ok := ctx.Value(RequestIDKey).(string); ok {
 			requestID = rid
 		}
-		if startTime, ok := ctx.Value("start_time").(time.Time); ok {
-			processingTime = time.Since(startTime)
+		if startTime, ok := ctx.Value(StartTimeKey).(time.Time); ok {
+			processingTime = int64(time.Since(startTime))
 		}
 	}
 
@@ -170,7 +182,7 @@ func CreatePaginationMetadata(ctx context.Context, page, limit, total int) *Pagi
 
 	requestID := ""
 	if ctx != nil {
-		if rid, ok := ctx.Value("request_id").(string); ok {
+		if rid, ok := ctx.Value(RequestIDKey).(string); ok {
 			requestID = rid
 		}
 	}

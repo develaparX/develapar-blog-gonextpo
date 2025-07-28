@@ -26,11 +26,11 @@ type TagController struct {
 // @Accept json
 // @Produce json
 // @Param payload body model.Tags true "Tag creation details"
-// @Success 201 {object} middleware.SuccessResponse "Tag successfully created"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 201 {object} dto.APIResponse{data=model.Tags} "Tag successfully created"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /tags [post]
 func (t *TagController) CreateTagHandler(ginCtx *gin.Context) {
@@ -85,9 +85,9 @@ func (t *TagController) CreateTagHandler(ginCtx *gin.Context) {
 // @Description Get a list of all tags
 // @Tags Tags
 // @Produce json
-// @Success 200 {object} middleware.SuccessResponse "List of tags"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,tags=[]model.Tags}} "List of tags"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /tags [get]
 func (t *TagController) GetAllTagHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -135,10 +135,10 @@ func (t *TagController) GetAllTagHandler(ginCtx *gin.Context) {
 // @Tags Tags
 // @Produce json
 // @Param tag_id path int true "ID of the tag to retrieve"
-// @Success 200 {object} middleware.SuccessResponse "Tag details"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid tag ID"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,tag=model.Tags}} "Tag details"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid tag ID"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /tags/{tag_id} [get]
 func (t *TagController) GetByTagIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -195,12 +195,12 @@ func (t *TagController) GetByTagIdHandler(ginCtx *gin.Context) {
 // @Produce json
 // @Param tag_id path int true "ID of the tag to update"
 // @Param payload body model.Tags true "Tag update details"
-// @Success 200 {object} middleware.SuccessResponse "Tag updated successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid tag ID or payload"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 404 {object} middleware.ErrorResponse "Tag not found"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,tag=model.Tags}} "Tag updated successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid tag ID or payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 404 {object} dto.APIResponse{error=dto.ErrorResponse} "Tag not found"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /tags/{tag_id} [put]
 func (t *TagController) UpdateTagHandler(ginCtx *gin.Context) {
@@ -263,12 +263,12 @@ func (t *TagController) UpdateTagHandler(ginCtx *gin.Context) {
 // @Tags Tags
 // @Produce json
 // @Param tag_id path int true "ID of the tag to delete"
-// @Success 200 {object} middleware.SuccessResponse "Tag deleted successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid tag ID"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 404 {object} middleware.ErrorResponse "Tag not found"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string}} "Tag deleted successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid tag ID"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 404 {object} dto.APIResponse{error=dto.ErrorResponse} "Tag not found"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /tags/{tag_id} [delete]
 func (t *TagController) DeleteTagHandler(ginCtx *gin.Context) {

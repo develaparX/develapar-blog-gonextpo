@@ -27,18 +27,18 @@ type AssignTagRequest struct {
 
 // @Summary Assign tags to an article by tag names
 // @Description Assigns a list of tags (by name) to a specific article
-// @Tags Tags
+// @Tags Article Tags
 // @Accept json
 // @Produce json
 // @Param article_id path int true "ID of the article"
 // @Param payload body dto.AssignTagsByNameDTO true "List of tag names"
-// @Success 200 {object} middleware.SuccessResponse "Tags assigned successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,tags=[]model.Tags}} "Tags assigned successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
-// @Router /articles/{article_id}/tags [post]
+// @Router /article-tags/{article_id} [post]
 func (c *ArticleTagController) AssignTagToArticleByNameHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -135,14 +135,14 @@ func (c *ArticleTagController) AssignTagToArticleByIdHandler(ginCtx *gin.Context
 
 // @Summary Get tags by article ID
 // @Description Get a list of tags associated with a specific article ID
-// @Tags Tags
+// @Tags Article Tags
 // @Produce json
 // @Param article_id path int true "ID of the article to retrieve tags for"
-// @Success 200 {object} middleware.SuccessResponse "List of tags for the article"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
-// @Router /articles/{article_id}/tags [get]
+// @Success 200 {object} dto.APIResponse{data=object{tags=[]model.Tags}} "List of tags for the article"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid article ID"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
+// @Router /article-tags/{article_id} [get]
 func (c *ArticleTagController) GetTagsByArticleIDHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
@@ -192,13 +192,13 @@ func (c *ArticleTagController) GetTagsByArticleIDHandler(ginCtx *gin.Context) {
 
 // @Summary Get articles by tag ID
 // @Description Get a list of articles associated with a specific tag ID
-// @Tags Articles
+// @Tags Article Tags
 // @Produce json
 // @Param tag_id path int true "ID of the tag to retrieve articles for"
-// @Success 200 {object} middleware.SuccessResponse "List of articles with the specified tag"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid tag ID"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{articles=[]model.Article}} "List of articles with the specified tag"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid tag ID"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /tags/{tag_id}/articles [get]
 func (c *ArticleTagController) GetArticlesByTagIDHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -249,17 +249,17 @@ func (c *ArticleTagController) GetArticlesByTagIDHandler(ginCtx *gin.Context) {
 
 // @Summary Remove a tag from an article
 // @Description Remove a specific tag from an article by their IDs
-// @Tags Tags
+// @Tags Article Tags
 // @Produce json
 // @Param article_id path int true "ID of the article"
 // @Param tag_id path int true "ID of the tag to remove"
-// @Success 200 {object} middleware.SuccessResponse "Tag removed from article successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID or tag ID"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string}} "Tag removed from article successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid article ID or tag ID"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
-// @Router /articles/{article_id}/tags/{tag_id} [delete]
+// @Router /article-tags/{article_id}/{tag_id} [delete]
 func (c *ArticleTagController) RemoveTagFromArticleHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)

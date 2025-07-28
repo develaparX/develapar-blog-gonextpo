@@ -11,14 +11,14 @@ import (
 
 // ConnectionStats represents database connection pool statistics
 type ConnectionStats struct {
-	OpenConnections     int           `json:"open_connections"`
-	InUseConnections    int           `json:"in_use_connections"`
-	IdleConnections     int           `json:"idle_connections"`
-	WaitCount           int64         `json:"wait_count"`
-	WaitDuration        time.Duration `json:"wait_duration"`
-	MaxIdleClosed       int64         `json:"max_idle_closed"`
-	MaxIdleTimeClosed   int64         `json:"max_idle_time_closed"`
-	MaxLifetimeClosed   int64         `json:"max_lifetime_closed"`
+	OpenConnections     int   `json:"open_connections"`
+	InUseConnections    int   `json:"in_use_connections"`
+	IdleConnections     int   `json:"idle_connections"`
+	WaitCount           int64 `json:"wait_count"`
+	WaitDuration        int64 `json:"wait_duration"`
+	MaxIdleClosed       int64 `json:"max_idle_closed"`
+	MaxIdleTimeClosed   int64 `json:"max_idle_time_closed"`
+	MaxLifetimeClosed   int64 `json:"max_lifetime_closed"`
 }
 
 // PoolConfig represents database connection pool configuration
@@ -111,7 +111,7 @@ func (cpm *connectionPoolManager) GetStats(ctx context.Context) ConnectionStats 
 		InUseConnections:    stats.InUse,
 		IdleConnections:     stats.Idle,
 		WaitCount:           stats.WaitCount,
-		WaitDuration:        stats.WaitDuration,
+		WaitDuration:        int64(stats.WaitDuration),
 		MaxIdleClosed:       stats.MaxIdleClosed,
 		MaxIdleTimeClosed:   stats.MaxIdleTimeClosed,
 		MaxLifetimeClosed:   stats.MaxLifetimeClosed,

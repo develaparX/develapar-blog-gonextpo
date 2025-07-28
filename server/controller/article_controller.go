@@ -52,11 +52,11 @@ func (c *ArticleController) parseArticleID(ctx *gin.Context) (int, error) {
 // @Accept json
 // @Produce json
 // @Param payload body dto.CreateArticleRequest true "Article creation details"
-// @Success 201 {object} middleware.SuccessResponse "Article successfully created"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid payload"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 201 {object} dto.APIResponse{data=object{message=string,article=model.Article}} "Article successfully created"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /articles [post]
 func (c *ArticleController) CreateArticleHandler(ginCtx *gin.Context) {
@@ -125,9 +125,9 @@ func (c *ArticleController) CreateArticleHandler(ginCtx *gin.Context) {
 // @Description Get a list of all blog articles
 // @Tags Articles
 // @Produce json
-// @Success 200 {object} middleware.SuccessResponse "List of articles"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,articles=[]model.Article}} "List of articles"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /articles [get]
 func (c *ArticleController) GetAllArticleHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -176,10 +176,10 @@ func (c *ArticleController) GetAllArticleHandler(ginCtx *gin.Context) {
 // @Produce json
 // @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Number of items per page (default: 10, max: 100)"
-// @Success 200 {object} middleware.SuccessResponse "Paginated list of articles"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid pagination parameters"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,articles=[]model.Article},pagination=dto.PaginationMetadata} "Paginated list of articles"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid pagination parameters"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /articles/paginated [get]
 func (c *ArticleController) GetAllArticleWithPaginationHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -253,13 +253,13 @@ func (c *ArticleController) GetAllArticleWithPaginationHandler(ginCtx *gin.Conte
 // @Produce json
 // @Param article_id path int true "ID of the article to update"
 // @Param payload body dto.UpdateArticleRequest true "Article update details"
-// @Success 200 {object} middleware.SuccessResponse "Article updated successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID or payload"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 403 {object} middleware.ErrorResponse "Forbidden (user does not own the article)"
-// @Failure 404 {object} middleware.ErrorResponse "Article not found"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,article=model.Article}} "Article updated successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid article ID or payload"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 403 {object} dto.APIResponse{error=dto.ErrorResponse} "Forbidden (user does not own the article)"
+// @Failure 404 {object} dto.APIResponse{error=dto.ErrorResponse} "Article not found"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /articles/{article_id} [put]
 func (c *ArticleController) UpdateArticleHandler(ginCtx *gin.Context) {
@@ -371,11 +371,11 @@ func (c *ArticleController) UpdateArticleHandler(ginCtx *gin.Context) {
 // @Tags Articles
 // @Produce json
 // @Param slug path string true "Slug of the article to retrieve"
-// @Success 200 {object} middleware.SuccessResponse "Article details"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid slug"
-// @Failure 404 {object} middleware.ErrorResponse "Article not found"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,article=model.Article}} "Article details"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid slug"
+// @Failure 404 {object} dto.APIResponse{error=dto.ErrorResponse} "Article not found"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /articles/{slug} [get]
 func (c *ArticleController) GetBySlugHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -438,10 +438,10 @@ func (c *ArticleController) GetBySlugHandler(ginCtx *gin.Context) {
 // @Tags Articles
 // @Produce json
 // @Param user_id path int true "ID of the user whose articles to retrieve"
-// @Success 200 {object} middleware.SuccessResponse "List of articles by user"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,articles=[]model.Article}} "List of articles by user"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid user ID"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /articles/author/{user_id} [get]
 func (ac *ArticleController) GetByUserIdHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -499,10 +499,10 @@ func (ac *ArticleController) GetByUserIdHandler(ginCtx *gin.Context) {
 // @Param user_id path int true "ID of the user whose articles to retrieve"
 // @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Number of items per page (default: 10, max: 100)"
-// @Success 200 {object} middleware.SuccessResponse "Paginated list of articles by user"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid user ID or pagination parameters"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,articles=[]model.Article},pagination=dto.PaginationMetadata} "Paginated list of articles by user"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid user ID or pagination parameters"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /articles/author/{user_id}/paginated [get]
 func (ac *ArticleController) GetByUserIdWithPaginationHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -582,10 +582,10 @@ func (ac *ArticleController) GetByUserIdWithPaginationHandler(ginCtx *gin.Contex
 // @Tags Articles
 // @Produce json
 // @Param category_name path string true "Name of the category to retrieve articles from"
-// @Success 200 {object} middleware.SuccessResponse "List of articles by category"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid category name"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,articles=[]model.Article}} "List of articles by category"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid category name"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /articles/category/{category_name} [get]
 func (ac *ArticleController) GetByCategory(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -642,10 +642,10 @@ func (ac *ArticleController) GetByCategory(ginCtx *gin.Context) {
 // @Param category_name path string true "Name of the category to retrieve articles from"
 // @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Number of items per page (default: 10, max: 100)"
-// @Success 200 {object} middleware.SuccessResponse "Paginated list of articles by category"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid pagination parameters"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string,articles=[]model.Article},pagination=dto.PaginationMetadata} "Paginated list of articles by category"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid pagination parameters"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Router /articles/category/{category_name}/paginated [get]
 func (ac *ArticleController) GetByCategoryWithPaginationHandler(ginCtx *gin.Context) {
 	// Get request context with timeout
@@ -724,13 +724,13 @@ func (ac *ArticleController) GetByCategoryWithPaginationHandler(ginCtx *gin.Cont
 // @Tags Articles
 // @Produce json
 // @Param article_id path int true "ID of the article to delete"
-// @Success 200 {object} middleware.SuccessResponse "Article deleted successfully"
-// @Failure 400 {object} middleware.ErrorResponse "Invalid article ID"
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 403 {object} middleware.ErrorResponse "Forbidden (user does not own the article)"
-// @Failure 404 {object} middleware.ErrorResponse "Article not found"
-// @Failure 408 {object} middleware.ErrorResponse "Request timeout"
-// @Failure 500 {object} middleware.ErrorResponse "Internal server error"
+// @Success 200 {object} dto.APIResponse{data=object{message=string}} "Article deleted successfully"
+// @Failure 400 {object} dto.APIResponse{error=dto.ErrorResponse} "Invalid article ID"
+// @Failure 401 {object} dto.APIResponse{error=dto.ErrorResponse} "Unauthorized"
+// @Failure 403 {object} dto.APIResponse{error=dto.ErrorResponse} "Forbidden (user does not own the article)"
+// @Failure 404 {object} dto.APIResponse{error=dto.ErrorResponse} "Article not found"
+// @Failure 408 {object} dto.APIResponse{error=dto.ErrorResponse} "Request timeout"
+// @Failure 500 {object} dto.APIResponse{error=dto.ErrorResponse} "Internal server error"
 // @Security BearerAuth
 // @Router /articles/{article_id} [delete]
 func (ac *ArticleController) DeleteArticleHandler(ginCtx *gin.Context) {
