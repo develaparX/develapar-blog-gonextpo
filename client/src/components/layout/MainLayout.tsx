@@ -1,10 +1,17 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { Bell, User } from "lucide-react";
+import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 const MainLayout = () => {
   const navigate = useNavigate();
-  const loggedIn = false;
+  const loggedIn = true;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -26,24 +33,50 @@ const MainLayout = () => {
           <div className="flex items-center gap-5">
             {loggedIn ? (
               <>
-                <button className="bg-gray-200 hover:bg-gray-700 hover:text-white rounded-lg px-5 cursor-pointer">
-                  Write here
-                </button>
+                <Button
+                  variant={"secondary"}
+                  onClick={() => navigate("/create")}
+                >
+                  Create Post
+                </Button>
 
-                <div>
-                  <Bell size={20} />
-                </div>
-                <div>
-                  <User size={20} />
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
+                    <Bell size={20} />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => navigate("/notifications")}
+                    >
+                      Notifications
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/messages")}>
+                      Messages
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
+                    <User size={20} />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem onClick={() => navigate("/profile")}>
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/settings")}>
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/logout")}>
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
-              <div
-                className="border hover:bg-black hover:text-white  cursor-pointer rounded-lg py-1 px-10"
-                onClick={() => navigate("/login")}
-              >
+              <Button variant={"outline"} onClick={() => navigate("/login")}>
                 Sign Up!
-              </div>
+              </Button>
             )}
           </div>
         </div>
