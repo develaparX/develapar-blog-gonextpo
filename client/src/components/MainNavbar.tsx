@@ -70,7 +70,7 @@ const MainNavbar = () => {
     <div className="w-full mt-5">
       <NavigationMenu
         viewport={false}
-        className="w-full max-w-none justify-evenly"
+        className="w-full max-w-none justify-between items-center px-5"
       >
         <div className="max-w-60">
           <img src={logo} width={"140"}></img>

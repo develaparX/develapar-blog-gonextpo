@@ -1,13 +1,5 @@
 import { Outlet, Link } from "react-router-dom";
-// import logo from "../../assets/logo.png";
-// import { Bell, User } from "lucide-react";
-// import { Button } from "../ui/button";
-// import {
-//   DropdownMenu,
-//   DropdownMenuContent,
-//   DropdownMenuItem,
-//   DropdownMenuTrigger,
-// } from "../ui/dropdown-menu";
+
 import MainNavbar from "../MainNavbar";
 
 const MainLayout = () => {
