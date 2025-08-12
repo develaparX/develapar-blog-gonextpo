@@ -11,10 +11,13 @@ import AddArticle from "./pages/AddArticle";
 import ArticleTagsPage from "./pages/ArticleTagsPage";
 import BookmarksPage from "./pages/BookmarksPage";
 import CategoriesPage from "./pages/CategoriesPage";
-import CommentsPage from "./pages/CommentsPage";
-import LikesPage from "./pages/LikesPage";
-import TagsPage from "./pages/TagsPage";
+import TagsPageAdmin from "./pages/TagPage";
 import UsersPage from "./pages/UsersPage";
+// New search and filter pages
+import SearchPage from "./pages/SearchPage";
+import CategoryPage from "./pages/CategoryPage";
+import TagPage from "./pages/TagPage";
+import AllTagsPagePublic from "./pages/AllTagsPage";
 
 const router = createBrowserRouter([
   {
@@ -30,7 +33,7 @@ const router = createBrowserRouter([
         element: <ArticleList />,
       },
       {
-        path: "articledetail",
+        path: "article/:slug",
         element: <ArticleDetailPage />,
       },
       {
@@ -38,12 +41,20 @@ const router = createBrowserRouter([
         element: <BookmarksPage />,
       },
       {
-        path: "comments",
-        element: <CommentsPage />,
+        path: "search",
+        element: <SearchPage />,
       },
       {
-        path: "likes",
-        element: <LikesPage />,
+        path: "category/:categoryName",
+        element: <CategoryPage />,
+      },
+      {
+        path: "tag/:tagId",
+        element: <TagPage />,
+      },
+      {
+        path: "tags",
+        element: <AllTagsPagePublic />,
       },
     ],
   },
@@ -69,7 +80,7 @@ const router = createBrowserRouter([
       },
       {
         path: "tags",
-        element: <TagsPage />,
+        element: <TagsPageAdmin />,
       },
       {
         path: "users",
