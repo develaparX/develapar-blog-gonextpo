@@ -137,7 +137,7 @@ class ApiService {
 
     // Tags API
     async getAllTags(): Promise<Tag[]> {
-        const response = await apiFetch<{ tags: Tag[]; message: string }>('/tags');
+        const response = await apiFetch<{ tags: Tag[]; message: string }>('/tags/');
         if (response.success) {
             return response.data.tags || [];
         }

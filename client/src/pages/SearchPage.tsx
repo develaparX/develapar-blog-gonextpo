@@ -13,8 +13,13 @@ const SearchPage = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
 
-  // Use centralized API hook for manual search
-  const { data: articles, loading, error, search } = useManualSearch();
+  // Use TanStack Query hook for manual search
+  const {
+    data: articles,
+    isLoading: loading,
+    error,
+    search,
+  } = useManualSearch();
 
   useEffect(() => {
     const query = searchParams.get("q");

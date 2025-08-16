@@ -27,9 +27,9 @@ const MainNavbar = () => {
   // State for search
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Use centralized API hooks
-  const { data: categories, loading: categoriesLoading } = useCategories();
-  const { data: tags, loading: tagsLoading } = useTags();
+  // Use TanStack Query hooks
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const { data: tags, isLoading: tagsLoading } = useTags();
 
   // Ensure we have arrays to work with
   const categoriesList = categories || [];

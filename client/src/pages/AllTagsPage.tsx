@@ -12,8 +12,8 @@ const AllTagsPage = () => {
   const [filteredTags, setFilteredTags] = useState<Tag[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Use centralized API hook
-  const { data: tags = [], loading, error } = useTags();
+  // Use TanStack Query hook
+  const { data: tags = [], isLoading: loading, error } = useTags();
 
   useEffect(() => {
     // Filter tags based on search query

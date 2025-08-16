@@ -10,10 +10,10 @@ const CategoryPage = () => {
   const { categoryName } = useParams<{ categoryName: string }>();
   const navigate = useNavigate();
 
-  // Use centralized API hook
+  // Use TanStack Query hook
   const {
     data: articles = [],
-    loading,
+    isLoading: loading,
     error,
   } = useArticlesByCategory(categoryName);
 

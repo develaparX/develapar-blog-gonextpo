@@ -12,10 +12,10 @@ const TagPage = () => {
   const navigate = useNavigate();
   const tagName = searchParams.get("name") || "";
 
-  // Use centralized API hook
+  // Use TanStack Query hook
   const {
     data: articles = [],
-    loading,
+    isLoading: loading,
     error,
   } = useArticlesByTag(tagId ? parseInt(tagId) : undefined);
 
