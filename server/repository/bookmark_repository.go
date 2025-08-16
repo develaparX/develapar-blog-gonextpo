@@ -5,13 +5,15 @@ import (
 	"database/sql"
 	"develapar-server/model"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type BookmarkRepository interface {
 	CreateBookmark(ctx context.Context, payload model.Bookmark) (model.Bookmark, error)
-	GetByUserId(ctx context.Context, userId string) ([]model.Bookmark, error)
-	DeleteBookmark(ctx context.Context, userId, articleId int) error
-	IsBookmarked(ctx context.Context, userId, articleId int) (bool, error)
+	GetByUserId(ctx context.Context, userId uuid.UUID) ([]model.Bookmark, error)
+	DeleteBookmark(ctx context.Context, userId, articleId uuid.UUID) error
+	IsBookmarked(ctx context.Context, userId, articleId uuid.UUID) (bool, error)
 }
 
 type bookmarkRepository struct {
@@ -19,14 +21,14 @@ type bookmarkRepository struct {
 }
 
 // DeleteBookmark implements BookmarkRepository.
-func (b *bookmarkRepository) DeleteBookmark(ctx context.Context, userId int, articleId int) error {
+func (b *bookmarkRepository) DeleteBookmark(ctx context.Context, userId uuid.UUID, articleId uuid.UUID) error {
 	query := `DELETE FROM bookmarks WHERE user_id = $1 AND article_id = $2`
 	_, err := b.db.ExecContext(ctx, query, userId, articleId)
 	return err
 }
 
 // IsBookmarked implements BookmarkRepository.
-func (r *bookmarkRepository) IsBookmarked(ctx context.Context, userId, articleId int) (bool, error) {
+func (r *bookmarkRepository) IsBookmarked(ctx context.Context, userId uuid.UUID, articleId uuid.UUID) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND article_id = $2)`
 	err := r.db.QueryRowContext(ctx, query, userId, articleId).Scan(&exists)
@@ -37,15 +39,15 @@ func (r *bookmarkRepository) IsBookmarked(ctx context.Context, userId, articleId
 }
 
 // GetByUserId implements BookmarkRepository.
-func (b *bookmarkRepository) GetByUserId(ctx context.Context, userId string) ([]model.Bookmark, error) {
+func (b *bookmarkRepository) GetByUserId(ctx context.Context, userId uuid.UUID) ([]model.Bookmark, error) {
 	var bookmarks []model.Bookmark
 
 	query := `
 	SELECT 
-		b.id, b.article_id, b.user_id, b.created_at, 
-		a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
-		u.id, u.name, u.email, u.created_at, u.updated_at,
-		c.id, c.name
+		b.id, b.article_id, b.user_id, b.created_at, b.updated_at,
+		a.id, a.title, a.slug, a.content, a.user_id, a.category_id, a.views, a.status, a.created_at, a.updated_at,
+		u.id, u.name, u.email, u.role, u.created_at, u.updated_at,
+		c.id, c.name, c.created_at, c.updated_at
 	FROM bookmarks b
 	JOIN articles a ON b.article_id = a.id
 	JOIN users u ON b.user_id = u.id
@@ -67,18 +69,20 @@ func (b *bookmarkRepository) GetByUserId(ctx context.Context, userId string) ([]
 		var category model.Category
 
 		err := rows.Scan(
-			&bookmark.Id, &article.Id, &bookmark.User.Id, &bookmark.CreatedAt,
-			&article.Id, &article.Title, &article.Slug, &article.Content, &article.Views, &article.CreatedAt, &article.UpdatedAt,
-			&user.Id, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt,
-			&category.Id, &category.Name,
+			&bookmark.Id, &bookmark.ArticleId, &bookmark.UserId, &bookmark.CreatedAt, &bookmark.UpdatedAt,
+			&article.Id, &article.Title, &article.Slug, &article.Content, &article.UserId, &article.CategoryId, &article.Views, &article.Status, &article.CreatedAt, &article.UpdatedAt,
+			&user.Id, &user.Name, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt,
+			&category.Id, &category.Name, &category.CreatedAt, &category.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
 
 		// Assigning the article, user, and category to the bookmark
-		bookmark.Article = article
-		bookmark.User = user
+		bookmark.Article = &article
+		bookmark.User = &user
+		article.User = &user
+		article.Category = &category
 
 		// Append the bookmark to the bookmarks slice
 		bookmarks = append(bookmarks, bookmark)
@@ -94,9 +98,10 @@ func (b *bookmarkRepository) GetByUserId(ctx context.Context, userId string) ([]
 
 // CreateBookmark implements BookmarkRepository.
 func (b *bookmarkRepository) CreateBookmark(ctx context.Context, payload model.Bookmark) (model.Bookmark, error) {
+	newId := uuid.Must(uuid.NewV7())
 	var brk model.Bookmark
-	err := b.db.QueryRowContext(ctx, `INSERT INTO bookmarks (article_id, user_id, created_at) VALUES ($1, $2, $3) RETURNING id, article_id, user_id,created_at`, payload.Article.Id, payload.User.Id, time.Now()).Scan(
-		&brk.Id, &brk.Article.Id, &brk.User.Id, &brk.CreatedAt,
+	err := b.db.QueryRowContext(ctx, `INSERT INTO bookmarks (id, article_id, user_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, article_id, user_id, created_at, updated_at`, newId, payload.ArticleId, payload.UserId, time.Now(), time.Now()).Scan(
+		&brk.Id, &brk.ArticleId, &brk.UserId, &brk.CreatedAt, &brk.UpdatedAt,
 	)
 
 	if err != nil {

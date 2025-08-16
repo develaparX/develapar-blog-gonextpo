@@ -6,10 +6,10 @@ import (
 	"develapar-server/model"
 	"develapar-server/service"
 	"develapar-server/utils"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type TagController struct {
@@ -145,7 +145,7 @@ func (t *TagController) GetByTagIdHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
 	defer cancel()
 
-	tagId, err := strconv.Atoi(ginCtx.Param("tag_id"))
+	tagId, err := uuid.Parse(ginCtx.Param("tag_id"))
 	if err != nil {
 		appErr := t.errorHandler.ValidationError(requestCtx, "tag_id", "Invalid tag ID: "+err.Error())
 		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -208,7 +208,7 @@ func (t *TagController) UpdateTagHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	tagId, err := strconv.Atoi(ginCtx.Param("tag_id"))
+	tagId, err := uuid.Parse(ginCtx.Param("tag_id"))
 	if err != nil {
 		appErr := t.errorHandler.ValidationError(requestCtx, "tag_id", "Invalid tag ID: "+err.Error())
 		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -276,7 +276,7 @@ func (t *TagController) DeleteTagHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	tagId, err := strconv.Atoi(ginCtx.Param("tag_id"))
+	tagId, err := uuid.Parse(ginCtx.Param("tag_id"))
 	if err != nil {
 		appErr := t.errorHandler.ValidationError(requestCtx, "tag_id", "Invalid tag ID: "+err.Error())
 		t.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -320,7 +320,7 @@ func (t *TagController) DeleteTagHandler(ginCtx *gin.Context) {
 
 func (t *TagController) Route() {
 	router := t.rg.Group("/tags")
-	router.GET("/:tag_id", t.GetByTagIdHandler)  // Changed from tags_id to tag_id
+	router.GET("/:tag_id", t.GetByTagIdHandler) // Changed from tags_id to tag_id
 	router.GET("/", t.GetAllTagHandler)
 
 	routerAuth := router.Group("/", t.md.CheckToken())

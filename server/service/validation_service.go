@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/google/uuid"
 )
 
 // FieldError represents a validation error for a specific field with context information
@@ -197,7 +199,7 @@ func (vs *validationService) ValidateUser(ctx context.Context, user model.User) 
 		for _, fieldErr := range fieldErrors {
 			details[fieldErr.Field] = fieldErr.Message
 		}
-		
+
 		return &utils.AppError{
 			Code:       utils.ErrValidation,
 			Message:    "User validation failed",
@@ -304,12 +306,12 @@ func (vs *validationService) ValidateField(ctx context.Context, field string, va
 	// Basic field validation logic
 	// This is a simplified implementation - in a real application,
 	// you might want to use a more sophisticated validation library
-	
+
 	requestID := vs.extractRequestID(ctx)
-	
+
 	// Convert value to string for basic validation
 	strValue := fmt.Sprintf("%v", value)
-	
+
 	// Parse rules (simplified - could be more complex)
 	if strings.Contains(rules, "required") && strings.TrimSpace(strValue) == "" {
 		return &FieldError{
@@ -319,7 +321,7 @@ func (vs *validationService) ValidateField(ctx context.Context, field string, va
 			RequestID: requestID,
 		}
 	}
-	
+
 	return nil
 }
 
@@ -337,10 +339,10 @@ func (vs *validationService) ValidateStruct(ctx context.Context, s interface{}) 
 	// This is a placeholder implementation
 	// In a real application, you would use reflection to validate struct fields
 	// based on struct tags or other validation rules
-	
+
 	var fieldErrors []FieldError
 	requestID := vs.extractRequestID(ctx)
-	
+
 	// Basic struct validation
 	if s == nil {
 		fieldErrors = append(fieldErrors, FieldError{
@@ -349,7 +351,7 @@ func (vs *validationService) ValidateStruct(ctx context.Context, s interface{}) 
 			RequestID: requestID,
 		})
 	}
-	
+
 	return fieldErrors
 }
 
@@ -399,7 +401,7 @@ func (vs *validationService) ValidatePagination(ctx context.Context, page, limit
 		for _, fieldErr := range fieldErrors {
 			details[fieldErr.Field] = fieldErr.Message
 		}
-		
+
 		return &utils.AppError{
 			Code:       utils.ErrValidation,
 			Message:    "Pagination validation failed",
@@ -513,7 +515,7 @@ func (vs *validationService) ValidateArticle(ctx context.Context, article model.
 	}
 
 	// Validate user (must have valid user ID)
-	if article.User.Id <= 0 {
+	if article.User.Id == uuid.Nil {
 		fieldErrors = append(fieldErrors, FieldError{
 			Field:     "user_id",
 			Message:   "Valid user ID is required",
@@ -523,7 +525,7 @@ func (vs *validationService) ValidateArticle(ctx context.Context, article model.
 	}
 
 	// Validate category (must have valid category ID)
-	if article.Category.Id <= 0 {
+	if article.Category.Id == uuid.Nil {
 		fieldErrors = append(fieldErrors, FieldError{
 			Field:     "category_id",
 			Message:   "Valid category ID is required",
@@ -538,7 +540,7 @@ func (vs *validationService) ValidateArticle(ctx context.Context, article model.
 		for _, fieldErr := range fieldErrors {
 			details[fieldErr.Field] = fieldErr.Message
 		}
-		
+
 		return &utils.AppError{
 			Code:       utils.ErrValidation,
 			Message:    "Article validation failed",
@@ -628,7 +630,7 @@ func (vs *validationService) ValidateComment(ctx context.Context, comment model.
 	}
 
 	// Validate user reference (must have valid user ID)
-	if comment.User.Id <= 0 {
+	if comment.User.Id == uuid.Nil {
 		fieldErrors = append(fieldErrors, FieldError{
 			Field:     "user_id",
 			Message:   "Valid user ID is required",
@@ -638,7 +640,7 @@ func (vs *validationService) ValidateComment(ctx context.Context, comment model.
 	}
 
 	// Validate article reference (must have valid article ID)
-	if comment.Article.Id <= 0 {
+	if comment.Article.Id == uuid.Nil {
 		fieldErrors = append(fieldErrors, FieldError{
 			Field:     "article_id",
 			Message:   "Valid article ID is required",
@@ -671,7 +673,7 @@ func (vs *validationService) ValidateComment(ctx context.Context, comment model.
 		for _, fieldErr := range fieldErrors {
 			details[fieldErr.Field] = fieldErr.Message
 		}
-		
+
 		return &utils.AppError{
 			Code:       utils.ErrValidation,
 			Message:    "Comment validation failed",
@@ -694,7 +696,7 @@ func (vs *validationService) validateCommentContent(ctx context.Context, content
 
 	// Basic content validation - check for potentially harmful content
 	content = strings.ToLower(strings.TrimSpace(content))
-	
+
 	// Check for excessive whitespace or special characters
 	spaceCount := strings.Count(content, " ")
 	if spaceCount > len(content)/3 { // More than 1/3 of content is spaces

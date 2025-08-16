@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type ArticleController struct {
@@ -22,28 +23,31 @@ type ArticleController struct {
 }
 
 // Helper function to extract user ID from context
-func (c *ArticleController) getUserID(ctx *gin.Context) (int, error) {
+func (c *ArticleController) getUserID(ctx *gin.Context) (uuid.UUID, error) {
 	userIdRaw, exists := ctx.Get("userId")
 	if !exists {
-		return 0, fmt.Errorf("unauthorized")
+		return uuid.Nil, fmt.Errorf("unauthorized")
 	}
 
-	userIdFloat, ok := userIdRaw.(float64)
-	if !ok {
-		return 0, fmt.Errorf("invalid user ID type")
+	// Convert float64 to string, then parse as UUID
+	userIdStr := fmt.Sprintf("%v", userIdRaw)
+	parsedUUID, err := uuid.Parse(userIdStr)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid user ID format")
 	}
-
-	return int(userIdFloat), nil
+	return parsedUUID, nil
 }
 
 // Helper function to parse article ID from URL parameter
-func (c *ArticleController) parseArticleID(ctx *gin.Context) (int, error) {
+func (c *ArticleController) parseArticleID(ctx *gin.Context) (uuid.UUID, error) {
 	idStr := ctx.Param("article_id")
-	id, err := strconv.Atoi(idStr)
+
+	articleIdStr := fmt.Sprintf("%v", idStr)
+	parseUUID, err := uuid.Parse(articleIdStr)
 	if err != nil {
-		return 0, fmt.Errorf("invalid article ID")
+		return uuid.Nil, fmt.Errorf("invalid article ID format")
 	}
-	return id, nil
+	return parseUUID, nil
 }
 
 // @Summary Create a new article
@@ -365,7 +369,6 @@ func (c *ArticleController) UpdateArticleHandler(ginCtx *gin.Context) {
 	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
-
 // @Summary Get article by slug
 // @Description Get article details by its slug
 // @Tags Articles
@@ -449,7 +452,7 @@ func (ac *ArticleController) GetByUserIdHandler(ginCtx *gin.Context) {
 	defer cancel()
 
 	userIdParam := ginCtx.Param("user_id")
-	userId, err := strconv.Atoi(userIdParam)
+	userId, err := uuid.Parse(userIdParam)
 	if err != nil {
 		appErr := ac.errorHandler.ValidationError(requestCtx, "user_id", "Invalid user ID: "+err.Error())
 		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -510,7 +513,7 @@ func (ac *ArticleController) GetByUserIdWithPaginationHandler(ginCtx *gin.Contex
 	defer cancel()
 
 	userIdParam := ginCtx.Param("user_id")
-	userId, err := strconv.Atoi(userIdParam)
+	userId, err := uuid.Parse(userIdParam)
 	if err != nil {
 		appErr := ac.errorHandler.ValidationError(requestCtx, "user_id", "Invalid user ID: "+err.Error())
 		ac.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -827,26 +830,24 @@ func (ac *ArticleController) DeleteArticleHandler(ginCtx *gin.Context) {
 	ac.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
-
 func (c *ArticleController) Route() {
 	// Public routes - Changed from singular to plural
 	publicRoutes := c.rg.Group("/articles")
 	publicRoutes.GET("/", c.GetAllArticleHandler)
 	publicRoutes.GET("/paginated", c.GetAllArticleWithPaginationHandler)
 	publicRoutes.GET("/:slug", c.GetBySlugHandler)
-	publicRoutes.GET("/author/:user_id", c.GetByUserIdHandler)                        // Changed from /u/ to /author/
-	publicRoutes.GET("/author/:user_id/paginated", c.GetByUserIdWithPaginationHandler) // Changed from /u/ to /author/
-	publicRoutes.GET("/category/:category_name", c.GetByCategory)                      // Changed from /c/:cat_name to /category/:category_name
+	publicRoutes.GET("/author/:user_id", c.GetByUserIdHandler)                                   // Changed from /u/ to /author/
+	publicRoutes.GET("/author/:user_id/paginated", c.GetByUserIdWithPaginationHandler)           // Changed from /u/ to /author/
+	publicRoutes.GET("/category/:category_name", c.GetByCategory)                                // Changed from /c/:cat_name to /category/:category_name
 	publicRoutes.GET("/category/:category_name/paginated", c.GetByCategoryWithPaginationHandler) // Changed from /c/:cat_name to /category/:category_name
 
 	// Protected routes - Changed from singular to plural
 	protectedRoutes := c.rg.Group("/articles")
-	protectedRoutes.Use(c.md.CheckToken("user","admin")) // hanya butuh login
+	protectedRoutes.Use(c.md.CheckToken("user", "admin")) // hanya butuh login
 	protectedRoutes.POST("/", c.CreateArticleHandler)
 	protectedRoutes.PUT("/:article_id", c.UpdateArticleHandler)
 	protectedRoutes.DELETE("/:article_id", c.DeleteArticleHandler)
 }
-
 
 func NewArticleController(aS service.ArticleService, md middleware.AuthMiddleware, rg *gin.RouterGroup, errorHandler middleware.ErrorHandler) *ArticleController {
 	return &ArticleController{

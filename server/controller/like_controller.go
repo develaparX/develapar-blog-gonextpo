@@ -6,10 +6,10 @@ import (
 	"develapar-server/model"
 	"develapar-server/service"
 	"develapar-server/utils"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type LikeController struct {
@@ -47,15 +47,19 @@ func (l *LikeController) AddLikeHandler(ginCtx *gin.Context) {
 		l.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
-	userIdFloat, ok := userIdRaw.(float64)
+	userIdFloat, ok := userIdRaw.(string)
 	if !ok {
 		appErr := l.errorHandler.WrapError(requestCtx, nil, utils.ErrInternal, "Invalid user ID type")
 		appErr.StatusCode = 500
 		l.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
-	userId := int(userIdFloat)
-
+	userId, err := uuid.Parse(userIdFloat)
+	if err != nil {
+		appErr := l.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Invalid user ID format in token")
+		l.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
 	payload.User.Id = userId
 
 	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
@@ -115,7 +119,7 @@ func (l *LikeController) GetLikeByArticleIdHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	articleID, err := strconv.Atoi(ginCtx.Param("article_id"))
+	articleID, err := uuid.Parse(ginCtx.Param("article_id"))
 	if err != nil {
 		appErr := l.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
 		l.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -173,7 +177,7 @@ func (l *LikeController) GetLikeByUserIdHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	userID, err := strconv.Atoi(ginCtx.Param("user_id"))
+	userID, err := uuid.Parse(ginCtx.Param("user_id"))
 	if err != nil {
 		appErr := l.errorHandler.ValidationError(requestCtx, "user_id", "Invalid user ID: "+err.Error())
 		l.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -243,14 +247,19 @@ func (l *LikeController) DeleteLikeHandler(ginCtx *gin.Context) {
 		l.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
-	userIdFloat, ok := userIdRaw.(float64)
+	userIdFloat, ok := userIdRaw.(string)
 	if !ok {
 		appErr := l.errorHandler.WrapError(requestCtx, nil, utils.ErrInternal, "Invalid user ID type")
 		appErr.StatusCode = 500
 		l.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
-	userId := int(userIdFloat)
+	userId, errId := uuid.Parse(userIdFloat)
+	if errId != nil {
+		appErr := l.errorHandler.WrapError(requestCtx, errId, utils.ErrInternal, "Invalid user ID format in token")
+		l.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
 
 	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
 		appErr := l.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
@@ -317,16 +326,21 @@ func (c *LikeController) CheckLikeHandler(ginCtx *gin.Context) {
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
-	userIdFloat, ok := userIdRaw.(float64)
+	userIdFloat, ok := userIdRaw.(string)
 	if !ok {
 		appErr := c.errorHandler.WrapError(requestCtx, nil, utils.ErrInternal, "Invalid user ID type")
 		appErr.StatusCode = 500
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
-	userId := int(userIdFloat)
+	userId, err := uuid.Parse(userIdFloat)
+	if err != nil {
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Invalid user ID format in token")
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
 
-	articleId, err := strconv.Atoi(ginCtx.Query("article_id"))
+	articleId, err := uuid.Parse(ginCtx.Query("article_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)

@@ -2,6 +2,8 @@ package utils
 
 import (
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 // AuthorizationError represents authorization-related errors
@@ -87,9 +89,9 @@ func ValidateAdminRole(userRole string) bool {
 
 // ValidateUserPermissions performs comprehensive authorization validation
 // Combines ownership and role validation with detailed error reporting
-func ValidateUserPermissions(requestingUserID int, requestingUserRole string, targetUserID int) error {
+func ValidateUserPermissions(requestingUserID uuid.UUID, requestingUserRole string, targetUserID uuid.UUID) error {
 	// Validate input parameters
-	if requestingUserID <= 0 {
+	if requestingUserID == uuid.Nil {
 		return &AuthorizationError{
 			Code:    ErrCodeInvalidUserID,
 			Message: "Invalid requesting user ID",
@@ -97,7 +99,7 @@ func ValidateUserPermissions(requestingUserID int, requestingUserRole string, ta
 		}
 	}
 
-	if targetUserID <= 0 {
+	if targetUserID == uuid.Nil {
 		return &AuthorizationError{
 			Code:    ErrCodeInvalidUserID,
 			Message: "Invalid target user ID",

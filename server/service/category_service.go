@@ -7,14 +7,16 @@ import (
 	"develapar-server/repository"
 	"fmt"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 type CategoryService interface {
 	CreateCategory(ctx context.Context, payload model.Category) (model.Category, error)
 	FindAll(ctx context.Context) ([]model.Category, error)
-	FindById(ctx context.Context, id int) (model.Category, error)
-	UpdateCategory(ctx context.Context, id int, req dto.UpdateCategoryRequest) (model.Category, error)
-	DeleteCategory(ctx context.Context, id int) error
+	FindById(ctx context.Context, id uuid.UUID) (model.Category, error)
+	UpdateCategory(ctx context.Context, id uuid.UUID, req dto.UpdateCategoryRequest) (model.Category, error)
+	DeleteCategory(ctx context.Context, id uuid.UUID) error
 }
 
 type categoryService struct {
@@ -23,7 +25,7 @@ type categoryService struct {
 }
 
 // DeleteCategory implements CategoryService.
-func (c *categoryService) DeleteCategory(ctx context.Context, id int) error {
+func (c *categoryService) DeleteCategory(ctx context.Context, id uuid.UUID) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -32,7 +34,7 @@ func (c *categoryService) DeleteCategory(ctx context.Context, id int) error {
 	}
 
 	// Validate ID
-	if id <= 0 {
+	if id == uuid.Nil {
 		return fmt.Errorf("category ID must be greater than 0")
 	}
 
@@ -50,7 +52,7 @@ func (c *categoryService) DeleteCategory(ctx context.Context, id int) error {
 }
 
 // UpdateCategory implements CategoryService.
-func (c *categoryService) UpdateCategory(ctx context.Context, id int, req dto.UpdateCategoryRequest) (model.Category, error) {
+func (c *categoryService) UpdateCategory(ctx context.Context, id uuid.UUID, req dto.UpdateCategoryRequest) (model.Category, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -59,7 +61,7 @@ func (c *categoryService) UpdateCategory(ctx context.Context, id int, req dto.Up
 	}
 
 	// Validate ID
-	if id <= 0 {
+	if id == uuid.Nil {
 		return model.Category{}, fmt.Errorf("category ID must be greater than 0")
 	}
 
@@ -163,7 +165,7 @@ func (c *categoryService) FindAll(ctx context.Context) ([]model.Category, error)
 }
 
 // FindById implements CategoryService.
-func (c *categoryService) FindById(ctx context.Context, id int) (model.Category, error) {
+func (c *categoryService) FindById(ctx context.Context, id uuid.UUID) (model.Category, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -172,7 +174,7 @@ func (c *categoryService) FindById(ctx context.Context, id int) (model.Category,
 	}
 
 	// Validate ID
-	if id <= 0 {
+	if id == uuid.Nil {
 		return model.Category{}, fmt.Errorf("category ID must be greater than 0")
 	}
 

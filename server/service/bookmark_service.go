@@ -5,14 +5,15 @@ import (
 	"develapar-server/model"
 	"develapar-server/repository"
 	"fmt"
-	"strconv"
+
+	"github.com/google/uuid"
 )
 
 type BookmarkService interface {
 	CreateBookmark(ctx context.Context, payload model.Bookmark) (model.Bookmark, error)
-	FindByUserId(ctx context.Context, userId string) ([]model.Bookmark, error)
-	DeleteBookmark(ctx context.Context, userId, articleId int) error
-	IsBookmarked(ctx context.Context, userId, articleId int) (bool, error)
+	FindByUserId(ctx context.Context, userId uuid.UUID) ([]model.Bookmark, error)
+	DeleteBookmark(ctx context.Context, userId, articleId uuid.UUID) error
+	IsBookmarked(ctx context.Context, userId, articleId uuid.UUID) (bool, error)
 }
 
 type bookmarkService struct {
@@ -21,7 +22,7 @@ type bookmarkService struct {
 }
 
 // IsBookmarked implements BookmarkService.
-func (b *bookmarkService) IsBookmarked(ctx context.Context, userId, articleId int) (bool, error) {
+func (b *bookmarkService) IsBookmarked(ctx context.Context, userId, articleId uuid.UUID) (bool, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -30,10 +31,10 @@ func (b *bookmarkService) IsBookmarked(ctx context.Context, userId, articleId in
 	}
 
 	// Validate IDs
-	if userId <= 0 {
+	if userId == uuid.Nil {
 		return false, fmt.Errorf("user ID must be greater than 0")
 	}
-	if articleId <= 0 {
+	if articleId == uuid.Nil {
 		return false, fmt.Errorf("article ID must be greater than 0")
 	}
 
@@ -51,7 +52,7 @@ func (b *bookmarkService) IsBookmarked(ctx context.Context, userId, articleId in
 }
 
 // DeleteBookmark implements BookmarkService.
-func (b *bookmarkService) DeleteBookmark(ctx context.Context, userId, articleId int) error {
+func (b *bookmarkService) DeleteBookmark(ctx context.Context, userId, articleId uuid.UUID) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -60,10 +61,10 @@ func (b *bookmarkService) DeleteBookmark(ctx context.Context, userId, articleId 
 	}
 
 	// Validate IDs
-	if userId <= 0 {
+	if userId == uuid.Nil {
 		return fmt.Errorf("user ID must be greater than 0")
 	}
-	if articleId <= 0 {
+	if articleId == uuid.Nil {
 		return fmt.Errorf("article ID must be greater than 0")
 	}
 
@@ -90,10 +91,10 @@ func (b *bookmarkService) CreateBookmark(ctx context.Context, payload model.Book
 	}
 
 	// Validate bookmark data
-	if payload.User.Id <= 0 {
+	if payload.User.Id == uuid.Nil {
 		return model.Bookmark{}, fmt.Errorf("valid user ID is required")
 	}
-	if payload.Article.Id <= 0 {
+	if payload.Article.Id == uuid.Nil {
 		return model.Bookmark{}, fmt.Errorf("valid article ID is required")
 	}
 
@@ -118,7 +119,7 @@ func (b *bookmarkService) CreateBookmark(ctx context.Context, payload model.Book
 }
 
 // FindByUserId implements BookmarkService.
-func (b *bookmarkService) FindByUserId(ctx context.Context, userId string) ([]model.Bookmark, error) {
+func (b *bookmarkService) FindByUserId(ctx context.Context, userId uuid.UUID) ([]model.Bookmark, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -127,17 +128,8 @@ func (b *bookmarkService) FindByUserId(ctx context.Context, userId string) ([]mo
 	}
 
 	// Validate user ID
-	if userId == "" {
+	if userId == uuid.Nil {
 		return nil, fmt.Errorf("user ID is required")
-	}
-
-	// Convert string ID to int for validation
-	userIdInt, err := strconv.Atoi(userId)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID format: %v", err)
-	}
-	if userIdInt <= 0 {
-		return nil, fmt.Errorf("user ID must be greater than 0")
 	}
 
 	// Get bookmarks by user from repository with context

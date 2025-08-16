@@ -6,22 +6,24 @@ import (
 	"develapar-server/model"
 	"errors"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type UserRepository interface {
 	CreateNewUser(ctx context.Context, payload model.User) (model.User, error)
-	GetUserById(ctx context.Context, id int) (model.User, error)
+	GetUserById(ctx context.Context, id uuid.UUID) (model.User, error)
 	GetByEmail(ctx context.Context, email string) (model.User, error)
 	GetAllUser(ctx context.Context) ([]model.User, error)
 	GetAllUserWithPagination(ctx context.Context, offset, limit int) ([]model.User, int, error)
-	SaveRefreshToken(ctx context.Context, userId int, token string, expiresAt time.Time) error
-	ValidateRefreshToken(ctx context.Context, token string) (int, error)
+	SaveRefreshToken(ctx context.Context, userId uuid.UUID, token string, expiresAt time.Time) error
+	ValidateRefreshToken(ctx context.Context, token string) (uuid.UUID, error)
 	DeleteRefreshToken(ctx context.Context, token string) error
-	DeleteAllRefreshTOkensByUser(ctx context.Context, userId int) error
+	DeleteAllRefreshTOkensByUser(ctx context.Context, userId uuid.UUID) error
 	FindRefreshToken(ctx context.Context, token string) (model.RefreshToken, error)
 	UpdateRefreshToken(ctx context.Context, oldToken string, newToken string, expiresAt time.Time) error
 	UpdateUser(ctx context.Context, payload model.User) (model.User, error)
-	DeleteUser(ctx context.Context, id int) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 }
 
 type userRepository struct {
@@ -30,10 +32,10 @@ type userRepository struct {
 
 func (r *userRepository) FindRefreshToken(ctx context.Context, token string) (model.RefreshToken, error) {
 	var rt model.RefreshToken
-	query := `SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens WHERE token = $1`
+	query := `SELECT id, user_id, token, expires_at, created_at, updated_at FROM refresh_tokens WHERE token = $1`
 	row := r.db.QueryRowContext(ctx, query, token)
 
-	err := row.Scan(&rt.ID, &rt.UserID, &rt.Token, &rt.ExpiresAt, &rt.CreatedAt)
+	err := row.Scan(&rt.ID, &rt.UserID, &rt.Token, &rt.ExpiresAt, &rt.CreatedAt, &rt.UpdatedAt)
 	if err != nil {
 		// Check if context was cancelled or timed out
 		if ctx.Err() != nil {
@@ -52,7 +54,7 @@ func (r *userRepository) UpdateRefreshToken(ctx context.Context, oldToken, newTo
 }
 
 // DeleteAllRefreshTOkensByUser implements UserRepository.
-func (u *userRepository) DeleteAllRefreshTOkensByUser(ctx context.Context, userId int) error {
+func (u *userRepository) DeleteAllRefreshTOkensByUser(ctx context.Context, userId uuid.UUID) error {
 	query := `DELETE FROM refresh_tokens WHERE user_id = $1`
 	_, err := u.db.ExecContext(ctx, query, userId)
 	return err
@@ -66,28 +68,28 @@ func (u *userRepository) DeleteRefreshToken(ctx context.Context, token string) e
 }
 
 // SaveRefreshToken implements UserRepository.
-func (u *userRepository) SaveRefreshToken(ctx context.Context, userId int, token string, expiresAt time.Time) error {
+func (u *userRepository) SaveRefreshToken(ctx context.Context, userId uuid.UUID, token string, expiresAt time.Time) error {
 	query := `INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`
 	_, err := u.db.ExecContext(ctx, query, userId, token, expiresAt)
 	return err
 }
 
 // ValidateRefreshToken implements UserRepository.
-func (u *userRepository) ValidateRefreshToken(ctx context.Context, token string) (int, error) {
-	var userId int
+func (u *userRepository) ValidateRefreshToken(ctx context.Context, token string) (uuid.UUID, error) {
+	var userId uuid.UUID
 	var expiresAt time.Time
 	query := `SELECT user_id, expires_at FROM refresh_tokens WHERE token = $1`
 	err := u.db.QueryRowContext(ctx, query, token).Scan(&userId, &expiresAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, errors.New("refresh token not found")
+			return uuid.Nil, errors.New("refresh token not found")
 		}
-		return 0, err
+		return uuid.Nil, err
 	}
 
 	if time.Now().After(expiresAt) {
 		_ = u.DeleteRefreshToken(ctx, token)
-		return 0, errors.New("refresh token expired")
+		return uuid.Nil, errors.New("refresh token expired")
 
 	}
 
@@ -98,7 +100,7 @@ func (u *userRepository) ValidateRefreshToken(ctx context.Context, token string)
 func (u *userRepository) GetByEmail(ctx context.Context, email string) (model.User, error) {
 	var user model.User
 
-	err := u.db.QueryRowContext(ctx, `SELECT id, name, email, password, created_at, updated_at FROM users WHERE email=$1`, email).Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+	err := u.db.QueryRowContext(ctx, `SELECT id, name, email, password, role, created_at, updated_at FROM users WHERE email=$1`, email).Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
 		// Check if context was cancelled or timed out
@@ -220,10 +222,10 @@ func (u *userRepository) GetAllUserWithPagination(ctx context.Context, offset, l
 }
 
 // GetUserById implements UserRepository.
-func (u *userRepository) GetUserById(ctx context.Context, id int) (model.User, error) {
+func (u *userRepository) GetUserById(ctx context.Context, id uuid.UUID) (model.User, error) {
 	var user model.User
 
-	err := u.db.QueryRowContext(ctx, `SELECT id, name, email, password, created_at, updated_at FROM users WHERE id=$1`, id).Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+	err := u.db.QueryRowContext(ctx, `SELECT id, name, email, password, role, created_at, updated_at FROM users WHERE id=$1`, id).Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {
 		// Check if context was cancelled or timed out
@@ -237,8 +239,10 @@ func (u *userRepository) GetUserById(ctx context.Context, id int) (model.User, e
 }
 
 func (u *userRepository) CreateNewUser(ctx context.Context, payload model.User) (model.User, error) {
+	newId := uuid.Must(uuid.NewV7())
+
 	var user model.User
-	err := u.db.QueryRowContext(ctx, `INSERT INTO users (name, email, password, role, updated_at) VALUES($1, $2, $3, $4, $5) RETURNING id, name, email, role, created_at, updated_at`, payload.Name, payload.Email, payload.Password, payload.Role, time.Now()).Scan(&user.Id, &user.Name, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+	err := u.db.QueryRowContext(ctx, `INSERT INTO users (id, name, email, password, role,created_at, updated_at) VALUES($1, $2, $3, $4, $5,$6, $7) RETURNING id, name, email, role, created_at, updated_at`, newId, payload.Name, payload.Email, payload.Password, payload.Role, time.Now(), time.Now()).Scan(&user.Id, &user.Name, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		// Check if context was cancelled or timed out
 		if ctx.Err() != nil {
@@ -264,7 +268,7 @@ func (u *userRepository) UpdateUser(ctx context.Context, payload model.User) (mo
 }
 
 // DeleteUser implements UserRepository.
-func (u *userRepository) DeleteUser(ctx context.Context, id int) error {
+func (u *userRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	_, err := u.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
 	return err
 }

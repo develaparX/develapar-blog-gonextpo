@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type BookmarkController struct {
@@ -55,7 +56,14 @@ func (b *BookmarkController) CreateBookmarkHandler(ginCtx *gin.Context) {
 	}
 	userId := int(userIdFloat)
 
-	payload.User.Id = userId
+	// Convert int userId to string and then to uuid.UUID
+	userUUID, err := uuid.Parse(strconv.Itoa(userId))
+	if err != nil {
+		appErr := b.errorHandler.ValidationError(requestCtx, "userId", "Invalid user ID format: "+err.Error())
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+	payload.User.Id = userUUID
 
 	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
 		appErr := b.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
@@ -121,8 +129,15 @@ func (b *BookmarkController) GetBookmarkByUserId(ginCtx *gin.Context) {
 		return
 	}
 
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		appErr := b.errorHandler.ValidationError(requestCtx, "userId", "Invalid user ID format: "+err.Error())
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
 	// Call service with context
-	bookmarks, err := b.service.FindByUserId(requestCtx, userID)
+	bookmarks, err := b.service.FindByUserId(requestCtx, userUUID)
 	if err != nil {
 		// Check for context-specific errors
 		if requestCtx.Err() == context.DeadlineExceeded {
@@ -191,8 +206,15 @@ func (b *BookmarkController) DeleteBookmarkHandler(ginCtx *gin.Context) {
 	}
 	userId := int(userIdFloat)
 
+	userUUID, err := uuid.Parse(strconv.Itoa(userId))
+	if err != nil {
+		appErr := b.errorHandler.ValidationError(requestCtx, "userId", "Invalid user ID format: "+err.Error())
+		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
 	articleIdParam := ginCtx.Param("article_id")
-	articleId, err := strconv.Atoi(articleIdParam)
+	articleId, err := uuid.Parse(articleIdParam)
 	if err != nil {
 		appErr := b.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
 		b.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -200,7 +222,7 @@ func (b *BookmarkController) DeleteBookmarkHandler(ginCtx *gin.Context) {
 	}
 
 	// Call service with context
-	err = b.service.DeleteBookmark(requestCtx, userId, articleId)
+	err = b.service.DeleteBookmark(requestCtx, userUUID, articleId)
 	if err != nil {
 		// Check for context-specific errors
 		if requestCtx.Err() == context.DeadlineExceeded {
@@ -267,7 +289,14 @@ func (c *BookmarkController) CheckBookmarkHandler(ginCtx *gin.Context) {
 	}
 	userId := int(userIdFloat)
 
-	articleId, err := strconv.Atoi(ginCtx.Query("article_id"))
+	userUUID, err := uuid.Parse(strconv.Itoa(userId))
+	if err != nil {
+		appErr := c.errorHandler.ValidationError(requestCtx, "userId", "Invalid user ID format: "+err.Error())
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	articleId, err := uuid.Parse(ginCtx.Query("article_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -275,7 +304,7 @@ func (c *BookmarkController) CheckBookmarkHandler(ginCtx *gin.Context) {
 	}
 
 	// Call service with context
-	bookmarked, err := c.service.IsBookmarked(requestCtx, userId, articleId)
+	bookmarked, err := c.service.IsBookmarked(requestCtx, userUUID, articleId)
 	if err != nil {
 		// Check for context-specific errors
 		if requestCtx.Err() == context.DeadlineExceeded {
@@ -310,7 +339,7 @@ func (c *BookmarkController) CheckBookmarkHandler(ginCtx *gin.Context) {
 }
 
 func (c *BookmarkController) Route() {
-	router := c.rg.Group("/bookmarks")  // Changed from singular to plural
+	router := c.rg.Group("/bookmarks") // Changed from singular to plural
 	router.GET("/:user_id", c.GetBookmarkByUserId)
 
 	routerAuth := router.Group("/")

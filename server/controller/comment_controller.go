@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type CommentController struct {
@@ -57,7 +58,14 @@ func (c *CommentController) CreateCommentHandler(ginCtx *gin.Context) {
 	}
 	userId := int(userIdFloat)
 
-	payload.User.Id = userId
+	userUUID, err := uuid.Parse(strconv.Itoa(userId))
+	if err != nil {
+		appErr := c.errorHandler.ValidationError(requestCtx, "userId", "Invalid user ID format: "+err.Error())
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	payload.User.Id = userUUID
 
 	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "payload", "Invalid request payload: "+err.Error())
@@ -116,7 +124,7 @@ func (c *CommentController) FindCommentByArticleIdHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	articleId, err := strconv.Atoi(ginCtx.Param("article_id"))
+	articleId, err := uuid.Parse(ginCtx.Param("article_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -174,7 +182,7 @@ func (c *CommentController) FindCommentByUserIdHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	user_id, err := strconv.Atoi(ginCtx.Param("user_id"))
+	user_id, err := uuid.Parse(ginCtx.Param("user_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "user_id", "Invalid user ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -237,8 +245,29 @@ func (c *CommentController) UpdateCommentHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	userId := ginCtx.GetInt("userId")
-	commentId, err := strconv.Atoi(ginCtx.Param("comment_id"))
+	userIdInterface, exists := ginCtx.Get("userId")
+	if !exists {
+		appErr := c.errorHandler.WrapError(requestCtx, errors.New("user ID not found in context"), utils.ErrInternal, "Unauthorized access")
+		appErr.StatusCode = 401
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	userIdStr, ok := userIdInterface.(string)
+	if !ok {
+		appErr := c.errorHandler.WrapError(requestCtx, errors.New("user ID in context is not a string"), utils.ErrInternal, "Internal server error")
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	userId, err := uuid.Parse(userIdStr)
+	if err != nil {
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Invalid user ID format in token")
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	commentId, err := uuid.Parse(ginCtx.Param("comment_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "id", "Invalid comment ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -314,9 +343,29 @@ func (c *CommentController) DeleteCommentHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	userId := ginCtx.GetInt("userId")
+	userIdInterface, exists := ginCtx.Get("userId")
+	if !exists {
+		appErr := c.errorHandler.WrapError(requestCtx, errors.New("user ID not found in context"), utils.ErrInternal, "Unauthorized access")
+		appErr.StatusCode = 401
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
 
-	commentId, err := strconv.Atoi(ginCtx.Param("comment_id"))
+	userIdStr, ok := userIdInterface.(string)
+	if !ok {
+		appErr := c.errorHandler.WrapError(requestCtx, errors.New("user ID in context is not a string"), utils.ErrInternal, "Internal server error")
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	userId, err := uuid.Parse(userIdStr)
+	if err != nil {
+		appErr := c.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Invalid user ID format in token")
+		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
+		return
+	}
+
+	commentId, err := uuid.Parse(ginCtx.Param("comment_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "comment_id", "Invalid comment ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -358,8 +407,8 @@ func (c *CommentController) DeleteCommentHandler(ginCtx *gin.Context) {
 }
 
 func (c *CommentController) Route() {
-	router := c.rg.Group("/comments")  // Changed from singular to plural
-	router.GET("/article/:article_id", c.FindCommentByArticleIdHandler)  // Fixed typo: c:article_id to :article_id
+	router := c.rg.Group("/comments")                                   // Changed from singular to plural
+	router.GET("/article/:article_id", c.FindCommentByArticleIdHandler) // Fixed typo: c:article_id to :article_id
 	router.GET("/user/:user_id", c.FindCommentByUserIdHandler)
 
 	routerAuth := router.Group("/", c.md.CheckToken())

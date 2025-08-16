@@ -6,14 +6,16 @@ import (
 	"develapar-server/repository"
 	"fmt"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 type ArticleTagService interface {
-	AssignTags(ctx context.Context, articleId int, tagId []int) error
-	AsignTagsByName(ctx context.Context, articleId int, tagNames []string) error
-	FindTagByArticleId(ctx context.Context, articleId int) ([]model.Tags, error)
-	FindArticleByTagId(ctx context.Context, tagId int) ([]model.Article, error)
-	RemoveTagFromArticle(ctx context.Context, articleId, tagId int) error
+	AssignTags(ctx context.Context, articleId uuid.UUID, tagId []uuid.UUID) error
+	AsignTagsByName(ctx context.Context, articleId uuid.UUID, tagNames []string) error
+	FindTagByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Tags, error)
+	FindArticleByTagId(ctx context.Context, tagId uuid.UUID) ([]model.Article, error)
+	RemoveTagFromArticle(ctx context.Context, articleId, tagId uuid.UUID) error
 }
 
 type articleTagService struct {
@@ -23,7 +25,7 @@ type articleTagService struct {
 }
 
 // RemoveTagFromArticle implements ArticleTagService.
-func (a *articleTagService) RemoveTagFromArticle(ctx context.Context, articleId, tagId int) error {
+func (a *articleTagService) RemoveTagFromArticle(ctx context.Context, articleId, tagId uuid.UUID) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -32,10 +34,10 @@ func (a *articleTagService) RemoveTagFromArticle(ctx context.Context, articleId,
 	}
 
 	// Validate IDs
-	if articleId <= 0 {
+	if articleId == uuid.Nil {
 		return fmt.Errorf("article ID must be greater than 0")
 	}
-	if tagId <= 0 {
+	if tagId == uuid.Nil {
 		return fmt.Errorf("tag ID must be greater than 0")
 	}
 
@@ -53,7 +55,7 @@ func (a *articleTagService) RemoveTagFromArticle(ctx context.Context, articleId,
 }
 
 // AsignTagsByName implements ArticleTagService.
-func (a *articleTagService) AsignTagsByName(ctx context.Context, articleId int, tagNames []string) error {
+func (a *articleTagService) AsignTagsByName(ctx context.Context, articleId uuid.UUID, tagNames []string) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -62,14 +64,14 @@ func (a *articleTagService) AsignTagsByName(ctx context.Context, articleId int, 
 	}
 
 	// Validate inputs
-	if articleId <= 0 {
+	if articleId == uuid.Nil {
 		return fmt.Errorf("article ID must be greater than 0")
 	}
 	if len(tagNames) == 0 {
 		return fmt.Errorf("tag names are required")
 	}
 
-	var tagIds []int
+	var tagIds []uuid.UUID
 
 	for _, tagName := range tagNames {
 		// Check context cancellation in loop
@@ -92,7 +94,7 @@ func (a *articleTagService) AsignTagsByName(ctx context.Context, articleId int, 
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			
+
 			// Tag doesn't exist, create new one with context
 			newTag, createErr := a.tagRepo.CreateTag(ctx, model.Tags{Name: tagName})
 			if createErr != nil {
@@ -129,7 +131,7 @@ func (a *articleTagService) AsignTagsByName(ctx context.Context, articleId int, 
 }
 
 // AssignTags implements ArticleTagService.
-func (a *articleTagService) AssignTags(ctx context.Context, articleId int, tagId []int) error {
+func (a *articleTagService) AssignTags(ctx context.Context, articleId uuid.UUID, tagId []uuid.UUID) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -138,7 +140,7 @@ func (a *articleTagService) AssignTags(ctx context.Context, articleId int, tagId
 	}
 
 	// Validate inputs
-	if articleId <= 0 {
+	if articleId == uuid.Nil {
 		return fmt.Errorf("article ID must be greater than 0")
 	}
 	if len(tagId) == 0 {
@@ -147,7 +149,7 @@ func (a *articleTagService) AssignTags(ctx context.Context, articleId int, tagId
 
 	// Validate all tag IDs
 	for _, id := range tagId {
-		if id <= 0 {
+		if id == uuid.Nil {
 			return fmt.Errorf("all tag IDs must be greater than 0")
 		}
 	}
@@ -166,7 +168,7 @@ func (a *articleTagService) AssignTags(ctx context.Context, articleId int, tagId
 }
 
 // FindArticleByTagId implements ArticleTagService.
-func (a *articleTagService) FindArticleByTagId(ctx context.Context, tagId int) ([]model.Article, error) {
+func (a *articleTagService) FindArticleByTagId(ctx context.Context, tagId uuid.UUID) ([]model.Article, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -175,7 +177,7 @@ func (a *articleTagService) FindArticleByTagId(ctx context.Context, tagId int) (
 	}
 
 	// Validate tag ID
-	if tagId <= 0 {
+	if tagId == uuid.Nil {
 		return nil, fmt.Errorf("tag ID must be greater than 0")
 	}
 
@@ -193,7 +195,7 @@ func (a *articleTagService) FindArticleByTagId(ctx context.Context, tagId int) (
 }
 
 // FindTagByArticleId implements ArticleTagService.
-func (a *articleTagService) FindTagByArticleId(ctx context.Context, articleId int) ([]model.Tags, error) {
+func (a *articleTagService) FindTagByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Tags, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -202,7 +204,7 @@ func (a *articleTagService) FindTagByArticleId(ctx context.Context, articleId in
 	}
 
 	// Validate article ID
-	if articleId <= 0 {
+	if articleId == uuid.Nil {
 		return nil, fmt.Errorf("article ID must be greater than 0")
 	}
 

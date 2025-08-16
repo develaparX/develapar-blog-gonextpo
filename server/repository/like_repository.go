@@ -5,22 +5,24 @@ import (
 	"database/sql"
 	"develapar-server/model"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type LikeRepository interface {
 	CreateLike(ctx context.Context, payload model.Likes) (model.Likes, error)
-	GetLikeByArticleId(ctx context.Context, articleId int) ([]model.Likes, error)
-	GetLikeByUserId(ctx context.Context, userId int) ([]model.Likes, error)
-	DeleteLike(ctx context.Context, userId, articleId int) error
-	IsLiked(ctx context.Context, userId, articleId int) (bool, error)
+	GetLikeByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Likes, error)
+	GetLikeByUserId(ctx context.Context, userId uuid.UUID) ([]model.Likes, error)
+	DeleteLike(ctx context.Context, userId, articleId uuid.UUID) error
+	IsLiked(ctx context.Context, userId, articleId uuid.UUID) (bool, error)
 }
 
 type likeRepository struct {
 	db *sql.DB
 }
 
-// isLiked implements LikeRepository.
-func (r *likeRepository) IsLiked(ctx context.Context, userId int, articleId int) (bool, error) {
+// IsLiked implements LikeRepository.
+func (r *likeRepository) IsLiked(ctx context.Context, userId uuid.UUID, articleId uuid.UUID) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND article_id = $2)`
 	err := r.db.QueryRowContext(ctx, query, userId, articleId).Scan(&exists)
@@ -32,9 +34,10 @@ func (r *likeRepository) IsLiked(ctx context.Context, userId int, articleId int)
 
 // CreateLike implements LikeRepository.
 func (l *likeRepository) CreateLike(ctx context.Context, payload model.Likes) (model.Likes, error) {
+	newId := uuid.Must(uuid.NewV7())
 	var like model.Likes
-	err := l.db.QueryRowContext(ctx, `INSERT INTO likes(article_id, user_id, created_at) VALUES($1,$2,$3) RETURNING id, article_id, user_id, created_at `, payload.Article.Id, payload.User.Id, time.Now()).Scan(
-		&like.Id, &like.Article.Id, &like.User.Id, &like.CreatedAt,
+	err := l.db.QueryRowContext(ctx, `INSERT INTO likes(id, article_id, user_id, created_at, updated_at) VALUES($1,$2,$3,$4,$5) RETURNING id, article_id, user_id, created_at, updated_at`, newId, payload.ArticleId, payload.UserId, time.Now(), time.Now()).Scan(
+		&like.Id, &like.ArticleId, &like.UserId, &like.CreatedAt, &like.UpdatedAt,
 	)
 
 	if err != nil {
@@ -45,7 +48,7 @@ func (l *likeRepository) CreateLike(ctx context.Context, payload model.Likes) (m
 }
 
 // DeleteLike implements LikeRepository.
-func (l *likeRepository) DeleteLike(ctx context.Context, userId int, articleId int) error {
+func (l *likeRepository) DeleteLike(ctx context.Context, userId uuid.UUID, articleId uuid.UUID) error {
 	query := `DELETE FROM likes WHERE user_id=$1 AND article_id = $2`
 	_, err := l.db.ExecContext(ctx, query, userId, articleId)
 
@@ -53,13 +56,13 @@ func (l *likeRepository) DeleteLike(ctx context.Context, userId int, articleId i
 }
 
 // GetLikeByArticleId implements LikeRepository.
-func (l *likeRepository) GetLikeByArticleId(ctx context.Context, articleId int) ([]model.Likes, error) {
+func (l *likeRepository) GetLikeByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Likes, error) {
 	var likes []model.Likes
 
 	query := `
 	SELECT
-		l.id, l.article_id, l.user_id, l.created_at,
-		u.id, u.name, u.email
+		l.id, l.article_id, l.user_id, l.created_at, l.updated_at,
+		u.id, u.name, u.email, u.role
 	FROM likes l
 	JOIN users u ON l.user_id = u.id
 	WHERE l.article_id = $1
@@ -77,14 +80,14 @@ func (l *likeRepository) GetLikeByArticleId(ctx context.Context, articleId int) 
 		var user model.User
 
 		err := rows.Scan(
-			&like.Id, &like.Article.Id, &like.User.Id, &like.CreatedAt, &user.Id, &user.Name, &user.Email,
+			&like.Id, &like.ArticleId, &like.UserId, &like.CreatedAt, &like.UpdatedAt, &user.Id, &user.Name, &user.Email, &user.Role,
 		)
 
 		if err != nil {
 			return nil, err
 		}
 
-		like.User = user
+		like.User = &user
 
 		likes = append(likes, like)
 	}
@@ -98,13 +101,13 @@ func (l *likeRepository) GetLikeByArticleId(ctx context.Context, articleId int) 
 }
 
 // GetLikeByUserId implements LikeRepository.
-func (l *likeRepository) GetLikeByUserId(ctx context.Context, userId int) ([]model.Likes, error) {
+func (l *likeRepository) GetLikeByUserId(ctx context.Context, userId uuid.UUID) ([]model.Likes, error) {
 	var likes []model.Likes
 
 	query := `
 	SELECT
-		l.id, l.article_id, l.user_id, l.created_at,
-		a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at
+		l.id, l.article_id, l.user_id, l.created_at, l.updated_at,
+		a.id, a.title, a.slug, a.content, a.user_id, a.category_id, a.views, a.status, a.created_at, a.updated_at
 	FROM likes l
 	JOIN articles a ON l.article_id = a.id
 	WHERE l.user_id = $1
@@ -122,14 +125,15 @@ func (l *likeRepository) GetLikeByUserId(ctx context.Context, userId int) ([]mod
 		var article model.Article
 
 		err := rows.Scan(
-			&like.Id, &like.Article.Id, &like.User.Id, &like.CreatedAt, &article.Id, &article.Title, &article.Slug, &article.Content, &article.Views, &article.CreatedAt, &article.UpdatedAt,
+			&like.Id, &like.ArticleId, &like.UserId, &like.CreatedAt, &like.UpdatedAt, 
+			&article.Id, &article.Title, &article.Slug, &article.Content, &article.UserId, &article.CategoryId, &article.Views, &article.Status, &article.CreatedAt, &article.UpdatedAt,
 		)
 
 		if err != nil {
 			return nil, err
 		}
 
-		like.Article = article
+		like.Article = &article
 
 		likes = append(likes, like)
 	}

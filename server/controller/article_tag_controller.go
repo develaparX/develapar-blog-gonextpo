@@ -6,10 +6,10 @@ import (
 	"develapar-server/model/dto"
 	"develapar-server/service"
 	"develapar-server/utils"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type ArticleTagController struct {
@@ -21,8 +21,8 @@ type ArticleTagController struct {
 }
 
 type AssignTagRequest struct {
-	ArticleID int   `json:"article_id"`
-	TagIDs    []int `json:"tag_ids"`
+	ArticleID uuid.UUID   `json:"article_id"`
+	TagIDs    []uuid.UUID `json:"tag_ids"`
 }
 
 // @Summary Assign tags to an article by tag names
@@ -148,7 +148,7 @@ func (c *ArticleTagController) GetTagsByArticleIDHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 10*time.Second)
 	defer cancel()
 
-	articleID, err := strconv.Atoi(ginCtx.Param("article_id"))
+	articleID, err := uuid.Parse(ginCtx.Param("article_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -205,7 +205,7 @@ func (c *ArticleTagController) GetArticlesByTagIDHandler(ginCtx *gin.Context) {
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	tagID, err := strconv.Atoi(ginCtx.Param("tag_id"))
+	tagID, err := uuid.Parse(ginCtx.Param("tag_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "tag_id", "Invalid tag ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -265,14 +265,14 @@ func (c *ArticleTagController) RemoveTagFromArticleHandler(ginCtx *gin.Context) 
 	requestCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	articleId, err := strconv.Atoi(ginCtx.Param("article_id"))
+	articleId, err := uuid.Parse(ginCtx.Param("article_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "article_id", "Invalid article ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
 		return
 	}
 
-	tagId, err := strconv.Atoi(ginCtx.Param("tag_id"))
+	tagId, err := uuid.Parse(ginCtx.Param("tag_id"))
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "tag_id", "Invalid tag ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -316,19 +316,19 @@ func (c *ArticleTagController) RemoveTagFromArticleHandler(ginCtx *gin.Context) 
 
 func (at *ArticleTagController) Route() {
 	// Simplified RESTful approach for article-tag relations
-	
+
 	// Article tags endpoints - using article-tags prefix to avoid conflict
 	articleTagsRouter := at.rg.Group("/article-tags/:article_id")
-	articleTagsRouter.GET("/", at.GetTagsByArticleIDHandler)  // GET /article-tags/:article_id
-	
+	articleTagsRouter.GET("/", at.GetTagsByArticleIDHandler) // GET /article-tags/:article_id
+
 	articleTagsAuthRouter := articleTagsRouter.Group("/")
 	articleTagsAuthRouter.Use(at.md.CheckToken())
-	articleTagsAuthRouter.POST("/", at.AssignTagToArticleByNameHandler)           // POST /article-tags/:article_id
-	articleTagsAuthRouter.DELETE("/:tag_id", at.RemoveTagFromArticleHandler)      // DELETE /article-tags/:article_id/:tag_id
-	
+	articleTagsAuthRouter.POST("/", at.AssignTagToArticleByNameHandler)      // POST /article-tags/:article_id
+	articleTagsAuthRouter.DELETE("/:tag_id", at.RemoveTagFromArticleHandler) // DELETE /article-tags/:article_id/:tag_id
+
 	// Tag articles endpoints - nested under tags
 	tagArticlesRouter := at.rg.Group("/tags/:tag_id/articles")
-	tagArticlesRouter.GET("/", at.GetArticlesByTagIDHandler)  // GET /tags/:tag_id/articles
+	tagArticlesRouter.GET("/", at.GetArticlesByTagIDHandler) // GET /tags/:tag_id/articles
 }
 
 func NewArticleTagController(s service.ArticleTagService, rg *gin.RouterGroup, md middleware.AuthMiddleware, errorHandler middleware.ErrorHandler) *ArticleTagController {

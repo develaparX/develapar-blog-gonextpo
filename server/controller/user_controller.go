@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type UserController struct {
@@ -115,7 +116,6 @@ func (u *UserController) registerUser(c *gin.Context) {
 		return
 	}
 
-
 	// Call service with context
 	data, err := u.service.CreateNewUser(requestCtx, payload)
 	if err != nil {
@@ -175,8 +175,15 @@ func (u *UserController) findUserByIdHandler(c *gin.Context) {
 		return
 	}
 
+	userIdParse, err := uuid.Parse(userId)
+	if err != nil {
+		appErr := u.errorHandler.WrapError(requestCtx, err, utils.ErrInternal, "Invalid user ID format in token")
+		u.errorHandler.HandleError(requestCtx, c, appErr)
+		return
+	}
+
 	// Call service with context
-	user, err := u.service.FindUserById(requestCtx, userId)
+	user, err := u.service.FindUserById(requestCtx, userIdParse)
 	if err != nil {
 		// Check for context-specific errors
 		if requestCtx.Err() == context.DeadlineExceeded {
@@ -427,7 +434,7 @@ func (u *UserController) updateUserHandler(c *gin.Context) {
 		return
 	}
 
-	userId, err := strconv.Atoi(userIdStr)
+	userId, err := uuid.Parse(userIdStr)
 	if err != nil {
 		appErr := u.errorHandler.ValidationError(requestCtx, "user_id", "Invalid user ID format")
 		u.errorHandler.HandleError(requestCtx, c, appErr)
@@ -483,7 +490,7 @@ func (u *UserController) updateUserHandler(c *gin.Context) {
 	}
 
 	// Call service with context
-	updatedUser, err := u.service.UpdateUser(requestCtx,requestingUserID, requestingUserRole, userId, payload)
+	updatedUser, err := u.service.UpdateUser(requestCtx, requestingUserID, requestingUserRole, userId, payload)
 	if err != nil {
 		// Check for context-specific errors
 		if requestCtx.Err() == context.DeadlineExceeded {
@@ -544,7 +551,7 @@ func (u *UserController) deleteUserHandler(c *gin.Context) {
 		return
 	}
 
-	userId, err := strconv.Atoi(userIdStr)
+	userId, err := uuid.Parse(userIdStr)
 	if err != nil {
 		appErr := u.errorHandler.ValidationError(requestCtx, "user_id", "Invalid user ID format")
 		u.errorHandler.HandleError(requestCtx, c, appErr)
@@ -593,7 +600,7 @@ func (u *UserController) deleteUserHandler(c *gin.Context) {
 	}
 
 	// Call service with context
-	err = u.service.DeleteUser(requestCtx,requestingUserID, requestingUserRole, userId)
+	err = u.service.DeleteUser(requestCtx, requestingUserID, requestingUserRole, userId)
 	if err != nil {
 		// Check for context-specific errors
 		if requestCtx.Err() == context.DeadlineExceeded {

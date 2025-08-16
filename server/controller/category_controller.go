@@ -7,10 +7,10 @@ import (
 	"develapar-server/model/dto"
 	"develapar-server/service"
 	"develapar-server/utils"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type CategoryController struct {
@@ -147,7 +147,7 @@ func (c *CategoryController) GetCategoryByIdHandler(ginCtx *gin.Context) {
 	defer cancel()
 
 	categoryIdStr := ginCtx.Param("category_id")
-	categoryId, err := strconv.Atoi(categoryIdStr)
+	categoryId, err := uuid.Parse(categoryIdStr)
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "category_id", "Invalid category ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -209,7 +209,7 @@ func (c *CategoryController) UpdateCategoryHandler(ginCtx *gin.Context) {
 	defer cancel()
 
 	categoryIdStr := ginCtx.Param("category_id")
-	id, err := strconv.Atoi(categoryIdStr)
+	id, err := uuid.Parse(categoryIdStr)
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "category_id", "Invalid category ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -276,7 +276,7 @@ func (c *CategoryController) DeleteCategoryHandler(ginCtx *gin.Context) {
 	defer cancel()
 
 	categoryIdStr := ginCtx.Param("category_id")
-	categoryId, err := strconv.Atoi(categoryIdStr)
+	categoryId, err := uuid.Parse(categoryIdStr)
 	if err != nil {
 		appErr := c.errorHandler.ValidationError(requestCtx, "category_id", "Invalid category ID: "+err.Error())
 		c.errorHandler.HandleError(requestCtx, ginCtx, appErr)
@@ -319,9 +319,9 @@ func (c *CategoryController) DeleteCategoryHandler(ginCtx *gin.Context) {
 }
 
 func (c *CategoryController) Route() {
-	router := c.rg.Group("/categories")  // Changed from singular to plural
+	router := c.rg.Group("/categories") // Changed from singular to plural
 	router.GET("/", c.GetAllCategoryHandler)
-	router.GET("/:category_id", c.GetCategoryByIdHandler)  // Added missing endpoint
+	router.GET("/:category_id", c.GetCategoryByIdHandler) // Added missing endpoint
 
 	routerAuth := router.Group("/", c.md.CheckToken())
 	routerAuth.POST("/", c.CreateCategoryHandler)

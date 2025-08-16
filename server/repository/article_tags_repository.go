@@ -4,13 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"develapar-server/model"
+
+	"github.com/google/uuid"
 )
 
 type ArticleTagRepository interface {
-	AssignTags(ctx context.Context, articleId int, tagId []int) error
-	GetTagsByArticleId(ctx context.Context, articleId int) ([]model.Tags, error)
-	GetArticleByTagId(ctx context.Context, tagId int) ([]model.Article, error)
-	RemoveTagFromArticle(ctx context.Context, articleId, tagId int) error
+	AssignTags(ctx context.Context, articleId uuid.UUID, tagId []uuid.UUID) error
+	GetTagsByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Tags, error)
+	GetArticleByTagId(ctx context.Context, tagId uuid.UUID) ([]model.Article, error)
+	RemoveTagFromArticle(ctx context.Context, articleId, tagId uuid.UUID) error
 }
 
 type articleTagRepository struct {
@@ -18,14 +20,14 @@ type articleTagRepository struct {
 }
 
 // RemoveTagFromArticle implements ArticleTagRepository.
-func (a *articleTagRepository) RemoveTagFromArticle(ctx context.Context, articleId int, tagId int) error {
+func (a *articleTagRepository) RemoveTagFromArticle(ctx context.Context, articleId uuid.UUID, tagId uuid.UUID) error {
 	_, err := a.db.ExecContext(ctx, `DELETE FROM article_tags WHERE article_id= $1 AND tag_id = $2`, articleId, tagId)
 
 	return err
 }
 
 // AssignTags implements ArticleTagRepository.
-func (a *articleTagRepository) AssignTags(ctx context.Context, articleId int, tagId []int) error {
+func (a *articleTagRepository) AssignTags(ctx context.Context, articleId uuid.UUID, tagId []uuid.UUID) error {
 	tx, err := a.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -47,7 +49,7 @@ func (a *articleTagRepository) AssignTags(ctx context.Context, articleId int, ta
 }
 
 // GetArticleByTagId implements ArticleTagRepository.
-func (a *articleTagRepository) GetArticleByTagId(ctx context.Context, tagId int) ([]model.Article, error) {
+func (a *articleTagRepository) GetArticleByTagId(ctx context.Context, tagId uuid.UUID) ([]model.Article, error) {
 	query := `
 	SELECT 
 		a.id, a.title, a.slug, a.content, a.views, a.created_at, a.updated_at,
@@ -84,7 +86,7 @@ func (a *articleTagRepository) GetArticleByTagId(ctx context.Context, tagId int)
 }
 
 // GetTagsByArticleId implements ArticleTagRepository.
-func (a *articleTagRepository) GetTagsByArticleId(ctx context.Context, articleId int) ([]model.Tags, error) {
+func (a *articleTagRepository) GetTagsByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Tags, error) {
 	query := `SELECT t.id, t.name FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = $1`
 
 	rows, err := a.db.QueryContext(ctx, query, articleId)

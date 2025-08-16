@@ -8,20 +8,22 @@ import (
 	"develapar-server/utils"
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type ArticleService interface {
-	CreateArticleWithTags(ctx context.Context, req dto.CreateArticleRequest, userID int) (model.Article, error)
+	CreateArticleWithTags(ctx context.Context, req dto.CreateArticleRequest, userID uuid.UUID) (model.Article, error)
 	FindAll(ctx context.Context) ([]model.Article, error)
 	FindAllWithPagination(ctx context.Context, page, limit int) (PaginationResult, error)
-	UpdateArticle(ctx context.Context, id int, req dto.UpdateArticleRequest) (model.Article, error)
-	FindById(ctx context.Context, id int) (model.Article, error)
+	UpdateArticle(ctx context.Context, id uuid.UUID, req dto.UpdateArticleRequest) (model.Article, error)
+	FindById(ctx context.Context, id uuid.UUID) (model.Article, error)
 	FindBySlug(ctx context.Context, slug string) (model.Article, error)
-	FindByUserId(ctx context.Context, userId int) ([]model.Article, error)
-	FindByUserIdWithPagination(ctx context.Context, userId, page, limit int) (PaginationResult, error)
+	FindByUserId(ctx context.Context, userId uuid.UUID) ([]model.Article, error)
+	FindByUserIdWithPagination(ctx context.Context, userId uuid.UUID, page, limit int) (PaginationResult, error)
 	FindByCategory(ctx context.Context, catId string) ([]model.Article, error)
 	FindByCategoryWithPagination(ctx context.Context, catId string, page, limit int) (PaginationResult, error)
-	DeleteArticle(ctx context.Context, id int) error
+	DeleteArticle(ctx context.Context, id uuid.UUID) error
 }
 
 type articleService struct {
@@ -32,7 +34,7 @@ type articleService struct {
 }
 
 // FindById implements ArticleService.
-func (a *articleService) FindById(ctx context.Context, id int) (model.Article, error) {
+func (a *articleService) FindById(ctx context.Context, id uuid.UUID) (model.Article, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -41,7 +43,7 @@ func (a *articleService) FindById(ctx context.Context, id int) (model.Article, e
 	}
 
 	// Validate ID
-	if id <= 0 {
+	if id == uuid.Nil {
 		return model.Article{}, fmt.Errorf("article ID must be greater than 0")
 	}
 
@@ -86,7 +88,7 @@ func (a *articleService) FindByCategory(ctx context.Context, catId string) ([]mo
 }
 
 // DeleteArticle implements ArticleService.
-func (a *articleService) DeleteArticle(ctx context.Context, id int) error {
+func (a *articleService) DeleteArticle(ctx context.Context, id uuid.UUID) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -95,7 +97,7 @@ func (a *articleService) DeleteArticle(ctx context.Context, id int) error {
 	}
 
 	// Validate ID
-	if id <= 0 {
+	if id == uuid.Nil {
 		return fmt.Errorf("article ID must be greater than 0")
 	}
 
@@ -113,7 +115,7 @@ func (a *articleService) DeleteArticle(ctx context.Context, id int) error {
 }
 
 // FindByUserId implements ArticleService.
-func (a *articleService) FindByUserId(ctx context.Context, userId int) ([]model.Article, error) {
+func (a *articleService) FindByUserId(ctx context.Context, userId uuid.UUID) ([]model.Article, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -122,7 +124,7 @@ func (a *articleService) FindByUserId(ctx context.Context, userId int) ([]model.
 	}
 
 	// Validate user ID
-	if userId <= 0 {
+	if userId == uuid.Nil {
 		return nil, fmt.Errorf("user ID must be greater than 0")
 	}
 
@@ -167,7 +169,7 @@ func (a *articleService) FindBySlug(ctx context.Context, slug string) (model.Art
 }
 
 // UpdateArticle implements ArticleService.
-func (a *articleService) UpdateArticle(ctx context.Context, id int, req dto.UpdateArticleRequest) (model.Article, error) {
+func (a *articleService) UpdateArticle(ctx context.Context, id uuid.UUID, req dto.UpdateArticleRequest) (model.Article, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -176,7 +178,7 @@ func (a *articleService) UpdateArticle(ctx context.Context, id int, req dto.Upda
 	}
 
 	// Validate ID
-	if id <= 0 {
+	if id == uuid.Nil {
 		return model.Article{}, fmt.Errorf("article ID must be greater than 0")
 	}
 
@@ -242,12 +244,12 @@ func (a *articleService) UpdateArticle(ctx context.Context, id int, req dto.Upda
 
 // assignTagsToArticle is a helper method to assign tags to an article
 // Uses ArticleTagService to avoid code duplication
-func (a *articleService) assignTagsToArticle(ctx context.Context, articleId int, tagNames []string) error {
+func (a *articleService) assignTagsToArticle(ctx context.Context, articleId uuid.UUID, tagNames []string) error {
 	return a.articleTagService.AsignTagsByName(ctx, articleId, tagNames)
 }
 
 // CreateArticleWithTags implements ArticleService.
-func (a *articleService) CreateArticleWithTags(ctx context.Context, req dto.CreateArticleRequest, userID int) (model.Article, error) {
+func (a *articleService) CreateArticleWithTags(ctx context.Context, req dto.CreateArticleRequest, userID uuid.UUID) (model.Article, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -256,20 +258,20 @@ func (a *articleService) CreateArticleWithTags(ctx context.Context, req dto.Crea
 	}
 
 	// Validate user ID
-	if userID <= 0 {
+	if userID == uuid.Nil {
 		return model.Article{}, fmt.Errorf("valid user ID is required")
 	}
 
 	// Generate slug automatically from title
 	slug := utils.GenerateSlug(req.Title)
-	
+
 	// Create article object
 	article := model.Article{
 		Title:     req.Title,
 		Slug:      slug,
 		Content:   req.Content,
-		User:      model.User{Id: userID},
-		Category:  model.Category{Id: req.CategoryID},
+		User:      &model.User{Id: userID},
+		Category:  &model.Category{Id: req.CategoryID},
 		Views:     0,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -312,8 +314,6 @@ func (a *articleService) CreateArticleWithTags(ctx context.Context, req dto.Crea
 
 	return createdArticle, nil
 }
-
-
 
 // FindAll implements ArticleService.
 func (a *articleService) FindAll(ctx context.Context) ([]model.Article, error) {
@@ -372,7 +372,7 @@ func (a *articleService) FindAllWithPagination(ctx context.Context, page, limit 
 }
 
 // FindByUserIdWithPagination implements ArticleService with pagination support for user articles
-func (a *articleService) FindByUserIdWithPagination(ctx context.Context, userId, page, limit int) (PaginationResult, error) {
+func (a *articleService) FindByUserIdWithPagination(ctx context.Context, userId uuid.UUID, page, limit int) (PaginationResult, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():

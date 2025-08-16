@@ -14,10 +14,11 @@ import (
 	"net/http"
 	"time"
 
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"strings"
 )
 
 // loggerAdapter adapts utils.Logger to middleware.Logger interface
@@ -53,19 +54,21 @@ func (la *loggerAdapter) Info(ctx context.Context, msg string, fields map[string
 }
 
 type Server struct {
-	uS          service.UserService
-	cS          service.CategoryService
-	aS          service.ArticleService
-	bS          service.BookmarkService
-	tS          service.TagService
-	atS         service.ArticleTagService
-	coS         service.CommentService
-	lS          service.LikeService
-	jS          service.JwtService
-	mD          middleware.AuthMiddleware
-	eMD			middleware.ErrorHandler
-	hC          *controller.HealthController
-	mC          *controller.MetricsController
+	uS  service.UserService
+	cS  service.CategoryService
+	aS  service.ArticleService
+	bS  service.BookmarkService
+	tS  service.TagService
+	atS service.ArticleTagService
+	coS service.CommentService
+	lS  service.LikeService
+	pS  service.ProductService
+	jS  service.JwtService
+	mD  middleware.AuthMiddleware
+	eMD middleware.ErrorHandler
+	hC  *controller.HealthController
+	mC  *controller.MetricsController
+	// pC          controller.ProductController
 	poolManager config.ConnectionPoolManager
 	engine      *gin.Engine
 	portApp     string
@@ -73,14 +76,15 @@ type Server struct {
 
 func (s *Server) initiateRoute() {
 	routerGroup := s.engine.Group("/api/v1")
-	controller.NewUserController(s.uS, s.mD, routerGroup,s.eMD).Route()
-	controller.NewCategoryController(s.cS, routerGroup, s.mD,s.eMD).Route()
-	controller.NewArticleController(s.aS, s.mD, routerGroup,s.eMD).Route()
-	controller.NewBookmarkController(s.bS, routerGroup, s.mD,s.eMD).Route()
-	controller.NewTagController(s.tS, routerGroup, s.mD,s.eMD).Route()
-	controller.NewArticleTagController(s.atS, routerGroup, s.mD,s.eMD).Route()
-	controller.NewCommentController(s.coS, routerGroup, s.mD,s.eMD).Route()
-	controller.NewLikeController(s.lS, routerGroup, s.mD,s.eMD).Route()
+	controller.NewUserController(s.uS, s.mD, routerGroup, s.eMD).Route()
+	controller.NewCategoryController(s.cS, routerGroup, s.mD, s.eMD).Route()
+	controller.NewArticleController(s.aS, s.mD, routerGroup, s.eMD).Route()
+	controller.NewBookmarkController(s.bS, routerGroup, s.mD, s.eMD).Route()
+	controller.NewTagController(s.tS, routerGroup, s.mD, s.eMD).Route()
+	controller.NewArticleTagController(s.atS, routerGroup, s.mD, s.eMD).Route()
+	controller.NewCommentController(s.coS, routerGroup, s.mD, s.eMD).Route()
+	controller.NewLikeController(s.lS, routerGroup, s.mD, s.eMD).Route()
+	// controller.NewProductController(s.pS, routerGroup, s.mD, s.eMD).Route()
 
 	// Health check routes (no authentication required)
 	s.hC.Route(routerGroup)
@@ -161,7 +165,7 @@ func NewServer() *Server {
 
 	log.Printf("Database connection pool initialized successfully")
 	stats := poolManager.GetStats(ctx)
-	log.Printf("Connection pool stats: Open=%d, InUse=%d, Idle=%d", 
+	log.Printf("Connection pool stats: Open=%d, InUse=%d, Idle=%d",
 		stats.OpenConnections, stats.InUseConnections, stats.IdleConnections)
 
 	engine := gin.Default()
@@ -174,7 +178,7 @@ func NewServer() *Server {
 	// Initialize logger factory with config-based log level
 	logLevel := parseLogLevel(co.LoggingConfig.Level)
 	loggerFactory := utils.NewLoggerFactory(logLevel)
-	
+
 	// Initialize metrics service and related components
 	metricsLogger := loggerFactory.GetLogger("metrics")
 	metricsService := service.NewMetricsService(metricsLogger)
@@ -183,13 +187,13 @@ func NewServer() *Server {
 
 	// Initialize rate limiting components
 	rateLimitUtilsLogger := loggerFactory.GetLogger("rate_limiter")
-	
+
 	// Create logger adapter to convert utils.Logger to middleware.Logger
 	rateLimitLogger := &loggerAdapter{logger: rateLimitUtilsLogger}
-	
+
 	rateLimitStore := middleware.NewInMemoryStore(rateLimitLogger)
 	rateLimiter := middleware.NewSlidingWindowRateLimiter(rateLimitStore, rateLimitLogger)
-	
+
 	// Create rate limit configuration from config
 	rateLimitConfig := &middleware.RateLimitConfig{
 		DefaultLimit:        co.RateLimitConfig.RequestsPerMinute,
@@ -198,17 +202,17 @@ func NewServer() *Server {
 		AuthenticatedWindow: co.RateLimitConfig.WindowSize,
 		AnonymousLimit:      co.RateLimitConfig.AnonymousRPM,
 		AnonymousWindow:     co.RateLimitConfig.WindowSize,
-		SkipPaths:          []string{"/health", "/metrics", "/swagger"},
-		IncludeHeaders:     true,
-		KeyStrategy:        "ip",
+		SkipPaths:           []string{"/health", "/metrics", "/swagger"},
+		IncludeHeaders:      true,
+		KeyStrategy:         "ip",
 	}
-	
+
 	// Create monitored rate limiting middleware
 	rateLimitMiddleware := middleware.NewMonitoredRateLimitMiddleware(rateLimiter, rateLimitConfig, rateLimitLogger)
-	
+
 	// Start periodic cleanup for rate limiting
 	cleanupMiddleware := rateLimitMiddleware.CleanupMiddleware(co.RateLimitConfig.CleanupInterval)
-	
+
 	// Start periodic monitoring for rate limiting
 	rateLimitMonitor := rateLimitMiddleware.GetMonitor()
 	rateLimitMonitor.StartPeriodicLogging(ctx, 10*time.Minute) // Log stats every 10 minutes
@@ -221,32 +225,32 @@ func NewServer() *Server {
 	// Configure middleware order for proper context propagation
 	// 1. Recovery middleware (should be first to catch panics)
 	engine.Use(middleware.RecoveryMiddleware(errorHandler))
-	
+
 	// 2. CORS middleware
 	engine.Use(CORSMiddleware())
-	
+
 	// 3. Context middleware (injects request ID, user ID, start time)
 	engine.Use(contextMiddleware.InjectContext())
-	
+
 	// 4. Request logging middleware (after context injection for proper context correlation)
 	engine.Use(requestLoggingMiddleware.LogRequestsWithMetrics())
-	
+
 	// 5. Rate limiting middleware (after context and logging, before metrics)
 	if co.RateLimitConfig.Enabled {
 		engine.Use(rateLimitMiddleware.MonitoredMiddleware())
 		engine.Use(cleanupMiddleware)
-		log.Printf("Rate limiting enabled: %d RPM for anonymous, %d RPM for authenticated users", 
+		log.Printf("Rate limiting enabled: %d RPM for anonymous, %d RPM for authenticated users",
 			co.RateLimitConfig.AnonymousRPM, co.RateLimitConfig.AuthenticatedRPM)
 	} else {
 		log.Printf("Rate limiting disabled")
 	}
-	
+
 	// 6. Metrics middleware (collects request metrics with context)
 	engine.Use(metricsMiddleware.CollectMetrics())
-	
+
 	// 7. System metrics collection (background collection)
 	engine.Use(metricsMiddleware.CollectSystemMetrics())
-	
+
 	// 8. Error handling middleware (should be last to catch all errors)
 	engine.Use(middleware.ErrorMiddleware(errorHandler))
 
@@ -260,41 +264,46 @@ func NewServer() *Server {
 	articleTagRepo := repository.NewArticleTagRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
 	likeRepo := repository.NewLikeRepository(db)
+	productRepo := repository.NewProductRepository(db)
 
 	passwordHasher := utils.NewPasswordHasher()
 	jwtService := service.NewJwtService(co.SecurityConfig)
-	
+
 	// Initialize error wrapper and validation service for pagination
 	errorWrapper := utils.NewErrorWrapper()
 	validationService := service.NewValidationService(errorWrapper)
 	paginationService := service.NewPaginationService(validationService, errorWrapper)
-	
-	userService := service.NewUserservice(userRepo, jwtService, passwordHasher, paginationService,validationService)
-	categoryService := service.NewCategoryService(categoryRepo,validationService)
+
+	userService := service.NewUserservice(userRepo, jwtService, passwordHasher, paginationService, validationService)
+	categoryService := service.NewCategoryService(categoryRepo, validationService)
 	articleTagService := service.NewArticleTagService(tagRepo, articleTagRepo, validationService)
 	articleService := service.NewArticleService(articleRepo, articleTagService, paginationService, validationService)
 	bookmarkService := service.NewBookmarkService(bookmarkRepo, validationService)
 	tagService := service.NewTagService(tagRepo, validationService)
 	commentService := service.NewCommentService(commentRepo, validationService)
 	likeService := service.NewLikeService(likeRepo, validationService)
+	productService := service.NewProductService(productRepo, validationService, paginationService)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	healthController := controller.NewHealthController(poolManager)
+	// productController := controller.NewProductController(productService)
 
 	return &Server{
-		cS:          categoryService,
-		uS:          userService,
-		aS:          articleService,
-		bS:          bookmarkService,
-		tS:          tagService,
-		jS:          jwtService,
-		atS:         articleTagService,
-		coS:         commentService,
-		lS:          likeService,
-		mD:          authMiddleware,
-		eMD:         errorHandler,
-		hC:          healthController,
-		mC:          metricsController,
+		cS:  categoryService,
+		uS:  userService,
+		aS:  articleService,
+		bS:  bookmarkService,
+		tS:  tagService,
+		jS:  jwtService,
+		atS: articleTagService,
+		coS: commentService,
+		lS:  likeService,
+		pS:  productService,
+		mD:  authMiddleware,
+		eMD: errorHandler,
+		hC:  healthController,
+		mC:  metricsController,
+		// pC:          productController,
 		poolManager: poolManager,
 		portApp:     portApp,
 		engine:      engine,

@@ -6,14 +6,16 @@ import (
 	"develapar-server/repository"
 	"fmt"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 type TagService interface {
 	CreateTag(ctx context.Context, payload model.Tags) (model.Tags, error)
 	FindAll(ctx context.Context) ([]model.Tags, error)
-	FindById(ctx context.Context, id int) (model.Tags, error)
-	UpdateTag(ctx context.Context, id int, payload model.Tags) (model.Tags, error)
-	DeleteTag(ctx context.Context, id int) error
+	FindById(ctx context.Context, id uuid.UUID) (model.Tags, error)
+	UpdateTag(ctx context.Context, id uuid.UUID, payload model.Tags) (model.Tags, error)
+	DeleteTag(ctx context.Context, id uuid.UUID) error
 }
 
 type tagService struct {
@@ -81,7 +83,7 @@ func (t *tagService) FindAll(ctx context.Context) ([]model.Tags, error) {
 }
 
 // FindById implements TagService.
-func (t *tagService) FindById(ctx context.Context, id int) (model.Tags, error) {
+func (t *tagService) FindById(ctx context.Context, id uuid.UUID) (model.Tags, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -90,7 +92,7 @@ func (t *tagService) FindById(ctx context.Context, id int) (model.Tags, error) {
 	}
 
 	// Validate tag ID
-	if id <= 0 {
+	if id == uuid.Nil {
 		return model.Tags{}, fmt.Errorf("tag ID must be greater than 0")
 	}
 
@@ -108,7 +110,7 @@ func (t *tagService) FindById(ctx context.Context, id int) (model.Tags, error) {
 }
 
 // UpdateTag implements TagService.
-func (t *tagService) UpdateTag(ctx context.Context, id int, payload model.Tags) (model.Tags, error) {
+func (t *tagService) UpdateTag(ctx context.Context, id uuid.UUID, payload model.Tags) (model.Tags, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -117,7 +119,7 @@ func (t *tagService) UpdateTag(ctx context.Context, id int, payload model.Tags) 
 	}
 
 	// Validate ID
-	if id <= 0 {
+	if id == uuid.Nil {
 		return model.Tags{}, fmt.Errorf("tag ID must be greater than 0")
 	}
 
@@ -151,7 +153,7 @@ func (t *tagService) UpdateTag(ctx context.Context, id int, payload model.Tags) 
 }
 
 // DeleteTag implements TagService.
-func (t *tagService) DeleteTag(ctx context.Context, id int) error {
+func (t *tagService) DeleteTag(ctx context.Context, id uuid.UUID) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -160,7 +162,7 @@ func (t *tagService) DeleteTag(ctx context.Context, id int) error {
 	}
 
 	// Validate ID
-	if id <= 0 {
+	if id == uuid.Nil {
 		return fmt.Errorf("tag ID must be greater than 0")
 	}
 

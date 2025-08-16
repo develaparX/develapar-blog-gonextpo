@@ -5,14 +5,16 @@ import (
 	"develapar-server/model"
 	"develapar-server/repository"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type LikeService interface {
 	CreateLike(ctx context.Context, payload model.Likes) (model.Likes, error)
-	FindLikeByArticleId(ctx context.Context, articleId int) ([]model.Likes, error)
-	FindLikeByUserId(ctx context.Context, userId int) ([]model.Likes, error)
-	DeleteLike(ctx context.Context, userId, articleId int) error
-	IsLiked(ctx context.Context, userId, articleId int) (bool, error)
+	FindLikeByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Likes, error)
+	FindLikeByUserId(ctx context.Context, userId uuid.UUID) ([]model.Likes, error)
+	DeleteLike(ctx context.Context, userId, articleId uuid.UUID) error
+	IsLiked(ctx context.Context, userId, articleId uuid.UUID) (bool, error)
 }
 
 type likeService struct {
@@ -21,7 +23,7 @@ type likeService struct {
 }
 
 // IsLiked implements LikeService.
-func (l *likeService) IsLiked(ctx context.Context, userId, articleId int) (bool, error) {
+func (l *likeService) IsLiked(ctx context.Context, userId, articleId uuid.UUID) (bool, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -30,10 +32,10 @@ func (l *likeService) IsLiked(ctx context.Context, userId, articleId int) (bool,
 	}
 
 	// Validate IDs
-	if userId <= 0 {
+	if userId == uuid.Nil {
 		return false, fmt.Errorf("user ID must be greater than 0")
 	}
-	if articleId <= 0 {
+	if articleId == uuid.Nil {
 		return false, fmt.Errorf("article ID must be greater than 0")
 	}
 
@@ -60,10 +62,10 @@ func (l *likeService) CreateLike(ctx context.Context, payload model.Likes) (mode
 	}
 
 	// Validate like data
-	if payload.User.Id <= 0 {
+	if payload.User.Id == uuid.Nil {
 		return model.Likes{}, fmt.Errorf("valid user ID is required")
 	}
-	if payload.Article.Id <= 0 {
+	if payload.Article.Id == uuid.Nil {
 		return model.Likes{}, fmt.Errorf("valid article ID is required")
 	}
 
@@ -88,7 +90,7 @@ func (l *likeService) CreateLike(ctx context.Context, payload model.Likes) (mode
 }
 
 // DeleteLike implements LikeService.
-func (l *likeService) DeleteLike(ctx context.Context, userId, articleId int) error {
+func (l *likeService) DeleteLike(ctx context.Context, userId, articleId uuid.UUID) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -97,10 +99,10 @@ func (l *likeService) DeleteLike(ctx context.Context, userId, articleId int) err
 	}
 
 	// Validate IDs
-	if userId <= 0 {
+	if userId == uuid.Nil {
 		return fmt.Errorf("user ID must be greater than 0")
 	}
-	if articleId <= 0 {
+	if articleId == uuid.Nil {
 		return fmt.Errorf("article ID must be greater than 0")
 	}
 
@@ -118,7 +120,7 @@ func (l *likeService) DeleteLike(ctx context.Context, userId, articleId int) err
 }
 
 // FindLikeByArticleId implements LikeService.
-func (l *likeService) FindLikeByArticleId(ctx context.Context, articleId int) ([]model.Likes, error) {
+func (l *likeService) FindLikeByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Likes, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -127,7 +129,7 @@ func (l *likeService) FindLikeByArticleId(ctx context.Context, articleId int) ([
 	}
 
 	// Validate article ID
-	if articleId <= 0 {
+	if articleId == uuid.Nil {
 		return nil, fmt.Errorf("article ID must be greater than 0")
 	}
 
@@ -145,7 +147,7 @@ func (l *likeService) FindLikeByArticleId(ctx context.Context, articleId int) ([
 }
 
 // FindLikeByUserId implements LikeService.
-func (l *likeService) FindLikeByUserId(ctx context.Context, userId int) ([]model.Likes, error) {
+func (l *likeService) FindLikeByUserId(ctx context.Context, userId uuid.UUID) ([]model.Likes, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -154,7 +156,7 @@ func (l *likeService) FindLikeByUserId(ctx context.Context, userId int) ([]model
 	}
 
 	// Validate user ID
-	if userId <= 0 {
+	if userId == uuid.Nil {
 		return nil, fmt.Errorf("user ID must be greater than 0")
 	}
 

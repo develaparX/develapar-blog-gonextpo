@@ -6,14 +6,16 @@ import (
 	"develapar-server/model/dto"
 	"develapar-server/repository"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 type CommentService interface {
 	CreateComment(ctx context.Context, payload model.Comment) (model.Comment, error)
-	FindCommentByArticleId(ctx context.Context, articleId int) ([]model.Comment, error)
-	FindCommentByUserId(ctx context.Context, userId int) ([]dto.CommentResponse, error)
-	EditComment(ctx context.Context, commentId int, content string, userId int) error
-	DeleteComment(ctx context.Context, commentId int, userId int) error
+	FindCommentByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Comment, error)
+	FindCommentByUserId(ctx context.Context, userId uuid.UUID) ([]dto.CommentResponse, error)
+	EditComment(ctx context.Context, commentId uuid.UUID, content string, userId uuid.UUID) error
+	DeleteComment(ctx context.Context, commentId uuid.UUID, userId uuid.UUID) error
 }
 
 var ErrUnauthorized = errors.New("unauthorized")
@@ -24,7 +26,7 @@ type commentService struct {
 }
 
 // DeleteComment implements CommentService.
-func (c *commentService) DeleteComment(ctx context.Context, commentId int, userId int) error {
+func (c *commentService) DeleteComment(ctx context.Context, commentId uuid.UUID, userId uuid.UUID) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -33,10 +35,10 @@ func (c *commentService) DeleteComment(ctx context.Context, commentId int, userI
 	}
 
 	// Validate IDs
-	if commentId <= 0 {
+	if commentId == uuid.Nil {
 		return errors.New("comment ID must be greater than 0")
 	}
-	if userId <= 0 {
+	if userId == uuid.Nil {
 		return errors.New("user ID must be greater than 0")
 	}
 
@@ -76,7 +78,7 @@ func (c *commentService) DeleteComment(ctx context.Context, commentId int, userI
 }
 
 // EditComment implements CommentService.
-func (c *commentService) EditComment(ctx context.Context, commentId int, content string, userId int) error {
+func (c *commentService) EditComment(ctx context.Context, commentId uuid.UUID, content string, userId uuid.UUID) error {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -85,10 +87,10 @@ func (c *commentService) EditComment(ctx context.Context, commentId int, content
 	}
 
 	// Validate IDs and content
-	if commentId <= 0 {
+	if commentId == uuid.Nil {
 		return errors.New("comment ID must be greater than 0")
 	}
-	if userId <= 0 {
+	if userId == uuid.Nil {
 		return errors.New("user ID must be greater than 0")
 	}
 	if content == "" {
@@ -174,7 +176,7 @@ func (c *commentService) CreateComment(ctx context.Context, payload model.Commen
 }
 
 // FindCommentByArticleId implements CommentService.
-func (c *commentService) FindCommentByArticleId(ctx context.Context, articleId int) ([]model.Comment, error) {
+func (c *commentService) FindCommentByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Comment, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -183,7 +185,7 @@ func (c *commentService) FindCommentByArticleId(ctx context.Context, articleId i
 	}
 
 	// Validate article ID
-	if articleId <= 0 {
+	if articleId == uuid.Nil {
 		return nil, errors.New("article ID must be greater than 0")
 	}
 
@@ -201,7 +203,7 @@ func (c *commentService) FindCommentByArticleId(ctx context.Context, articleId i
 }
 
 // FindCommentByUserId implements CommentService.
-func (c *commentService) FindCommentByUserId(ctx context.Context, userId int) ([]dto.CommentResponse, error) {
+func (c *commentService) FindCommentByUserId(ctx context.Context, userId uuid.UUID) ([]dto.CommentResponse, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
@@ -210,7 +212,7 @@ func (c *commentService) FindCommentByUserId(ctx context.Context, userId int) ([
 	}
 
 	// Validate user ID
-	if userId <= 0 {
+	if userId == uuid.Nil {
 		return nil, errors.New("user ID must be greater than 0")
 	}
 

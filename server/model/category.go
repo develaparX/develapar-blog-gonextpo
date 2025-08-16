@@ -1,6 +1,14 @@
 package model
 
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
 type Category struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
+	Id        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

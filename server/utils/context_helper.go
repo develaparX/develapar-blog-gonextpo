@@ -5,28 +5,35 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // GetUserIDFromGinContext safely extracts the user ID from Gin context
 // Returns the user ID as an integer and an error if extraction fails
-func GetUserIDFromGinContext(c *gin.Context) (int, error) {
+func GetUserIDFromGinContext(c *gin.Context) (uuid.UUID, error) {
+	// 1. Ambil nilai dari context
 	userIDValue, exists := c.Get("userId")
 	if !exists {
-		return 0, errors.New("user ID not found in context")
+		// Kembalikan UUID nil jika tidak ada
+		return uuid.Nil, errors.New("user ID not found in context")
 	}
 
-	// Handle different possible types that might be stored in context
+	// 2. Handle tipe data yang mungkin ada di context
 	switch v := userIDValue.(type) {
-	case int:
-		return v, nil
-	case float64:
-		// JWT claims are often parsed as float64
-		return int(v), nil
 	case string:
-		// In case it's stored as string, we would need to parse it
-		return 0, errors.New("user ID stored as string, expected numeric type")
+		// Jika tipenya string, parse ke UUID
+		parsedUUID, err := uuid.Parse(v)
+		if err != nil {
+			// Gagal parse, kembalikan error
+			return uuid.Nil, fmt.Errorf("failed to parse user ID string '%s' as UUID: %w", v, err)
+		}
+		return parsedUUID, nil
+	case uuid.UUID:
+		// Jika tipenya sudah UUID (kasus ideal), langsung kembalikan
+		return v, nil
 	default:
-		return 0, fmt.Errorf("user ID has unexpected type: %T", v)
+		// Jika tipenya bukan string atau UUID, ini adalah error
+		return uuid.Nil, fmt.Errorf("user ID has an unexpected type: %T", v)
 	}
 }
 
