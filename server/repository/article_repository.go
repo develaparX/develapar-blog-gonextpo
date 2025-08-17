@@ -64,8 +64,8 @@ func (a *articleRepository) GetArticleByCategory(ctx context.Context, cat string
 		var category model.Category
 
 		err := rows.Scan(
-			&article.Id, &article.Title, &article.Slug, &article.Content, 
-			&article.UserId, &article.CategoryId, &article.Views, &article.Status, 
+			&article.Id, &article.Title, &article.Slug, &article.Content,
+			&article.UserId, &article.CategoryId, &article.Views, &article.Status,
 			&article.CreatedAt, &article.UpdatedAt,
 			&user.Id, &user.Name, &user.Email, &user.Role,
 			&category.Id, &category.Name,
@@ -102,8 +102,8 @@ func (a *articleRepository) GetArticleBySlug(ctx context.Context, slug string) (
 	var category model.Category
 
 	err := row.Scan(
-		&article.Id, &article.Title, &article.Slug, &article.Content, 
-		&article.UserId, &article.CategoryId, &article.Views, &article.Status, 
+		&article.Id, &article.Title, &article.Slug, &article.Content,
+		&article.UserId, &article.CategoryId, &article.Views, &article.Status,
 		&article.CreatedAt, &article.UpdatedAt,
 		&user.Id, &user.Name, &user.Email, &user.Role,
 		&category.Id, &category.Name,
@@ -196,8 +196,8 @@ func (a *articleRepository) GetArticleByUserId(ctx context.Context, userId uuid.
 		var category model.Category
 
 		err := rows.Scan(
-			&article.Id, &article.Title, &article.Slug, &article.Content, 
-			&article.UserId, &article.CategoryId, &article.Views, &article.Status, 
+			&article.Id, &article.Title, &article.Slug, &article.Content,
+			&article.UserId, &article.CategoryId, &article.Views, &article.Status,
 			&article.CreatedAt, &article.UpdatedAt,
 			&user.Id, &user.Name, &user.Email, &user.Role,
 			&category.Id, &category.Name,
@@ -250,38 +250,25 @@ func (a *articleRepository) UpdateArticle(ctx context.Context, article model.Art
 // GetAll implements ArticleRepository.
 func (a *articleRepository) GetAll(ctx context.Context) ([]model.Article, error) {
 	query := `
-	SELECT 
-		a.id, a.title, a.slug, a.content, a.user_id, a.category_id, a.views, a.status, a.created_at, a.updated_at,
-		u.id, u.name, u.email, u.role,
-		c.id, c.name
-	FROM articles a
-	JOIN users u ON a.user_id = u.id
-	JOIN categories c ON a.category_id = c.id
-	ORDER BY a.created_at DESC;
-	`
+   \\\
+    `
 
 	rows, err := a.db.QueryContext(ctx, query)
 	if err != nil {
-		// Check if context was cancelled or timed out
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
 		return nil, err
 	}
 	defer rows.Close()
 
+	articleMap := make(map[uuid.UUID]*model.Article)
 	var articles []model.Article
-	for rows.Next() {
-		// Check for context cancellation during iteration
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
 
+	for rows.Next() {
 		var article model.Article
 		var user model.User
 		var category model.Category
+
+		var tagID sql.NullString
+		var tagName sql.NullString
 
 		err := rows.Scan(
 			&article.Id, &article.Title, &article.Slug, &article.Content,
@@ -289,14 +276,41 @@ func (a *articleRepository) GetAll(ctx context.Context) ([]model.Article, error)
 			&article.CreatedAt, &article.UpdatedAt,
 			&user.Id, &user.Name, &user.Email, &user.Role,
 			&category.Id, &category.Name,
+			&tagID, &tagName, // Scan kolom tag
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		article.User = &user
-		article.Category = &category
-		articles = append(articles, article)
+		// Cek apakah artikel ini sudah ada di map menggunakan ID UUID-nya
+		if _, ok := articleMap[article.Id]; !ok {
+			// Jika belum ada, ini adalah pertama kalinya kita melihat artikel ini
+			article.User = &user
+			article.Category = &category
+			article.Tags = []model.Tags{} // Inisialisasi slice tags
+
+			articles = append(articles, article)
+			articleMap[article.Id] = &articles[len(articles)-1] // Simpan pointer-nya di map
+		}
+
+		// Tambahkan tag ke artikel yang sesuai jika tag-nya valid
+		if tagID.Valid && tagName.Valid {
+			// Parse UUID dari string yang didapat dari database
+			parsedTagID, err := uuid.Parse(tagID.String)
+			if err != nil {
+				// Anda bisa mencatat error ini jika perlu, lalu lanjut ke baris berikutnya
+				continue
+			}
+
+			tag := model.Tags{
+				Id:   parsedTagID,
+				Name: tagName.String,
+			}
+
+			// Ambil artikel dari map dan tambahkan tag baru
+			existingArticle := articleMap[article.Id]
+			existingArticle.Tags = append(existingArticle.Tags, tag)
+		}
 	}
 
 	if err := rows.Err(); err != nil {
@@ -308,19 +322,18 @@ func (a *articleRepository) GetAll(ctx context.Context) ([]model.Article, error)
 
 // CreateArticle implements ArticleRepository.
 func (a *articleRepository) CreateArticle(ctx context.Context, payload model.Article) (model.Article, error) {
-	newId := uuid.Must(uuid.NewV7())
 	var arc model.Article
 	err := a.db.QueryRowContext(ctx, `
   INSERT INTO articles (id, title, content, slug, user_id, category_id, status, created_at, updated_at) 
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
   RETURNING id, title, slug, content, user_id, category_id, views, status, created_at, updated_at
 `,
-		newId,
+		payload.Id,
 		payload.Title,
 		payload.Content,
 		payload.Slug,
-		payload.UserId,
-		payload.CategoryId,
+		payload.User.Id,
+		payload.Category.Id,
 		payload.Status,
 		time.Now(),
 		time.Now(),

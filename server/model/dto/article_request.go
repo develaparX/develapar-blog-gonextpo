@@ -5,6 +5,7 @@ import "github.com/google/uuid"
 type CreateArticleRequest struct {
 	Title      string    `json:"title" binding:"required"`
 	Content    string    `json:"content" binding:"required"`
+	Status     string    `json:"status" binding:"required,oneof=draft published"`
 	CategoryID uuid.UUID `json:"category_id" binding:"required"`
 	Tags       []string  `json:"tags,omitempty"`
 }

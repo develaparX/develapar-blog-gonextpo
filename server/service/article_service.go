@@ -262,14 +262,23 @@ func (a *articleService) CreateArticleWithTags(ctx context.Context, req dto.Crea
 		return model.Article{}, fmt.Errorf("valid user ID is required")
 	}
 
+	if req.Status == "" {
+		req.Status = "draft" // Default status if not provided
+	}
+
 	// Generate slug automatically from title
 	slug := utils.GenerateSlug(req.Title)
 
+	fmt.Println("userID:", userID)
+	fmt.Println("categoryID:", req.CategoryID)
+
 	// Create article object
 	article := model.Article{
+		Id:        uuid.Must(uuid.NewV7()),
 		Title:     req.Title,
 		Slug:      slug,
 		Content:   req.Content,
+		Status:    req.Status,
 		User:      &model.User{Id: userID},
 		Category:  &model.Category{Id: req.CategoryID},
 		Views:     0,
