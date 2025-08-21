@@ -4,13 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"develapar-server/model"
+	"develapar-server/model/dto"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type ArticleRepository interface {
-	GetAll(ctx context.Context) ([]model.Article, error)
+	GetAll(ctx context.Context) ([]dto.ArticleResponse, error)
 	GetAllWithPagination(ctx context.Context, offset, limit int) ([]model.Article, int, error)
 	CreateArticle(ctx context.Context, payload model.Article) (model.Article, error)
 	UpdateArticle(ctx context.Context, article model.Article) (model.Article, error)
@@ -248,9 +249,19 @@ func (a *articleRepository) UpdateArticle(ctx context.Context, article model.Art
 }
 
 // GetAll implements ArticleRepository.
-func (a *articleRepository) GetAll(ctx context.Context) ([]model.Article, error) {
+func (a *articleRepository) GetAll(ctx context.Context) ([]dto.ArticleResponse, error) {
 	query := `
-   \\\
+    SELECT 
+        a.id, a.title, a.slug, a.content, a.user_id, a.category_id, a.views, a.status, a.created_at, a.updated_at,
+        u.id, u.name, u.email, u.role,
+        c.id, c.name,
+        t.id, t.name
+    FROM articles a
+    JOIN users u ON a.user_id = u.id
+    JOIN categories c ON a.category_id = c.id
+    LEFT JOIN article_tags at ON a.id = at.article_id
+    LEFT JOIN tags t ON at.tag_id = t.id
+    ORDER BY a.created_at DESC, a.id;
     `
 
 	rows, err := a.db.QueryContext(ctx, query)
@@ -259,11 +270,11 @@ func (a *articleRepository) GetAll(ctx context.Context) ([]model.Article, error)
 	}
 	defer rows.Close()
 
-	articleMap := make(map[uuid.UUID]*model.Article)
-	var articles []model.Article
+	articleMap := make(map[uuid.UUID]*dto.ArticleResponse)
+	var articles []dto.ArticleResponse
 
 	for rows.Next() {
-		var article model.Article
+		var article dto.ArticleResponse
 		var user model.User
 		var category model.Category
 

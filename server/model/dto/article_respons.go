@@ -1,6 +1,12 @@
 package dto
 
-import "time"
+import (
+	"time"
+
+	"develapar-server/model"
+
+	"github.com/google/uuid"
+)
 
 type CommentResponse struct {
 	Id        int             `json:"id"`
@@ -17,7 +23,17 @@ type UserResponse struct {
 }
 
 type ArticleResponse struct {
-	Id    int    `json:"id"`
-	Title string `json:"title"`
-	Slug  string `json:"slug"`
+	Id         uuid.UUID       `json:"id"`
+	Title      string          `json:"title"`
+	Slug       string          `json:"slug"`
+	Content    string          `json:"content"`
+	UserId     uuid.UUID       `json:"user_id"`
+	User       *model.User     `json:"user,omitempty"`
+	CategoryId uuid.UUID       `json:"category_id"`
+	Category   *model.Category `json:"category,omitempty"`
+	Views      int             `json:"views"`
+	Status     string          `json:"status"`
+	CreatedAt  time.Time       `json:"created_at"`
+	UpdatedAt  time.Time       `json:"updated_at"`
+	Tags       []model.Tags    `json:"tags"`
 }

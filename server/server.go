@@ -54,21 +54,20 @@ func (la *loggerAdapter) Info(ctx context.Context, msg string, fields map[string
 }
 
 type Server struct {
-	uS  service.UserService
-	cS  service.CategoryService
-	aS  service.ArticleService
-	bS  service.BookmarkService
-	tS  service.TagService
-	atS service.ArticleTagService
-	coS service.CommentService
-	lS  service.LikeService
-	pS  service.ProductService
-	jS  service.JwtService
-	mD  middleware.AuthMiddleware
-	eMD middleware.ErrorHandler
-	hC  *controller.HealthController
-	mC  *controller.MetricsController
-	// pC          controller.ProductController
+	uS          service.UserService
+	cS          service.CategoryService
+	aS          service.ArticleService
+	bS          service.BookmarkService
+	tS          service.TagService
+	atS         service.ArticleTagService
+	coS         service.CommentService
+	lS          service.LikeService
+	pS          service.ProductService
+	jS          service.JwtService
+	mD          middleware.AuthMiddleware
+	eMD         middleware.ErrorHandler
+	hC          *controller.HealthController
+	mC          *controller.MetricsController
 	poolManager config.ConnectionPoolManager
 	engine      *gin.Engine
 	portApp     string
@@ -84,7 +83,7 @@ func (s *Server) initiateRoute() {
 	controller.NewArticleTagController(s.atS, routerGroup, s.mD, s.eMD).Route()
 	controller.NewCommentController(s.coS, routerGroup, s.mD, s.eMD).Route()
 	controller.NewLikeController(s.lS, routerGroup, s.mD, s.eMD).Route()
-	// controller.NewProductController(s.pS, routerGroup, s.mD, s.eMD).Route()
+	controller.NewProductController(s.pS, routerGroup, s.mD, s.eMD).Route()
 
 	// Health check routes (no authentication required)
 	s.hC.Route(routerGroup)
@@ -286,24 +285,22 @@ func NewServer() *Server {
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	healthController := controller.NewHealthController(poolManager)
-	// productController := controller.NewProductController(productService)
 
 	return &Server{
-		cS:  categoryService,
-		uS:  userService,
-		aS:  articleService,
-		bS:  bookmarkService,
-		tS:  tagService,
-		jS:  jwtService,
-		atS: articleTagService,
-		coS: commentService,
-		lS:  likeService,
-		pS:  productService,
-		mD:  authMiddleware,
-		eMD: errorHandler,
-		hC:  healthController,
-		mC:  metricsController,
-		// pC:          productController,
+		cS:          categoryService,
+		uS:          userService,
+		aS:          articleService,
+		bS:          bookmarkService,
+		tS:          tagService,
+		jS:          jwtService,
+		atS:         articleTagService,
+		coS:         commentService,
+		lS:          likeService,
+		pS:          productService,
+		mD:          authMiddleware,
+		eMD:         errorHandler,
+		hC:          healthController,
+		mC:          metricsController,
 		poolManager: poolManager,
 		portApp:     portApp,
 		engine:      engine,

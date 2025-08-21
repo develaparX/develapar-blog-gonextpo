@@ -19,5 +19,5 @@ type Article struct {
 	Status     string    `json:"status"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
-	Tags       []Tags    `json:"tags"` // <-- Tambahkan in
+	Tags       []Tags    `json:"tags"`
 }

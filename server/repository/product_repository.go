@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"develapar-server/model"
+	"develapar-server/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,13 +48,14 @@ type productRepository struct {
 // CreateProductCategory implements ProductRepository
 func (r *productRepository) CreateProductCategory(ctx context.Context, payload model.ProductCategory) (model.ProductCategory, error) {
 	newId := uuid.Must(uuid.NewV7())
+	slug := utils.GenerateSlug(payload.Name)
 	var category model.ProductCategory
 
 	query := `INSERT INTO product_categories (id, name, slug, description, created_at, updated_at) 
 			  VALUES ($1, $2, $3, $4, $5, $6) 
 			  RETURNING id, name, slug, description, created_at, updated_at`
 
-	err := r.db.QueryRowContext(ctx, query, newId, payload.Name, payload.Slug, payload.Description, time.Now(), time.Now()).
+	err := r.db.QueryRowContext(ctx, query, newId, payload.Name, slug, payload.Description, time.Now(), time.Now()).
 		Scan(&category.Id, &category.Name, &category.Slug, &category.Description, &category.CreatedAt, &category.UpdatedAt)
 
 	if err != nil {

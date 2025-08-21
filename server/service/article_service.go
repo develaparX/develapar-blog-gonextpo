@@ -14,7 +14,7 @@ import (
 
 type ArticleService interface {
 	CreateArticleWithTags(ctx context.Context, req dto.CreateArticleRequest, userID uuid.UUID) (model.Article, error)
-	FindAll(ctx context.Context) ([]model.Article, error)
+	FindAll(ctx context.Context) ([]dto.ArticleResponse, error)
 	FindAllWithPagination(ctx context.Context, page, limit int) (PaginationResult, error)
 	UpdateArticle(ctx context.Context, id uuid.UUID, req dto.UpdateArticleRequest) (model.Article, error)
 	FindById(ctx context.Context, id uuid.UUID) (model.Article, error)
@@ -325,8 +325,8 @@ func (a *articleService) CreateArticleWithTags(ctx context.Context, req dto.Crea
 }
 
 // FindAll implements ArticleService.
-func (a *articleService) FindAll(ctx context.Context) ([]model.Article, error) {
-	// Check context cancellation
+func (a *articleService) FindAll(ctx context.Context) ([]dto.ArticleResponse, error) {
+	// Check dto.ArticleResponse
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
