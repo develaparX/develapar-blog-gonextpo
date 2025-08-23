@@ -16,15 +16,15 @@ type ProductCategory struct {
 }
 
 type Product struct {
-	Id                uuid.UUID          `json:"id"`
-	ProductCategoryId *uuid.UUID         `json:"product_category_id"`
-	ProductCategory   *ProductCategory   `json:"product_category,omitempty"`
-	Name              string             `json:"name"`
-	Description       *string            `json:"description"`
-	ImageUrl          *string            `json:"image_url"`
-	IsActive          bool               `json:"is_active"`
-	CreatedAt         time.Time          `json:"created_at"`
-	UpdatedAt         time.Time          `json:"updated_at"`
+	Id                uuid.UUID        `json:"id"`
+	ProductCategoryId *uuid.UUID       `json:"product_category_id" binding:"required"`
+	ProductCategory   *ProductCategory `json:"product_category,omitempty"`
+	Name              string           `json:"name"`
+	Description       *string          `json:"description"`
+	ImageUrl          *string          `json:"image_url"`
+	IsActive          bool             `json:"is_active"`
+	CreatedAt         time.Time        `json:"created_at"`
+	UpdatedAt         time.Time        `json:"updated_at"`
 }
 
 type ProductAffiliateLink struct {

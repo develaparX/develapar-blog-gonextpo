@@ -37,16 +37,67 @@ func NewProductController(
 func (c *ProductController) Route() {
 
 	{
-		router := c.rg.Group("/product-categories")
-		router.GET("/", c.GetAllProductCategories)
-		router.GET("/:id", c.GetProductCategoryById)
-		router.GET("/s/:slug", c.GetProductCategoryBySlug)
+		routerProductCat := c.rg.Group("/product-categories")
+		routerProductCat.GET("/", c.GetAllProductCategories)
+		routerProductCat.GET("/:id", c.GetProductCategoryById)
+		routerProductCat.GET("/s/:slug", c.GetProductCategoryBySlug)
 
-		routerAuth := router.Group("/", c.mD.CheckToken())
-		routerAuth.POST("/", c.CreateProductCategory)
-		routerAuth.PUT("/:id", c.UpdateProductCategory)
-		routerAuth.DELETE("/:id", c.DeleteProductCategory)
+		routerPCAuth := routerProductCat.Group("/", c.mD.CheckToken("admin"))
+		routerPCAuth.POST("/", c.CreateProductCategory)
+		routerPCAuth.PUT("/:id", c.UpdateProductCategory)
+		routerPCAuth.DELETE("/:id", c.DeleteProductCategory)
 	}
+
+	{
+		routerProduct := c.rg.Group("/products")
+
+		routerPAuth := routerProduct.Group("/", c.mD.CheckToken("admin", "user"))
+		routerPAuth.POST("/", c.CreateProduct)
+	}
+
+}
+
+func (c *ProductController) CreateProduct(ginCtx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	var payload model.Product
+	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
+		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+
+		return
+	}
+
+	data, err := c.s.CreateProduct(reqCtx, payload)
+	if err != nil {
+		if reqCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(reqCtx, "Create Product")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if reqCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(reqCtx, "Create Product")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to create product")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+
+	}
+
+	responseData := gin.H{
+		"message": "Product created successfully",
+		"product": data,
+	}
+	c.responseHelper.SendCreated(ginCtx, responseData)
 }
 
 func (c *ProductController) CreateProductCategory(ginCtx *gin.Context) {

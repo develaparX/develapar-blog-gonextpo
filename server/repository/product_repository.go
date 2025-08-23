@@ -174,7 +174,8 @@ func (r *productRepository) DeleteProductCategory(ctx context.Context, id uuid.U
 
 func NewProductRepository(database *sql.DB) ProductRepository {
 	return &productRepository{db: database}
-} // Cr
+}
+
 func (r *productRepository) CreateProduct(ctx context.Context, payload model.Product) (model.Product, error) {
 	newId := uuid.Must(uuid.NewV7())
 	var product model.Product
