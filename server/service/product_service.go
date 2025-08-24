@@ -146,7 +146,6 @@ func (s *productService) GetAllProducts(ctx context.Context) ([]model.Product, e
 	return s.productRepo.GetAllProducts(ctx)
 }
 
-// GetAllProductsWithPagination implements ProductService
 // func (s *productService) GetAllProductsWithPagination(ctx context.Context, page, limit int) ([]model.Product, int, int, error) {
 // 	offset := s.pagination.CalculateOffset(page, limit)
 
@@ -155,7 +154,7 @@ func (s *productService) GetAllProducts(ctx context.Context) ([]model.Product, e
 // 		return nil, 0, 0, err
 // 	}
 
-// 	totalPages := s.pagination.CalculateTotalPages(totalCount, validatedLimit)
+// 	totalPages := s.pagination.CalculateTotalPages(totalCount, limit)
 // 	return products, totalCount, totalPages, nil
 // }
 

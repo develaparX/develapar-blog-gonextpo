@@ -18,7 +18,7 @@ type ProductCategory struct {
 type Product struct {
 	Id                uuid.UUID        `json:"id"`
 	ProductCategoryId *uuid.UUID       `json:"product_category_id" binding:"required"`
-	ProductCategory   *ProductCategory `json:"product_category,omitempty"`
+	ProductCategory   *ProductCategory `json:"product_category,omitempty" binding:required`
 	Name              string           `json:"name"`
 	Description       *string          `json:"description"`
 	ImageUrl          *string          `json:"image_url"`
