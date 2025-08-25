@@ -2,9 +2,10 @@ package controller
 
 import (
 	"develapar-server/middleware"
-	"develapar-server/model"
+	"develapar-server/model/dto"
 	"develapar-server/service"
 	"develapar-server/utils"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,15 +28,16 @@ func NewProductController(
 	errorHandler middleware.ErrorHandler,
 ) *ProductController {
 	return &ProductController{
-		s:            pS,
-		rg:           rg,
-		mD:           mD,
-		errorHandler: errorHandler,
+		s:              pS,
+		rg:             rg,
+		mD:             mD,
+		errorHandler:   errorHandler,
+		responseHelper: utils.NewResponseHelper(),
 	}
 }
 
 func (c *ProductController) Route() {
-
+	// Product Categories routes
 	{
 		routerProductCat := c.rg.Group("/product-categories")
 		routerProductCat.GET("/", c.GetAllProductCategories)
@@ -48,9 +50,10 @@ func (c *ProductController) Route() {
 		routerPCAuth.DELETE("/:id", c.DeleteProductCategory)
 	}
 
+	// Products routes
 	{
 		routerProduct := c.rg.Group("/products")
-		// routerProduct.GET("/", c.GetAllProducts)
+		routerProduct.GET("/", c.GetAllProducts)
 		routerProduct.GET("/:id", c.GetProductById)
 		routerProduct.GET("/category/:id", c.GetProductsByCategory)
 		routerProduct.GET("/article/:id", c.GetProductsByArticleId)
@@ -62,58 +65,381 @@ func (c *ProductController) Route() {
 		routerPAuth.POST("/:id/article/:articleId", c.AddProductToArticle)
 		routerPAuth.DELETE("/:id/article/:articleId", c.RemoveProductFromArticle)
 
+		// Affiliate links routes
 		routerAffiliate := routerProduct.Group("/:id/affiliate", c.mD.CheckToken("admin"))
 		routerAffiliate.POST("/", c.CreateProductAffiliateLink)
 		routerAffiliate.GET("/", c.GetAffiliateLinksbyProductId)
 		routerAffiliate.PUT("/:affiliateId", c.UpdateProductAffiliateLink)
 		routerAffiliate.DELETE("/:affiliateId", c.DeleteProductAffiliateLink)
-
 	}
-
 }
 
-// func (c *ProductController) GetAllProducts(ginCtx *gin.Context) {
-// 	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
-// 	defer cancel()
+// Product Category Controllers
+func (c *ProductController) CreateProductCategory(ginCtx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
 
-// 	page := utils.StringToInt(ginCtx.Query("page"), 1)
-// 	limit := utils.StringToInt(ginCtx.Query("limit"), 10)
+	var req dto.CreateProductCategoryRequest
+	if err := ginCtx.ShouldBindJSON(&req); err != nil {
+		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
 
-// 	data, total, totalPages, err := c.s.GetAllProductsWithPagination(reqCtx, page, limit)
-// 	if err != nil {
-// 		if reqCtx.Err() == context.DeadlineExceeded {
-// 			appErr := c.errorHandler.TimeoutError(reqCtx, "Get All Products")
-// 			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-// 			return
-// 		}
-// 		if reqCtx.Err() == context.Canceled {
-// 			appErr := c.errorHandler.CancellationError(reqCtx, "Get All Products")
-// 			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-// 			return
-// 		}
-// 		if appErr, ok := err.(*utils.AppError); ok {
-// 			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-// 			return
-// 		}
+	data, err := c.s.CreateProductCategory(reqCtx, req)
+	if err != nil {
+		if reqCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(reqCtx, "Create Product Category")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if reqCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(reqCtx, "Create Product Category")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
 
-// 		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to get products")
-// 		appErr.StatusCode = 500
-// 		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-// 		return
-// 	}
+		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to create product category")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
 
-// 	responseData := gin.H{
-// 		"message":  "Products retrieved successfully",
-// 		"products": data,
-// 		"pagination": gin.H{
-// 			"total_items": total,
-// 			"total_pages": totalPages,
-// 			"current_page": page,
-// 			"limit": limit,
-// 		},
-// 	}
-// 	c.responseHelper.SendSuccess(ginCtx, responseData)
-// }
+	responseData := gin.H{
+		"message":          "Product Category created successfully",
+		"product_category": data,
+	}
+	c.responseHelper.SendCreated(ginCtx, responseData)
+}
+
+func (c *ProductController) GetAllProductCategories(ginCtx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	// Parse pagination parameters
+	page := 1
+	limit := 10
+	
+	if pageStr := ginCtx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	
+	if limitStr := ginCtx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	data, err := c.s.GetAllProductCategoriesWithPagination(reqCtx, page, limit)
+	if err != nil {
+		if reqCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(reqCtx, "Get All Product Categories")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if reqCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(reqCtx, "Get All Product Categories")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to get product categories")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	c.responseHelper.SendSuccess(ginCtx, data)
+}
+
+func (c *ProductController) GetProductCategoryById(ginCtx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	id := ginCtx.Param("id")
+	if id == "" {
+		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Product Category ID is required")
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	uuId, err := uuid.Parse(id)
+	if err != nil {
+		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Invalid Product Category ID format: "+err.Error())
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	data, err := c.s.GetProductCategoryById(reqCtx, uuId)
+	if err != nil {
+		if reqCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(reqCtx, "Get Product Category By ID")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if reqCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(reqCtx, "Get Product Category By ID")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to get product category by ID")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	responseData := gin.H{
+		"message":          "Product Category retrieved successfully",
+		"product_category": data,
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
+}
+
+func (c *ProductController) GetProductCategoryBySlug(ginCtx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	slug := ginCtx.Param("slug")
+	if slug == "" {
+		appErr := c.errorHandler.ValidationError(reqCtx, "slug", "Product Category slug is required")
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	data, err := c.s.GetProductCategoryBySlug(reqCtx, slug)
+	if err != nil {
+		if reqCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(reqCtx, "Get Product Category By Slug")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if reqCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(reqCtx, "Get Product Category By Slug")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to get product category by slug")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	responseData := gin.H{
+		"message":          "Product Category retrieved successfully",
+		"product_category": data,
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
+}
+
+func (c *ProductController) UpdateProductCategory(ginCtx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	id := ginCtx.Param("id")
+	if id == "" {
+		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Product Category ID is required")
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	uuId, err := uuid.Parse(id)
+	if err != nil {
+		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Invalid Product Category ID format: "+err.Error())
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	var req dto.UpdateProductCategoryRequest
+	if err := ginCtx.ShouldBindJSON(&req); err != nil {
+		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	data, err := c.s.UpdateProductCategory(reqCtx, uuId, req)
+	if err != nil {
+		if reqCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(reqCtx, "Update Product Category")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if reqCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(reqCtx, "Update Product Category")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to update product category")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	responseData := gin.H{
+		"message":          "Product Category updated successfully",
+		"product_category": data,
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
+}
+
+func (c *ProductController) DeleteProductCategory(ginCtx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	id := ginCtx.Param("id")
+	if id == "" {
+		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Product Category ID is required")
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	uuId, err := uuid.Parse(id)
+	if err != nil {
+		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Invalid Product Category ID format: "+err.Error())
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	err = c.s.DeleteProductCategory(reqCtx, uuId)
+	if err != nil {
+		if reqCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(reqCtx, "Delete Product Category")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if reqCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(reqCtx, "Delete Product Category")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to delete product category")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	responseData := gin.H{
+		"message": "Product Category deleted successfully",
+	}
+	c.responseHelper.SendSuccess(ginCtx, responseData)
+}
+
+// Product Controllers
+func (c *ProductController) CreateProduct(ginCtx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	var req dto.CreateProductRequest
+	if err := ginCtx.ShouldBindJSON(&req); err != nil {
+		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	data, err := c.s.CreateProduct(reqCtx, req)
+	if err != nil {
+		if reqCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(reqCtx, "Create Product")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if reqCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(reqCtx, "Create Product")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to create product")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	responseData := gin.H{
+		"message": "Product created successfully",
+		"product": data,
+	}
+	c.responseHelper.SendCreated(ginCtx, responseData)
+}
+
+func (c *ProductController) GetAllProducts(ginCtx *gin.Context) {
+	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	// Parse pagination parameters
+	page := 1
+	limit := 10
+	
+	if pageStr := ginCtx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	
+	if limitStr := ginCtx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	data, err := c.s.GetAllProductsWithPagination(reqCtx, page, limit)
+	if err != nil {
+		if reqCtx.Err() == context.DeadlineExceeded {
+			appErr := c.errorHandler.TimeoutError(reqCtx, "Get All Products")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if reqCtx.Err() == context.Canceled {
+			appErr := c.errorHandler.CancellationError(reqCtx, "Get All Products")
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+		if appErr, ok := err.(*utils.AppError); ok {
+			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+			return
+		}
+
+		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to get products")
+		appErr.StatusCode = 500
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
+
+	c.responseHelper.SendSuccess(ginCtx, data)
+}
 
 func (c *ProductController) GetProductById(ginCtx *gin.Context) {
 	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
@@ -181,7 +507,23 @@ func (c *ProductController) GetProductsByCategory(ginCtx *gin.Context) {
 		return
 	}
 
-	data, err := c.s.GetProductsByCategory(reqCtx, uuId)
+	// Parse pagination parameters
+	page := 1
+	limit := 10
+	
+	if pageStr := ginCtx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	
+	if limitStr := ginCtx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	data, err := c.s.GetProductsByCategoryWithPagination(reqCtx, uuId, page, limit)
 	if err != nil {
 		if reqCtx.Err() == context.DeadlineExceeded {
 			appErr := c.errorHandler.TimeoutError(reqCtx, "Get Products By Category")
@@ -215,13 +557,6 @@ func (c *ProductController) UpdateProduct(ginCtx *gin.Context) {
 	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	var payload model.Product
-	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
-		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
 	id := ginCtx.Param("id")
 	if id == "" {
 		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Product ID is required")
@@ -236,9 +571,14 @@ func (c *ProductController) UpdateProduct(ginCtx *gin.Context) {
 		return
 	}
 
-	payload.Id = uuId
+	var req dto.UpdateProductRequest
+	if err := ginCtx.ShouldBindJSON(&req); err != nil {
+		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
 
-	data, err := c.s.UpdateProduct(reqCtx, payload)
+	data, err := c.s.UpdateProduct(reqCtx, uuId, req)
 	if err != nil {
 		if reqCtx.Err() == context.DeadlineExceeded {
 			appErr := c.errorHandler.TimeoutError(reqCtx, "Update Product")
@@ -315,16 +655,10 @@ func (c *ProductController) DeleteProduct(ginCtx *gin.Context) {
 	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
+// Product Affiliate Link Controllers
 func (c *ProductController) CreateProductAffiliateLink(ginCtx *gin.Context) {
 	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
-
-	var payload model.ProductAffiliateLink
-	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
-		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
 
 	id := ginCtx.Param("id")
 	if id == "" {
@@ -340,9 +674,14 @@ func (c *ProductController) CreateProductAffiliateLink(ginCtx *gin.Context) {
 		return
 	}
 
-	payload.ProductId = uuId
+	var req dto.CreateProductAffiliateLinkRequest
+	if err := ginCtx.ShouldBindJSON(&req); err != nil {
+		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
 
-	data, err := c.s.CreateProductAffiliateLink(reqCtx, payload)
+	data, err := c.s.CreateProductAffiliateLink(reqCtx, uuId, req)
 	if err != nil {
 		if reqCtx.Err() == context.DeadlineExceeded {
 			appErr := c.errorHandler.TimeoutError(reqCtx, "Create Product Affiliate Link")
@@ -424,13 +763,6 @@ func (c *ProductController) UpdateProductAffiliateLink(ginCtx *gin.Context) {
 	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	var payload model.ProductAffiliateLink
-	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
-		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
 	id := ginCtx.Param("id")
 	if id == "" {
 		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Product ID is required")
@@ -459,10 +791,14 @@ func (c *ProductController) UpdateProductAffiliateLink(ginCtx *gin.Context) {
 		return
 	}
 
-	payload.ProductId = uuId
-	payload.Id = affiliateUuId
+	var req dto.UpdateProductAffiliateLinkRequest
+	if err := ginCtx.ShouldBindJSON(&req); err != nil {
+		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
+		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
+		return
+	}
 
-	data, err := c.s.UpdateProductAffiliateLink(reqCtx, payload)
+	data, err := c.s.UpdateProductAffiliateLink(reqCtx, uuId, affiliateUuId, req)
 	if err != nil {
 		if reqCtx.Err() == context.DeadlineExceeded {
 			appErr := c.errorHandler.TimeoutError(reqCtx, "Update Product Affiliate Link")
@@ -495,20 +831,6 @@ func (c *ProductController) UpdateProductAffiliateLink(ginCtx *gin.Context) {
 func (c *ProductController) DeleteProductAffiliateLink(ginCtx *gin.Context) {
 	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
-
-	id := ginCtx.Param("id")
-	if id == "" {
-		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Product ID is required")
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	_, err := uuid.Parse(id)
-	if err != nil {
-		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Invalid Product ID format: "+err.Error())
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
 
 	affiliateId := ginCtx.Param("affiliateId")
 	if affiliateId == "" {
@@ -553,6 +875,7 @@ func (c *ProductController) DeleteProductAffiliateLink(ginCtx *gin.Context) {
 	c.responseHelper.SendSuccess(ginCtx, responseData)
 }
 
+// Article Product Relations Controllers
 func (c *ProductController) AddProductToArticle(ginCtx *gin.Context) {
 	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
 	defer cancel()
@@ -693,7 +1016,23 @@ func (c *ProductController) GetProductsByArticleId(ginCtx *gin.Context) {
 		return
 	}
 
-	data, err := c.s.GetProductsByArticleId(reqCtx, uuId)
+	// Parse pagination parameters
+	page := 1
+	limit := 10
+	
+	if pageStr := ginCtx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	
+	if limitStr := ginCtx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	data, err := c.s.GetProductsByArticleIdWithPagination(reqCtx, uuId, page, limit)
 	if err != nil {
 		if reqCtx.Err() == context.DeadlineExceeded {
 			appErr := c.errorHandler.TimeoutError(reqCtx, "Get Products By Article ID")
@@ -741,7 +1080,23 @@ func (c *ProductController) GetArticlesByProductId(ginCtx *gin.Context) {
 		return
 	}
 
-	data, err := c.s.GetArticlesByProductId(reqCtx, uuId)
+	// Parse pagination parameters
+	page := 1
+	limit := 10
+	
+	if pageStr := ginCtx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	
+	if limitStr := ginCtx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	data, err := c.s.GetArticlesByProductIdWithPagination(reqCtx, uuId, page, limit)
 	if err != nil {
 		if reqCtx.Err() == context.DeadlineExceeded {
 			appErr := c.errorHandler.TimeoutError(reqCtx, "Get Articles By Product ID")
@@ -767,320 +1122,6 @@ func (c *ProductController) GetArticlesByProductId(ginCtx *gin.Context) {
 	responseData := gin.H{
 		"message":  "Articles retrieved successfully",
 		"articles": data,
-	}
-	c.responseHelper.SendSuccess(ginCtx, responseData)
-}
-
-func (c *ProductController) CreateProduct(ginCtx *gin.Context) {
-	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
-	defer cancel()
-
-	var payload model.Product
-	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
-		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-
-		return
-	}
-
-	data, err := c.s.CreateProduct(reqCtx, payload)
-	if err != nil {
-		if reqCtx.Err() == context.DeadlineExceeded {
-			appErr := c.errorHandler.TimeoutError(reqCtx, "Create Product")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if reqCtx.Err() == context.Canceled {
-			appErr := c.errorHandler.CancellationError(reqCtx, "Create Product")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if appErr, ok := err.(*utils.AppError); ok {
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-
-		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to create product")
-		appErr.StatusCode = 500
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-
-	}
-
-	responseData := gin.H{
-		"message": "Product created successfully",
-		"product": data,
-	}
-	c.responseHelper.SendCreated(ginCtx, responseData)
-}
-
-func (c *ProductController) CreateProductCategory(ginCtx *gin.Context) {
-	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
-	defer cancel()
-
-	var payload model.ProductCategory
-	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
-		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-
-		return
-	}
-
-	data, err := c.s.CreateProductCategory(reqCtx, payload)
-	if err != nil {
-		if reqCtx.Err() == context.DeadlineExceeded {
-			appErr := c.errorHandler.TimeoutError(reqCtx, "Create Product Category")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if reqCtx.Err() == context.Canceled {
-			appErr := c.errorHandler.CancellationError(reqCtx, "Create Product Category")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if appErr, ok := err.(*utils.AppError); ok {
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-
-		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to create category")
-		appErr.StatusCode = 500
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-
-	}
-
-	responseData := gin.H{
-		"message":          "Product Category created successfully",
-		"product_category": data,
-	}
-	c.responseHelper.SendCreated(ginCtx, responseData)
-}
-
-func (c *ProductController) GetAllProductCategories(ginCtx *gin.Context) {
-	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
-	defer cancel()
-
-	data, err := c.s.GetAllProductCategories(reqCtx)
-	if err != nil {
-		if reqCtx.Err() == context.DeadlineExceeded {
-			appErr := c.errorHandler.TimeoutError(reqCtx, "Get All Product Categories")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if reqCtx.Err() == context.Canceled {
-			appErr := c.errorHandler.CancellationError(reqCtx, "Get All Product Categories")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if appErr, ok := err.(*utils.AppError); ok {
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-
-		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to get product categories")
-		appErr.StatusCode = 500
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	responseData := gin.H{
-		"message":            "Product Categories retrieved successfully",
-		"product_categories": data,
-	}
-	c.responseHelper.SendSuccess(ginCtx, responseData)
-}
-
-func (c *ProductController) GetProductCategoryById(ginCtx *gin.Context) {
-	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
-	defer cancel()
-
-	id := ginCtx.Param("id")
-	if id == "" {
-		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Product Category ID is required")
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	uuId, err := uuid.Parse(id)
-	if err != nil {
-		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Invalid Product Category ID format: "+err.Error())
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	data, err := c.s.GetProductCategoryById(reqCtx, uuId)
-	if err != nil {
-		if reqCtx.Err() == context.DeadlineExceeded {
-			appErr := c.errorHandler.TimeoutError(reqCtx, "Get Product Category By ID")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if reqCtx.Err() == context.Canceled {
-			appErr := c.errorHandler.CancellationError(reqCtx, "Get Product Category By ID")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if appErr, ok := err.(*utils.AppError); ok {
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-
-		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to get product category by ID")
-		appErr.StatusCode = 500
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	responseData := gin.H{
-		"message":          "Product Category retrieved successfully",
-		"product_category": data,
-	}
-	c.responseHelper.SendSuccess(ginCtx, responseData)
-}
-
-func (c *ProductController) GetProductCategoryBySlug(ginCtx *gin.Context) {
-	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
-	defer cancel()
-
-	slug := ginCtx.Param("slug")
-	if slug == "" {
-		appErr := c.errorHandler.ValidationError(reqCtx, "slug", "Product Category slug is required")
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	data, err := c.s.GetProductCategoryBySlug(reqCtx, slug)
-	if err != nil {
-		if reqCtx.Err() == context.DeadlineExceeded {
-			appErr := c.errorHandler.TimeoutError(reqCtx, "Get Product Category By Slug")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if reqCtx.Err() == context.Canceled {
-			appErr := c.errorHandler.CancellationError(reqCtx, "Get Product Category By Slug")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if appErr, ok := err.(*utils.AppError); ok {
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-
-		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to get product category by slug")
-		appErr.StatusCode = 500
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	responseData := gin.H{
-		"message":          "Product Category retrieved successfully",
-		"product_category": data,
-	}
-	c.responseHelper.SendSuccess(ginCtx, responseData)
-}
-
-func (c *ProductController) UpdateProductCategory(ginCtx *gin.Context) {
-	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
-	defer cancel()
-
-	var payload model.ProductCategory
-	if err := ginCtx.ShouldBindJSON(&payload); err != nil {
-		appErr := c.errorHandler.ValidationError(reqCtx, "payload", "Invalid request payload: "+err.Error())
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	id := ginCtx.Param("id")
-	if id == "" {
-		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Product Category ID is required")
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	uuId, err := uuid.Parse(id)
-	if err != nil {
-		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Invalid Product Category ID format: "+err.Error())
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	payload.Id = uuId
-
-	data, err := c.s.UpdateProductCategory(reqCtx, payload)
-	if err != nil {
-		if reqCtx.Err() == context.DeadlineExceeded {
-			appErr := c.errorHandler.TimeoutError(reqCtx, "Update Product Category")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if reqCtx.Err() == context.Canceled {
-			appErr := c.errorHandler.CancellationError(reqCtx, "Update Product Category")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if appErr, ok := err.(*utils.AppError); ok {
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-
-		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to update product category")
-		appErr.StatusCode = 500
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	responseData := gin.H{
-		"message":          "Product Category updated successfully",
-		"product_category": data,
-	}
-	c.responseHelper.SendSuccess(ginCtx, responseData)
-}
-
-func (c *ProductController) DeleteProductCategory(ginCtx *gin.Context) {
-	reqCtx, cancel := context.WithTimeout(ginCtx.Request.Context(), 15*time.Second)
-	defer cancel()
-
-	id := ginCtx.Param("id")
-	if id == "" {
-		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Product Category ID is required")
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	// Parse the UUID from the ID parameter
-	uuId, err := uuid.Parse(id)
-	if err != nil {
-		appErr := c.errorHandler.ValidationError(reqCtx, "id", "Invalid Product Category ID format: "+err.Error())
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	err = c.s.DeleteProductCategory(reqCtx, uuId)
-	if err != nil {
-		if reqCtx.Err() == context.DeadlineExceeded {
-			appErr := c.errorHandler.TimeoutError(reqCtx, "Delete Product Category")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if reqCtx.Err() == context.Canceled {
-			appErr := c.errorHandler.CancellationError(reqCtx, "Delete Product Category")
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-		if appErr, ok := err.(*utils.AppError); ok {
-			c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-			return
-		}
-
-		appErr := c.errorHandler.WrapError(reqCtx, err, utils.ErrInternal, "failed to delete product category")
-		appErr.StatusCode = 500
-		c.errorHandler.HandleError(reqCtx, ginCtx, appErr)
-		return
-	}
-
-	responseData := gin.H{
-		"message": "Product Category deleted successfully",
 	}
 	c.responseHelper.SendSuccess(ginCtx, responseData)
 }

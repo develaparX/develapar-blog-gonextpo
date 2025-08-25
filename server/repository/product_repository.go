@@ -13,7 +13,7 @@ import (
 type ProductRepository interface {
 	// Product Categories
 	CreateProductCategory(ctx context.Context, payload model.ProductCategory) (model.ProductCategory, error)
-	GetAllProductCategories(ctx context.Context) ([]model.ProductCategory, error)
+	GetAllProductCategoriesWithPagination(ctx context.Context, offset, limit int) ([]model.ProductCategory, int, error)
 	GetProductCategoryById(ctx context.Context, id uuid.UUID) (model.ProductCategory, error)
 	GetProductCategoryBySlug(ctx context.Context, slug string) (model.ProductCategory, error)
 	UpdateProductCategory(ctx context.Context, payload model.ProductCategory) (model.ProductCategory, error)
@@ -21,10 +21,11 @@ type ProductRepository interface {
 
 	// Products
 	CreateProduct(ctx context.Context, payload model.Product) (model.Product, error)
-	GetAllProducts(ctx context.Context) ([]model.Product, error)
 	GetAllProductsWithPagination(ctx context.Context, offset, limit int) ([]model.Product, int, error)
 	GetProductById(ctx context.Context, id uuid.UUID) (model.Product, error)
-	GetProductsByCategory(ctx context.Context, categoryId uuid.UUID) ([]model.Product, error)
+	GetProductByIdWithAffiliateLinks(ctx context.Context, id uuid.UUID) (model.Product, []model.ProductAffiliateLink, error)
+	GetProductsByCategoryWithPagination(ctx context.Context, categoryId uuid.UUID, offset, limit int) ([]model.Product, int, error)
+	GetProductsByCategoryWithAffiliateLinksAndPagination(ctx context.Context, categoryId uuid.UUID, offset, limit int) ([]model.Product, map[uuid.UUID][]model.ProductAffiliateLink, int, error)
 	UpdateProduct(ctx context.Context, payload model.Product) (model.Product, error)
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 
@@ -37,8 +38,9 @@ type ProductRepository interface {
 	// Article Product Relations
 	AddProductToArticle(ctx context.Context, articleId, productId uuid.UUID) error
 	RemoveProductFromArticle(ctx context.Context, articleId, productId uuid.UUID) error
-	GetProductsByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Product, error)
-	GetArticlesByProductId(ctx context.Context, productId uuid.UUID) ([]model.Article, error)
+	GetProductsByArticleIdWithPagination(ctx context.Context, articleId uuid.UUID, offset, limit int) ([]model.Product, int, error)
+	GetProductsByArticleIdWithAffiliateLinksAndPagination(ctx context.Context, articleId uuid.UUID, offset, limit int) ([]model.Product, map[uuid.UUID][]model.ProductAffiliateLink, int, error)
+	GetArticlesByProductIdWithPagination(ctx context.Context, productId uuid.UUID, offset, limit int) ([]model.Article, int, error)
 }
 
 type productRepository struct {
@@ -68,16 +70,28 @@ func (r *productRepository) CreateProductCategory(ctx context.Context, payload m
 	return category, nil
 }
 
-// GetAllProductCategories implements ProductRepository
-func (r *productRepository) GetAllProductCategories(ctx context.Context) ([]model.ProductCategory, error) {
-	query := `SELECT id, name, slug, description, created_at, updated_at FROM product_categories ORDER BY created_at DESC`
-
-	rows, err := r.db.QueryContext(ctx, query)
+// GetAllProductCategoriesWithPagination implements ProductRepository
+func (r *productRepository) GetAllProductCategoriesWithPagination(ctx context.Context, offset, limit int) ([]model.ProductCategory, int, error) {
+	// Get total count
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM product_categories`
+	err := r.db.QueryRowContext(ctx, countQuery).Scan(&totalCount)
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return nil, 0, ctx.Err()
 		}
-		return nil, err
+		return nil, 0, err
+	}
+
+	// Get paginated results
+	query := `SELECT id, name, slug, description, created_at, updated_at FROM product_categories ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+
+	rows, err := r.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, 0, ctx.Err()
+		}
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -85,23 +99,23 @@ func (r *productRepository) GetAllProductCategories(ctx context.Context) ([]mode
 	for rows.Next() {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, 0, ctx.Err()
 		default:
 		}
 
 		var category model.ProductCategory
 		err := rows.Scan(&category.Id, &category.Name, &category.Slug, &category.Description, &category.CreatedAt, &category.UpdatedAt)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		categories = append(categories, category)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return categories, nil
+	return categories, totalCount, nil
 }
 
 // GetProductCategoryById implements ProductRepository
@@ -199,69 +213,7 @@ func (r *productRepository) CreateProduct(ctx context.Context, payload model.Pro
 	return product, nil
 }
 
-// GetAllProducts implements ProductRepository
-func (r *productRepository) GetAllProducts(ctx context.Context) ([]model.Product, error) {
-	query := `
-		SELECT 
-			p.id, p.product_category_id, p.name, p.description, p.image_url, p.is_active, p.created_at, p.updated_at,
-			pc.id, pc.name, pc.slug, pc.description
-		FROM products p
-		LEFT JOIN product_categories pc ON p.product_category_id = pc.id
-		ORDER BY p.created_at DESC
-	`
 
-	rows, err := r.db.QueryContext(ctx, query)
-	if err != nil {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-		return nil, err
-	}
-	defer rows.Close()
-
-	var products []model.Product
-	for rows.Next() {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-
-		var product model.Product
-		var category model.ProductCategory
-		var categoryId sql.NullString
-		var categoryName sql.NullString
-		var categorySlug sql.NullString
-		var categoryDesc sql.NullString
-
-		err := rows.Scan(
-			&product.Id, &product.ProductCategoryId, &product.Name, &product.Description,
-			&product.ImageUrl, &product.IsActive, &product.CreatedAt, &product.UpdatedAt,
-			&categoryId, &categoryName, &categorySlug, &categoryDesc,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if categoryId.Valid {
-			category.Id = uuid.MustParse(categoryId.String)
-			category.Name = categoryName.String
-			category.Slug = categorySlug.String
-			if categoryDesc.Valid {
-				category.Description = &categoryDesc.String
-			}
-			product.ProductCategory = &category
-		}
-
-		products = append(products, product)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return products, nil
-}
 
 // GetAllProductsWithPagination implements ProductRepository
 func (r *productRepository) GetAllProductsWithPagination(ctx context.Context, offset, limit int) ([]model.Product, int, error) {
@@ -384,8 +336,20 @@ func (r *productRepository) GetProductById(ctx context.Context, id uuid.UUID) (m
 	return product, nil
 }
 
-// GetProductsByCategory implements ProductRepository
-func (r *productRepository) GetProductsByCategory(ctx context.Context, categoryId uuid.UUID) ([]model.Product, error) {
+// GetProductsByCategoryWithPagination implements ProductRepository
+func (r *productRepository) GetProductsByCategoryWithPagination(ctx context.Context, categoryId uuid.UUID, offset, limit int) ([]model.Product, int, error) {
+	// Get total count
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM products WHERE product_category_id = $1`
+	err := r.db.QueryRowContext(ctx, countQuery, categoryId).Scan(&totalCount)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, 0, ctx.Err()
+		}
+		return nil, 0, err
+	}
+
+	// Get paginated results
 	query := `
 		SELECT 
 			p.id, p.product_category_id, p.name, p.description, p.image_url, p.is_active, p.created_at, p.updated_at,
@@ -394,14 +358,15 @@ func (r *productRepository) GetProductsByCategory(ctx context.Context, categoryI
 		LEFT JOIN product_categories pc ON p.product_category_id = pc.id
 		WHERE p.product_category_id = $1
 		ORDER BY p.created_at DESC
+		LIMIT $2 OFFSET $3
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, categoryId)
+	rows, err := r.db.QueryContext(ctx, query, categoryId, limit, offset)
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return nil, 0, ctx.Err()
 		}
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -409,7 +374,7 @@ func (r *productRepository) GetProductsByCategory(ctx context.Context, categoryI
 	for rows.Next() {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, 0, ctx.Err()
 		default:
 		}
 
@@ -426,7 +391,7 @@ func (r *productRepository) GetProductsByCategory(ctx context.Context, categoryI
 			&categoryIdStr, &categoryName, &categorySlug, &categoryDesc,
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		if categoryIdStr.Valid {
@@ -443,10 +408,10 @@ func (r *productRepository) GetProductsByCategory(ctx context.Context, categoryI
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return products, nil
+	return products, totalCount, nil
 }
 
 // UpdateProduct implements ProductRepository
@@ -603,8 +568,20 @@ func (r *productRepository) RemoveProductFromArticle(ctx context.Context, articl
 	return nil
 }
 
-// GetProductsByArticleId implements ProductRepository
-func (r *productRepository) GetProductsByArticleId(ctx context.Context, articleId uuid.UUID) ([]model.Product, error) {
+// GetProductsByArticleIdWithPagination implements ProductRepository
+func (r *productRepository) GetProductsByArticleIdWithPagination(ctx context.Context, articleId uuid.UUID, offset, limit int) ([]model.Product, int, error) {
+	// Get total count
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM article_product WHERE article_id = $1`
+	err := r.db.QueryRowContext(ctx, countQuery, articleId).Scan(&totalCount)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, 0, ctx.Err()
+		}
+		return nil, 0, err
+	}
+
+	// Get paginated results
 	query := `
 		SELECT 
 			p.id, p.product_category_id, p.name, p.description, p.image_url, p.is_active, p.created_at, p.updated_at,
@@ -614,14 +591,15 @@ func (r *productRepository) GetProductsByArticleId(ctx context.Context, articleI
 		INNER JOIN article_product ap ON p.id = ap.product_id
 		WHERE ap.article_id = $1
 		ORDER BY ap.created_at DESC
+		LIMIT $2 OFFSET $3
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, articleId)
+	rows, err := r.db.QueryContext(ctx, query, articleId, limit, offset)
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return nil, 0, ctx.Err()
 		}
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -629,7 +607,7 @@ func (r *productRepository) GetProductsByArticleId(ctx context.Context, articleI
 	for rows.Next() {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, 0, ctx.Err()
 		default:
 		}
 
@@ -646,7 +624,7 @@ func (r *productRepository) GetProductsByArticleId(ctx context.Context, articleI
 			&categoryId, &categoryName, &categorySlug, &categoryDesc,
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		if categoryId.Valid {
@@ -663,14 +641,26 @@ func (r *productRepository) GetProductsByArticleId(ctx context.Context, articleI
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return products, nil
+	return products, totalCount, nil
 }
 
-// GetArticlesByProductId implements ProductRepository
-func (r *productRepository) GetArticlesByProductId(ctx context.Context, productId uuid.UUID) ([]model.Article, error) {
+// GetArticlesByProductIdWithPagination implements ProductRepository
+func (r *productRepository) GetArticlesByProductIdWithPagination(ctx context.Context, productId uuid.UUID, offset, limit int) ([]model.Article, int, error) {
+	// Get total count
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM article_product WHERE product_id = $1`
+	err := r.db.QueryRowContext(ctx, countQuery, productId).Scan(&totalCount)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, 0, ctx.Err()
+		}
+		return nil, 0, err
+	}
+
+	// Get paginated results
 	query := `
 		SELECT 
 			a.id, a.title, a.slug, a.content, a.user_id, a.category_id, a.views, a.status, a.created_at, a.updated_at,
@@ -682,14 +672,15 @@ func (r *productRepository) GetArticlesByProductId(ctx context.Context, productI
 		INNER JOIN article_product ap ON a.id = ap.article_id
 		WHERE ap.product_id = $1
 		ORDER BY ap.created_at DESC
+		LIMIT $2 OFFSET $3
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, productId)
+	rows, err := r.db.QueryContext(ctx, query, productId, limit, offset)
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return nil, 0, ctx.Err()
 		}
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -697,7 +688,7 @@ func (r *productRepository) GetArticlesByProductId(ctx context.Context, productI
 	for rows.Next() {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, 0, ctx.Err()
 		default:
 		}
 
@@ -713,7 +704,7 @@ func (r *productRepository) GetArticlesByProductId(ctx context.Context, productI
 			&category.Id, &category.Name,
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		article.User = &user
@@ -722,8 +713,67 @@ func (r *productRepository) GetArticlesByProductId(ctx context.Context, productI
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return articles, nil
+	return articles, totalCount, nil
+}
+
+// GetProductByIdWithAffiliateLinks implements ProductRepository
+func (r *productRepository) GetProductByIdWithAffiliateLinks(ctx context.Context, id uuid.UUID) (model.Product, []model.ProductAffiliateLink, error) {
+	// Get product first
+	product, err := r.GetProductById(ctx, id)
+	if err != nil {
+		return model.Product{}, nil, err
+	}
+
+	// Get affiliate links
+	affiliateLinks, err := r.GetAffiliateLinksbyProductId(ctx, id)
+	if err != nil {
+		return model.Product{}, nil, err
+	}
+
+	return product, affiliateLinks, nil
+}
+
+// GetProductsByCategoryWithAffiliateLinksAndPagination implements ProductRepository
+func (r *productRepository) GetProductsByCategoryWithAffiliateLinksAndPagination(ctx context.Context, categoryId uuid.UUID, offset, limit int) ([]model.Product, map[uuid.UUID][]model.ProductAffiliateLink, int, error) {
+	// Get products by category with pagination
+	products, totalCount, err := r.GetProductsByCategoryWithPagination(ctx, categoryId, offset, limit)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	// Get affiliate links for all products
+	affiliateLinksMap := make(map[uuid.UUID][]model.ProductAffiliateLink)
+	for _, product := range products {
+		links, err := r.GetAffiliateLinksbyProductId(ctx, product.Id)
+		if err != nil {
+			return nil, nil, 0, err
+		}
+		affiliateLinksMap[product.Id] = links
+	}
+
+	return products, affiliateLinksMap, totalCount, nil
+}
+
+// GetProductsByArticleIdWithAffiliateLinksAndPagination implements ProductRepository
+func (r *productRepository) GetProductsByArticleIdWithAffiliateLinksAndPagination(ctx context.Context, articleId uuid.UUID, offset, limit int) ([]model.Product, map[uuid.UUID][]model.ProductAffiliateLink, int, error) {
+	// Get products by article with pagination
+	products, totalCount, err := r.GetProductsByArticleIdWithPagination(ctx, articleId, offset, limit)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	// Get affiliate links for all products
+	affiliateLinksMap := make(map[uuid.UUID][]model.ProductAffiliateLink)
+	for _, product := range products {
+		links, err := r.GetAffiliateLinksbyProductId(ctx, product.Id)
+		if err != nil {
+			return nil, nil, 0, err
+		}
+		affiliateLinksMap[product.Id] = links
+	}
+
+	return products, affiliateLinksMap, totalCount, nil
 }
