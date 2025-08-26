@@ -58,6 +58,49 @@ export interface Tag {
     description?: string;
 }
 
+export interface ProductCategory {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AffiliateLink {
+    id: string;
+    platform: string;
+    url: string;
+    price?: number;
+    currency?: string;
+}
+
+export interface Product {
+    id: string;
+    product_category_id: string;
+    product_category: ProductCategory;
+    name: string;
+    description?: string;
+    image_url?: string;
+    is_active: boolean;
+    affiliate_links?: AffiliateLink[] | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ProductsResponse {
+    data: Product[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        total_pages: number;
+        has_next: boolean;
+        has_prev: boolean;
+        processed_at: string;
+    };
+}
+
 // Generic API fetch function
 async function apiFetch<T>(endpoint: string): Promise<APIResponse<T>> {
     try {
@@ -152,6 +195,17 @@ class ApiService {
         throw new Error(`Failed to fetch tag ID: ${tagId}`);
     }
 
+    // Products API
+    async getProductsByArticleId(articleId: string): Promise<Product[]> {
+        const response = await apiFetch<{ message: string; products: ProductsResponse }>(
+            `/products/a/${articleId}`
+        );
+        if (response.success) {
+            return response.data.products.data || [];
+        }
+        throw new Error(`Failed to fetch products for article ID: ${articleId}`);
+    }
+
     // Search functionality (client-side filtering)
     async searchArticles(query: string): Promise<Article[]> {
         const articles = await this.getAllArticles();
@@ -177,5 +231,6 @@ export const {
     getCategoryById,
     getAllTags,
     getTagById,
+    getProductsByArticleId,
     searchArticles
 } = apiService;

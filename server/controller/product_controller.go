@@ -55,8 +55,8 @@ func (c *ProductController) Route() {
 		routerProduct := c.rg.Group("/products")
 		routerProduct.GET("/", c.GetAllProducts)
 		routerProduct.GET("/:id", c.GetProductById)
-		routerProduct.GET("/category/:id", c.GetProductsByCategory)
-		routerProduct.GET("/article/:id", c.GetProductsByArticleId)
+		routerProduct.GET("/c/:id", c.GetProductsByCategory)
+		routerProduct.GET("/a/:id", c.GetProductsByArticleId)
 
 		routerPAuth := routerProduct.Group("/", c.mD.CheckToken("admin"))
 		routerPAuth.POST("/", c.CreateProduct)
@@ -65,12 +65,16 @@ func (c *ProductController) Route() {
 		routerPAuth.POST("/:id/article/:articleId", c.AddProductToArticle)
 		routerPAuth.DELETE("/:id/article/:articleId", c.RemoveProductFromArticle)
 
-		// Affiliate links routes
-		routerAffiliate := routerProduct.Group("/:id/affiliate", c.mD.CheckToken("admin"))
-		routerAffiliate.POST("/", c.CreateProductAffiliateLink)
-		routerAffiliate.GET("/", c.GetAffiliateLinksbyProductId)
-		routerAffiliate.PUT("/:affiliateId", c.UpdateProductAffiliateLink)
-		routerAffiliate.DELETE("/:affiliateId", c.DeleteProductAffiliateLink)
+	}
+
+	{
+		productAffiliate := c.rg.Group("/product-affiliate")
+		productAffiliate.GET("/:id", c.GetAffiliateLinksbyProductId)
+
+		routerPAffiliate := productAffiliate.Group("/", c.mD.CheckToken("admin", "user"))
+		routerPAffiliate.POST("/:id", c.CreateProductAffiliateLink)
+		routerPAffiliate.PUT("/:affiliateId", c.UpdateProductAffiliateLink)
+		routerPAffiliate.DELETE("/:affiliateId", c.DeleteProductAffiliateLink)
 	}
 }
 
@@ -149,13 +153,13 @@ func (c *ProductController) GetAllProductCategories(ginCtx *gin.Context) {
 	// Parse pagination parameters
 	page := 1
 	limit := 10
-	
+
 	if pageStr := ginCtx.Query("page"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
 			page = p
 		}
 	}
-	
+
 	if limitStr := ginCtx.Query("limit"); limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
 			limit = l
@@ -508,13 +512,13 @@ func (c *ProductController) GetAllProducts(ginCtx *gin.Context) {
 	// Parse pagination parameters
 	page := 1
 	limit := 10
-	
+
 	if pageStr := ginCtx.Query("page"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
 			page = p
 		}
 	}
-	
+
 	if limitStr := ginCtx.Query("limit"); limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
 			limit = l
@@ -641,13 +645,13 @@ func (c *ProductController) GetProductsByCategory(ginCtx *gin.Context) {
 	// Parse pagination parameters
 	page := 1
 	limit := 10
-	
+
 	if pageStr := ginCtx.Query("page"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
 			page = p
 		}
 	}
-	
+
 	if limitStr := ginCtx.Query("limit"); limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
 			limit = l
@@ -1285,13 +1289,13 @@ func (c *ProductController) GetProductsByArticleId(ginCtx *gin.Context) {
 	// Parse pagination parameters
 	page := 1
 	limit := 10
-	
+
 	if pageStr := ginCtx.Query("page"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
 			page = p
 		}
 	}
-	
+
 	if limitStr := ginCtx.Query("limit"); limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
 			limit = l
@@ -1360,13 +1364,13 @@ func (c *ProductController) GetArticlesByProductId(ginCtx *gin.Context) {
 	// Parse pagination parameters
 	page := 1
 	limit := 10
-	
+
 	if pageStr := ginCtx.Query("page"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
 			page = p
 		}
 	}
-	
+
 	if limitStr := ginCtx.Query("limit"); limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
 			limit = l

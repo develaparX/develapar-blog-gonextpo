@@ -31,4 +31,14 @@ export const queryKeys = {
         details: () => [...queryKeys.tags.all, 'detail'] as const,
         detail: (id: number) => [...queryKeys.tags.details(), id] as const,
     },
+
+    // Products
+    products: {
+        all: ['products'] as const,
+        lists: () => [...queryKeys.products.all, 'list'] as const,
+        list: (filters: Record<string, any>) => [...queryKeys.products.lists(), { filters }] as const,
+        details: () => [...queryKeys.products.all, 'detail'] as const,
+        detail: (id: string) => [...queryKeys.products.details(), id] as const,
+        byArticle: (articleId: string) => [...queryKeys.products.all, 'article', articleId] as const,
+    },
 } as const;

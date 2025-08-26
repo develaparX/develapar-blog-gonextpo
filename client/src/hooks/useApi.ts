@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 import { queryKeys } from '@/lib/queryKeys';
-import type { Article, Category, Tag } from '@/services/api';
+import type { Article, Category, Tag, Product } from '@/services/api';
 
 // Articles Queries
 export function useArticles() {
@@ -84,6 +84,19 @@ export function useTagById(tagId: number | undefined) {
     });
 }
 
+// Products Queries
+export function useProductsByArticleId(articleId: string | undefined) {
+    return useQuery({
+        queryKey: queryKeys.products.byArticle(articleId || ''),
+        queryFn: () => {
+            if (!articleId) throw new Error('No article ID provided');
+            return apiService.getProductsByArticleId(articleId);
+        },
+        enabled: !!articleId, // Only run query if articleId exists
+        staleTime: 1000 * 60 * 5, // 5 minutes - products don't change often
+    });
+}
+
 // Search functionality with manual trigger
 export function useSearchArticles(query: string, enabled: boolean = false) {
     return useQuery({
@@ -160,6 +173,18 @@ export function useInvalidateTags() {
         invalidateAll: () => queryClient.invalidateQueries({ queryKey: queryKeys.tags.all }),
         invalidateDetail: (tagId: number) =>
             queryClient.invalidateQueries({ queryKey: queryKeys.tags.detail(tagId) }),
+    };
+}
+
+export function useInvalidateProducts() {
+    const queryClient = useQueryClient();
+
+    return {
+        invalidateAll: () => queryClient.invalidateQueries({ queryKey: queryKeys.products.all }),
+        invalidateByArticle: (articleId: string) =>
+            queryClient.invalidateQueries({ queryKey: queryKeys.products.byArticle(articleId) }),
+        invalidateDetail: (productId: string) =>
+            queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(productId) }),
     };
 }
 

@@ -476,9 +476,9 @@ func (s *productService) CreateProductAffiliateLink(ctx context.Context, product
 		return dto.ProductAffiliateLinkResponse{}, errors.New("URL is required")
 	}
 
-	if !s.isValidURL(req.Url) {
-		return dto.ProductAffiliateLinkResponse{}, errors.New("invalid URL format")
-	}
+	// if !s.isValidURL(req.Url) {
+	// 	return dto.ProductAffiliateLinkResponse{}, errors.New("invalid URL format")
+	// }
 
 	// Create model
 	affiliateLink := model.ProductAffiliateLink{
