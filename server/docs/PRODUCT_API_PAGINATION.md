@@ -1,537 +1,204 @@
-# Product API Documentation (With Pagination)
+# Product API Documentation Summary
 
-## Overview
+## 🎉 Complete Swagger Documentation Coverage
 
-API untuk mengelola produk afiliasi dengan kategori dan link afiliasi yang terhubung. **Semua endpoint GET list menggunakan pagination by default**.
+All Product API endpoints have been successfully documented with Swagger annotations and are now available in the API documentation.
 
-## Features
+## 📋 Documented Endpoints
 
-- ✅ **DTO Pattern**: Request dan Response menggunakan DTO
-- ✅ **Affiliate Links**: Setiap product include affiliate links saat GET detail
-- ✅ **UUIDv7**: Menggunakan UUIDv7 untuk semua ID
-- ✅ **Pagination**: Semua GET list menggunakan pagination by default
-- ✅ **Validation**: Comprehensive validation untuk semua input
-- ✅ **Error Handling**: Proper error handling dengan context timeout
+### **Product Categories** (6 endpoints)
 
-## Pagination Parameters
+#### Public Endpoints
 
-Semua endpoint GET list mendukung query parameters berikut:
+- `GET /product-categories` - Get all product categories with pagination
 
-- `page` (optional): Page number, default = 1
-- `limit` (optional): Items per page, default = 10, max = 100
+  - Query params: `page`, `limit`
+  - Response: Paginated list of product categories
 
-## Pagination Response Format
+- `GET /product-categories/{id}` - Get product category by UUID
 
-```json
-{
-  "success": true,
-  "data": {
-    "items": [...], // Array of items
-    "pagination": {
-      "current_page": 1,
-      "per_page": 10,
-      "total_items": 50,
-      "total_pages": 5,
-      "has_next": true,
-      "has_prev": false
-    }
-  }
-}
-```
+  - Path param: `id` (UUID)
+  - Response: Single product category details
 
-## Endpoints
+- `GET /product-categories/s/{slug}` - Get product category by slug
+  - Path param: `slug` (string)
+  - Response: Single product category details
 
-### Product Categories
+#### Admin Only Endpoints (🔒 Auth Required)
 
-#### 1. Create Product Category
+- `POST /product-categories` - Create new product category
 
-```http
-POST /api/v1/product-categories
-Authorization: Bearer <admin_token>
-Content-Type: application/json
+  - Body: `CreateProductCategoryRequest`
+  - Response: Created product category
 
-{
-  "name": "Laptop Gaming",
-  "slug": "laptop-gaming", // optional, auto-generated from name
-  "description": "Kategori untuk laptop gaming terbaik"
-}
-```
+- `PUT /product-categories/{id}` - Update product category
 
-#### 2. Get All Product Categories (With Pagination)
+  - Path param: `id` (UUID)
+  - Body: `UpdateProductCategoryRequest`
+  - Response: Updated product category
 
-```http
-GET /api/v1/product-categories?page=1&limit=10
-```
+- `DELETE /product-categories/{id}` - Delete product category
+  - Path param: `id` (UUID)
+  - Response: Success message
 
-**Response:**
+### **Products** (7 endpoints)
 
-```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "id": "01234567-89ab-cdef-0123-456789abcdef",
-        "name": "Laptop Gaming",
-        "slug": "laptop-gaming",
-        "description": "Kategori untuk laptop gaming terbaik",
-        "created_at": "2025-01-20T10:00:00Z",
-        "updated_at": "2025-01-20T10:00:00Z"
-      }
-    ],
-    "pagination": {
-      "current_page": 1,
-      "per_page": 10,
-      "total_items": 25,
-      "total_pages": 3,
-      "has_next": true,
-      "has_prev": false
-    }
-  }
-}
-```
+#### Public Endpoints
 
-#### 3. Get Product Category by ID
+- `GET /products` - Get all products with pagination
 
-```http
-GET /api/v1/product-categories/{id}
-```
+  - Query params: `page`, `limit`
+  - Response: Paginated list of products
 
-#### 4. Get Product Category by Slug
+- `GET /products/{id}` - Get product by UUID (includes affiliate links)
 
-```http
-GET /api/v1/product-categories/s/{slug}
-```
+  - Path param: `id` (UUID)
+  - Response: Complete product details with affiliate links
 
-#### 5. Update Product Category
+- `GET /products/category/{id}` - Get products by category with pagination
 
-```http
-PUT /api/v1/product-categories/{id}
-Authorization: Bearer <admin_token>
-```
+  - Path param: `id` (UUID - category ID)
+  - Query params: `page`, `limit`
+  - Response: Paginated list of products in category
 
-#### 6. Delete Product Category
+- `GET /products/article/{id}` - Get products associated with article
+  - Path param: `id` (UUID - article ID)
+  - Response: List of products linked to article
 
-```http
-DELETE /api/v1/product-categories/{id}
-Authorization: Bearer <admin_token>
-```
+#### Admin Only Endpoints (🔒 Auth Required)
 
-### Products
+- `POST /products` - Create new product
 
-#### 1. Create Product
+  - Body: `CreateProductRequest`
+  - Response: Created product
 
-```http
-POST /api/v1/products
-Authorization: Bearer <admin_token>
-Content-Type: application/json
+- `PUT /products/{id}` - Update product
 
-{
-  "product_category_id": "01234567-89ab-cdef-0123-456789abcdef",
-  "name": "ASUS ROG Strix G15",
-  "description": "Gaming laptop dengan performa tinggi",
-  "image_url": "https://example.com/image.jpg",
-  "is_active": true
-}
-```
+  - Path param: `id` (UUID)
+  - Body: `UpdateProductRequest`
+  - Response: Updated product
 
-#### 2. Get All Products (List View - No Affiliate Links, With Pagination)
+- `DELETE /products/{id}` - Delete product
+  - Path param: `id` (UUID)
+  - Response: Success message
 
-```http
-GET /api/v1/products?page=1&limit=10
-```
+### **Product Affiliate Links** (4 endpoints) - All Admin Only 🔒
 
-**Response:**
+- `POST /products/{id}/affiliate` - Create affiliate link for product
 
-```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "id": "01234567-89ab-cdef-0123-456789abcdef",
-        "product_category_id": "01234567-89ab-cdef-0123-456789abcdef",
-        "product_category": {
-          "id": "01234567-89ab-cdef-0123-456789abcdef",
-          "name": "Laptop Gaming",
-          "slug": "laptop-gaming",
-          "description": "Kategori untuk laptop gaming terbaik",
-          "created_at": "2025-01-20T10:00:00Z",
-          "updated_at": "2025-01-20T10:00:00Z"
-        },
-        "name": "ASUS ROG Strix G15",
-        "description": "Gaming laptop dengan performa tinggi",
-        "image_url": "https://example.com/image.jpg",
-        "is_active": true,
-        "created_at": "2025-01-20T10:00:00Z",
-        "updated_at": "2025-01-20T10:00:00Z"
-      }
-    ],
-    "pagination": {
-      "current_page": 1,
-      "per_page": 10,
-      "total_items": 50,
-      "total_pages": 5,
-      "has_next": true,
-      "has_prev": false
-    }
-  }
-}
-```
+  - Path param: `id` (UUID - product ID)
+  - Body: `CreateProductAffiliateLinkRequest`
+  - Response: Created affiliate link
 
-#### 3. Get Product by ID (Detail View - With Affiliate Links)
+- `GET /products/{id}/affiliate` - Get all affiliate links for product
 
-```http
-GET /api/v1/products/{id}
-```
+  - Path param: `id` (UUID - product ID)
+  - Response: List of affiliate links
 
-**Response:**
+- `PUT /products/{id}/affiliate/{affiliateId}` - Update affiliate link
+
+  - Path params: `id` (UUID - product ID), `affiliateId` (UUID)
+  - Body: `UpdateProductAffiliateLinkRequest`
+  - Response: Updated affiliate link
+
+- `DELETE /products/{id}/affiliate/{affiliateId}` - Delete affiliate link
+  - Path params: `id` (UUID - product ID), `affiliateId` (UUID)
+  - Response: Success message
+
+### **Product-Article Relations** (3 endpoints) - All Admin Only 🔒
+
+- `POST /products/{id}/article/{articleId}` - Add product to article
+
+  - Path params: `id` (UUID - product ID), `articleId` (UUID)
+  - Response: Success message
+
+- `DELETE /products/{id}/article/{articleId}` - Remove product from article
+
+  - Path params: `id` (UUID - product ID), `articleId` (UUID)
+  - Response: Success message
+
+- `GET /products/{id}/articles` - Get articles associated with product
+  - Path param: `id` (UUID - product ID)
+  - Response: List of articles linked to product
+
+## 📊 Summary Statistics
+
+- **Total Endpoints**: 20
+- **Public Endpoints**: 7
+- **Admin Only Endpoints**: 13
+- **CRUD Operations**: Complete for all entities
+- **Pagination Support**: Available where appropriate
+- **Authentication**: JWT Bearer token for admin endpoints
+
+## 🏷️ Swagger Tags
+
+All endpoints are organized under these tags:
+
+- `Product Categories` - Category management
+- `Products` - Product management
+- `Product Affiliate Links` - Affiliate link management
+- `Product Article Relations` - Product-article associations
+
+## 📝 Request/Response Models
+
+### Request DTOs
+
+- `CreateProductCategoryRequest`
+- `UpdateProductCategoryRequest`
+- `CreateProductRequest`
+- `UpdateProductRequest`
+- `CreateProductAffiliateLinkRequest`
+- `UpdateProductAffiliateLinkRequest`
+
+### Response DTOs
+
+- `ProductCategoryResponse`
+- `ProductResponse` (with affiliate links)
+- `ProductListResponse` (without affiliate links for performance)
+- `ProductAffiliateLinkResponse`
+
+### Standard Response Format
+
+All endpoints use the standard `APIResponse` format:
 
 ```json
 {
   "success": true,
-  "message": "Product retrieved successfully",
-  "data": {
-    "product": {
-      "id": "01234567-89ab-cdef-0123-456789abcdef",
-      "product_category_id": "01234567-89ab-cdef-0123-456789abcdef",
-      "product_category": {
-        "id": "01234567-89ab-cdef-0123-456789abcdef",
-        "name": "Laptop Gaming",
-        "slug": "laptop-gaming",
-        "description": "Kategori untuk laptop gaming terbaik",
-        "created_at": "2025-01-20T10:00:00Z",
-        "updated_at": "2025-01-20T10:00:00Z"
-      },
-      "name": "ASUS ROG Strix G15",
-      "description": "Gaming laptop dengan performa tinggi",
-      "image_url": "https://example.com/image.jpg",
-      "is_active": true,
-      "affiliate_links": [
-        {
-          "id": "01234567-89ab-cdef-0123-456789abcdef",
-          "platform_name": "Tokopedia",
-          "url": "https://tokopedia.com/product/asus-rog-strix-g15",
-          "created_at": "2025-01-20T10:00:00Z",
-          "updated_at": "2025-01-20T10:00:00Z"
-        },
-        {
-          "id": "01234567-89ab-cdef-0123-456789abcdef",
-          "platform_name": "Shopee",
-          "url": "https://shopee.co.id/product/asus-rog-strix-g15",
-          "created_at": "2025-01-20T10:00:00Z",
-          "updated_at": "2025-01-20T10:00:00Z"
-        }
-      ],
-      "created_at": "2025-01-20T10:00:00Z",
-      "updated_at": "2025-01-20T10:00:00Z"
-    }
-  }
+  "data": { ... },
+  "meta": {
+    "request_id": "uuid",
+    "timestamp": "2025-08-26T...",
+    "processing_time_ms": 15,
+    "version": "1.0.0"
+  },
+  "pagination": { ... } // for paginated responses
 }
 ```
 
-#### 4. Get Products by Category (With Affiliate Links & Pagination)
+## 🚀 Access Documentation
 
-```http
-GET /api/v1/products/category/{category_id}?page=1&limit=10
+### Development
+
+```
+http://localhost:4300/swagger/index.html
 ```
 
-**Response:**
+### Testing
 
-```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "id": "01234567-89ab-cdef-0123-456789abcdef",
-        "product_category_id": "01234567-89ab-cdef-0123-456789abcdef",
-        "product_category": {
-          "id": "01234567-89ab-cdef-0123-456789abcdef",
-          "name": "Laptop Gaming",
-          "slug": "laptop-gaming",
-          "description": "Kategori untuk laptop gaming terbaik",
-          "created_at": "2025-01-20T10:00:00Z",
-          "updated_at": "2025-01-20T10:00:00Z"
-        },
-        "name": "ASUS ROG Strix G15",
-        "description": "Gaming laptop dengan performa tinggi",
-        "image_url": "https://example.com/image.jpg",
-        "is_active": true,
-        "affiliate_links": [
-          {
-            "id": "01234567-89ab-cdef-0123-456789abcdef",
-            "platform_name": "Tokopedia",
-            "url": "https://tokopedia.com/product/asus-rog-strix-g15",
-            "created_at": "2025-01-20T10:00:00Z",
-            "updated_at": "2025-01-20T10:00:00Z"
-          }
-        ],
-        "created_at": "2025-01-20T10:00:00Z",
-        "updated_at": "2025-01-20T10:00:00Z"
-      }
-    ],
-    "pagination": {
-      "current_page": 1,
-      "per_page": 10,
-      "total_items": 15,
-      "total_pages": 2,
-      "has_next": true,
-      "has_prev": false
-    }
-  }
-}
+All endpoints can be tested directly from the Swagger UI with:
+
+- Request/response examples
+- Authentication support
+- Parameter validation
+- Real-time API testing
+
+## 🔄 Maintenance
+
+To update documentation after code changes:
+
+```bash
+cd server
+./generate-docs.sh
 ```
 
-#### 5. Update Product
-
-```http
-PUT /api/v1/products/{id}
-Authorization: Bearer <admin_token>
-```
-
-#### 6. Delete Product
-
-```http
-DELETE /api/v1/products/{id}
-Authorization: Bearer <admin_token>
-```
-
-### Product Affiliate Links
-
-#### 1. Create Affiliate Link
-
-```http
-POST /api/v1/products/{product_id}/affiliate
-Authorization: Bearer <admin_token>
-Content-Type: application/json
-
-{
-  "platform_name": "Tokopedia",
-  "url": "https://tokopedia.com/product/asus-rog-strix-g15"
-}
-```
-
-#### 2. Get Affiliate Links by Product ID
-
-```http
-GET /api/v1/products/{product_id}/affiliate
-Authorization: Bearer <admin_token>
-```
-
-#### 3. Update Affiliate Link
-
-```http
-PUT /api/v1/products/{product_id}/affiliate/{affiliate_id}
-Authorization: Bearer <admin_token>
-```
-
-#### 4. Delete Affiliate Link
-
-```http
-DELETE /api/v1/products/{product_id}/affiliate/{affiliate_id}
-Authorization: Bearer <admin_token>
-```
-
-### Article-Product Relations
-
-#### 1. Add Product to Article
-
-```http
-POST /api/v1/products/{product_id}/article/{article_id}
-Authorization: Bearer <admin_token>
-```
-
-#### 2. Remove Product from Article
-
-```http
-DELETE /api/v1/products/{product_id}/article/{article_id}
-Authorization: Bearer <admin_token>
-```
-
-#### 3. Get Products by Article ID (With Affiliate Links & Pagination)
-
-```http
-GET /api/v1/products/article/{article_id}?page=1&limit=10
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "id": "01234567-89ab-cdef-0123-456789abcdef",
-        "name": "ASUS ROG Strix G15",
-        "description": "Gaming laptop dengan performa tinggi",
-        "image_url": "https://example.com/image.jpg",
-        "is_active": true,
-        "affiliate_links": [
-          {
-            "id": "01234567-89ab-cdef-0123-456789abcdef",
-            "platform_name": "Tokopedia",
-            "url": "https://tokopedia.com/product/asus-rog-strix-g15",
-            "created_at": "2025-01-20T10:00:00Z",
-            "updated_at": "2025-01-20T10:00:00Z"
-          }
-        ],
-        "created_at": "2025-01-20T10:00:00Z",
-        "updated_at": "2025-01-20T10:00:00Z"
-      }
-    ],
-    "pagination": {
-      "current_page": 1,
-      "per_page": 10,
-      "total_items": 5,
-      "total_pages": 1,
-      "has_next": false,
-      "has_prev": false
-    }
-  }
-}
-```
-
-## Key Changes from Previous Version
-
-### 🔄 **Pagination by Default**
-
-- **All GET list endpoints** sekarang menggunakan pagination
-- **Default values**: page=1, limit=10
-- **Maximum limit**: 100 items per page
-- **Query parameters**: `?page=1&limit=10`
-
-### 📊 **Response Format Changes**
-
-- **List endpoints**: Response wrapped dalam pagination object
-- **Detail endpoints**: Tetap menggunakan format lama
-- **Consistent structure**: Semua pagination menggunakan format yang sama
-
-### 🚀 **Performance Benefits**
-
-- **Reduced memory usage**: Tidak load semua data sekaligus
-- **Faster response time**: Pagination mengurangi data transfer
-- **Better scalability**: Dapat handle dataset yang besar
-
-### 💡 **Usage Examples**
-
-#### Frontend Integration
-
-```javascript
-// Get products with pagination
-const getProducts = async (page = 1, limit = 10) => {
-  const response = await fetch(`/api/v1/products?page=${page}&limit=${limit}`);
-  const data = await response.json();
-
-  return {
-    products: data.data.items,
-    pagination: data.data.pagination,
-  };
-};
-
-// Get product detail with affiliate links
-const getProductDetail = async (productId) => {
-  const response = await fetch(`/api/v1/products/${productId}`);
-  const data = await response.json();
-
-  return data.data.product; // Includes affiliate_links
-};
-
-// Get products by category with pagination
-const getProductsByCategory = async (categoryId, page = 1, limit = 10) => {
-  const response = await fetch(
-    `/api/v1/products/category/${categoryId}?page=${page}&limit=${limit}`
-  );
-  const data = await response.json();
-
-  return {
-    products: data.data.items, // Each product includes affiliate_links
-    pagination: data.data.pagination,
-  };
-};
-```
-
-#### Pagination Navigation
-
-```javascript
-const PaginationComponent = ({ pagination, onPageChange }) => {
-  return (
-    <div className="pagination">
-      {pagination.has_prev && (
-        <button onClick={() => onPageChange(pagination.current_page - 1)}>
-          Previous
-        </button>
-      )}
-
-      <span>
-        Page {pagination.current_page} of {pagination.total_pages}
-      </span>
-
-      {pagination.has_next && (
-        <button onClick={() => onPageChange(pagination.current_page + 1)}>
-          Next
-        </button>
-      )}
-    </div>
-  );
-};
-```
-
-## Migration Guide
-
-### From Non-Pagination to Pagination
-
-#### Before:
-
-```javascript
-// Old way - no pagination
-const products = await fetch("/api/v1/products").then((res) => res.json());
-console.log(products.data.products); // Array of products
-```
-
-#### After:
-
-```javascript
-// New way - with pagination
-const response = await fetch("/api/v1/products?page=1&limit=10").then((res) =>
-  res.json()
-);
-console.log(response.data.items); // Array of products
-console.log(response.data.pagination); // Pagination info
-```
-
-### Response Structure Changes
-
-#### Before:
-
-```json
-{
-  "success": true,
-  "message": "Products retrieved successfully",
-  "data": {
-    "products": [...]
-  }
-}
-```
-
-#### After:
-
-```json
-{
-  "success": true,
-  "data": {
-    "items": [...],
-    "pagination": {
-      "current_page": 1,
-      "per_page": 10,
-      "total_items": 50,
-      "total_pages": 5,
-      "has_next": true,
-      "has_prev": false
-    }
-  }
-}
-```
-
-Implementasi pagination sudah **production-ready** dan siap digunakan! 🎉
+The documentation is now complete and covers all Product API functionality! 🎯

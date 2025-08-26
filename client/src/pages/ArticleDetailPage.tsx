@@ -5,6 +5,7 @@ const ArticleDetailPage = () => {
   const { slug } = useParams();
   const { data: article, isLoading } = useArticleBySlug(slug);
 
+  console.log(article);
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
       <article>

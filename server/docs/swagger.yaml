@@ -173,7 +173,7 @@ definitions:
   dto.AssignTagsByNameDTO:
     properties:
       article_id:
-        type: integer
+        type: string
       tags:
         items:
           type: string
@@ -185,8 +185,13 @@ definitions:
   dto.CreateArticleRequest:
     properties:
       category_id:
-        type: integer
+        type: string
       content:
+        type: string
+      status:
+        enum:
+        - draft
+        - published
         type: string
       tags:
         items:
@@ -197,7 +202,45 @@ definitions:
     required:
     - category_id
     - content
+    - status
     - title
+    type: object
+  dto.CreateProductAffiliateLinkRequest:
+    properties:
+      platform_name:
+        type: string
+      url:
+        type: string
+    required:
+    - platform_name
+    - url
+    type: object
+  dto.CreateProductCategoryRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+    required:
+    - name
+    type: object
+  dto.CreateProductRequest:
+    properties:
+      description:
+        type: string
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      product_category_id:
+        type: string
+    required:
+    - name
+    - product_category_id
     type: object
   dto.ErrorResponse:
     description: Error response structure with detailed error information
@@ -264,6 +307,80 @@ definitions:
         example: 10
         type: integer
     type: object
+  dto.ProductAffiliateLinkResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      platform_name:
+        type: string
+      updated_at:
+        type: string
+      url:
+        type: string
+    type: object
+  dto.ProductCategoryResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.ProductListResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      product_category:
+        $ref: '#/definitions/dto.ProductCategoryResponse'
+      product_category_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.ProductResponse:
+    properties:
+      affiliate_links:
+        items:
+          $ref: '#/definitions/dto.ProductAffiliateLinkResponse'
+        type: array
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      product_category:
+        $ref: '#/definitions/dto.ProductCategoryResponse'
+      product_category_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
   dto.ResponseMetadata:
     description: Response metadata containing request tracking and performance information
     properties:
@@ -287,7 +404,7 @@ definitions:
   dto.UpdateArticleRequest:
     properties:
       category_id:
-        type: integer
+        type: string
       content:
         type: string
       tags:
@@ -300,6 +417,35 @@ definitions:
   dto.UpdateCategoryRequest:
     properties:
       name:
+        type: string
+    type: object
+  dto.UpdateProductAffiliateLinkRequest:
+    properties:
+      platform_name:
+        type: string
+      url:
+        type: string
+    type: object
+  dto.UpdateProductCategoryRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  dto.UpdateProductRequest:
+    properties:
+      description:
+        type: string
+      image_url:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      product_category_id:
         type: string
     type: object
   dto.UpdateUserRequest:
@@ -315,20 +461,30 @@ definitions:
     properties:
       category:
         $ref: '#/definitions/model.Category'
+      category_id:
+        type: string
       content:
         type: string
       created_at:
         type: string
       id:
-        type: integer
+        type: string
       slug:
         type: string
+      status:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/model.Tags'
+        type: array
       title:
         type: string
       updated_at:
         type: string
       user:
         $ref: '#/definitions/model.User'
+      user_id:
+        type: string
       views:
         type: integer
     type: object
@@ -336,49 +492,75 @@ definitions:
     properties:
       article:
         $ref: '#/definitions/model.Article'
+      article_id:
+        type: string
       created_at:
         type: string
       id:
-        type: integer
+        type: string
+      updated_at:
+        type: string
       user:
         $ref: '#/definitions/model.User'
+      user_id:
+        type: string
     type: object
   model.Category:
     properties:
+      created_at:
+        type: string
       id:
-        type: integer
+        type: string
       name:
+        type: string
+      updated_at:
         type: string
     type: object
   model.Comment:
     properties:
       article:
         $ref: '#/definitions/model.Article'
+      article_id:
+        type: string
       content:
         type: string
       created_at:
         type: string
       id:
-        type: integer
+        type: string
+      updated_at:
+        type: string
       user:
         $ref: '#/definitions/model.User'
+      user_id:
+        type: string
     type: object
   model.Likes:
     properties:
       article:
         $ref: '#/definitions/model.Article'
+      article_id:
+        type: string
       created_at:
         type: string
       id:
-        type: integer
+        type: string
+      updated_at:
+        type: string
       user:
         $ref: '#/definitions/model.User'
+      user_id:
+        type: string
     type: object
   model.Tags:
     properties:
+      created_at:
+        type: string
       id:
-        type: integer
+        type: string
       name:
+        type: string
+      updated_at:
         type: string
     type: object
   model.User:
@@ -388,7 +570,7 @@ definitions:
       email:
         type: string
       id:
-        type: integer
+        type: string
       name:
         type: string
       password:
@@ -2859,6 +3041,1427 @@ paths:
       summary: Get metrics summary
       tags:
       - metrics
+  /product-categories:
+    get:
+      description: Get a paginated list of all product categories
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    product_categories:
+                      items:
+                        $ref: '#/definitions/dto.ProductCategoryResponse'
+                      type: array
+                  type: object
+                pagination:
+                  $ref: '#/definitions/dto.PaginationMetadata'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get all product categories with pagination
+      tags:
+      - Product Categories
+    post:
+      consumes:
+      - application/json
+      description: Create a new product category with name, slug, and description
+      parameters:
+      - description: Product category creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    product_category:
+                      $ref: '#/definitions/dto.ProductCategoryResponse'
+                  type: object
+              type: object
+        "400":
+          description: Invalid payload
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new product category
+      tags:
+      - Product Categories
+  /product-categories/{id}:
+    delete:
+      description: Delete a product category by ID
+      parameters:
+      - description: Product Category ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid product category ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product category not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Delete product category
+      tags:
+      - Product Categories
+    get:
+      description: Get a specific product category by its UUID
+      parameters:
+      - description: Product Category ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    product_category:
+                      $ref: '#/definitions/dto.ProductCategoryResponse'
+                  type: object
+              type: object
+        "400":
+          description: Invalid product category ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product category not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get product category by ID
+      tags:
+      - Product Categories
+    put:
+      consumes:
+      - application/json
+      description: Update an existing product category by ID
+      parameters:
+      - description: Product Category ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Product category update details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProductCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    product_category:
+                      $ref: '#/definitions/dto.ProductCategoryResponse'
+                  type: object
+              type: object
+        "400":
+          description: Invalid payload or ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product category not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update product category
+      tags:
+      - Product Categories
+  /product-categories/s/{slug}:
+    get:
+      description: Get a specific product category by its slug
+      parameters:
+      - description: Product Category Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    product_category:
+                      $ref: '#/definitions/dto.ProductCategoryResponse'
+                  type: object
+              type: object
+        "400":
+          description: Invalid slug
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product category not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get product category by slug
+      tags:
+      - Product Categories
+  /products:
+    get:
+      description: Get a paginated list of all products
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    products:
+                      items:
+                        $ref: '#/definitions/dto.ProductListResponse'
+                      type: array
+                  type: object
+                pagination:
+                  $ref: '#/definitions/dto.PaginationMetadata'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get all products with pagination
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Create a new product with category, name, description, and image
+      parameters:
+      - description: Product creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    product:
+                      $ref: '#/definitions/dto.ProductResponse'
+                  type: object
+              type: object
+        "400":
+          description: Invalid payload
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new product
+      tags:
+      - Products
+  /products/{id}:
+    delete:
+      description: Delete a product by ID
+      parameters:
+      - description: Product ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid product ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Delete product
+      tags:
+      - Products
+    get:
+      description: Get a specific product by its UUID including affiliate links
+      parameters:
+      - description: Product ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    product:
+                      $ref: '#/definitions/dto.ProductResponse'
+                  type: object
+              type: object
+        "400":
+          description: Invalid product ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get product by ID
+      tags:
+      - Products
+    put:
+      consumes:
+      - application/json
+      description: Update an existing product by ID
+      parameters:
+      - description: Product ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Product update details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    product:
+                      $ref: '#/definitions/dto.ProductResponse'
+                  type: object
+              type: object
+        "400":
+          description: Invalid payload or ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update product
+      tags:
+      - Products
+  /products/{id}/affiliate:
+    get:
+      description: Get all affiliate links for a specific product
+      parameters:
+      - description: Product ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    product_affiliate_links:
+                      items:
+                        $ref: '#/definitions/dto.ProductAffiliateLinkResponse'
+                      type: array
+                  type: object
+              type: object
+        "400":
+          description: Invalid product ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get affiliate links by product ID
+      tags:
+      - Product Affiliate Links
+    post:
+      consumes:
+      - application/json
+      description: Create a new affiliate link for a specific product
+      parameters:
+      - description: Product ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Affiliate link creation details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductAffiliateLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    product_affiliate_link:
+                      $ref: '#/definitions/dto.ProductAffiliateLinkResponse'
+                  type: object
+              type: object
+        "400":
+          description: Invalid payload or product ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create product affiliate link
+      tags:
+      - Product Affiliate Links
+  /products/{id}/affiliate/{affiliateId}:
+    delete:
+      description: Delete an affiliate link by ID
+      parameters:
+      - description: Product ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Affiliate Link ID (UUID)
+        in: path
+        name: affiliateId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid affiliate ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Affiliate link not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Delete product affiliate link
+      tags:
+      - Product Affiliate Links
+    put:
+      consumes:
+      - application/json
+      description: Update an existing affiliate link for a product
+      parameters:
+      - description: Product ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Affiliate Link ID (UUID)
+        in: path
+        name: affiliateId
+        required: true
+        type: string
+      - description: Affiliate link update details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProductAffiliateLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    product_affiliate_link:
+                      $ref: '#/definitions/dto.ProductAffiliateLinkResponse'
+                  type: object
+              type: object
+        "400":
+          description: Invalid payload, product ID, or affiliate ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product or affiliate link not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update product affiliate link
+      tags:
+      - Product Affiliate Links
+  /products/{id}/article/{articleId}:
+    delete:
+      description: Remove the association between a product and an article
+      parameters:
+      - description: Product ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Article ID (UUID)
+        in: path
+        name: articleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid product ID or article ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product or article not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Remove product from article
+      tags:
+      - Product Article Relations
+    post:
+      description: Associate a product with an article
+      parameters:
+      - description: Product ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Article ID (UUID)
+        in: path
+        name: articleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid product ID or article ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "404":
+          description: Product or article not found
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Add product to article
+      tags:
+      - Product Article Relations
+  /products/{id}/articles:
+    get:
+      description: Get all articles associated with a specific product
+      parameters:
+      - description: Product ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    articles:
+                      items:
+                        $ref: '#/definitions/model.Article'
+                      type: array
+                    message:
+                      type: string
+                  type: object
+              type: object
+        "400":
+          description: Invalid product ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get articles by product ID
+      tags:
+      - Product Article Relations
+  /products/article/{id}:
+    get:
+      description: Get all products associated with a specific article
+      parameters:
+      - description: Article ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    products:
+                      items:
+                        $ref: '#/definitions/dto.ProductListResponse'
+                      type: array
+                  type: object
+              type: object
+        "400":
+          description: Invalid article ID
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get products by article ID
+      tags:
+      - Products
+  /products/category/{id}:
+    get:
+      description: Get a paginated list of products filtered by category ID
+      parameters:
+      - description: Category ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  properties:
+                    message:
+                      type: string
+                    products:
+                      properties:
+                        products:
+                          items:
+                            $ref: '#/definitions/dto.ProductListResponse'
+                          type: array
+                      type: object
+                  type: object
+                pagination:
+                  $ref: '#/definitions/dto.PaginationMetadata'
+              type: object
+        "400":
+          description: Invalid category ID or pagination parameters
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "408":
+          description: Request timeout
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/dto.ErrorResponse'
+              type: object
+      summary: Get products by category with pagination
+      tags:
+      - Products
   /tags:
     get:
       description: Get a list of all tags
