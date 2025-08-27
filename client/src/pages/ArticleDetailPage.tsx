@@ -104,7 +104,7 @@ const ArticleDetailPage = () => {
                     >
                       <div>Link #{linkIndex + 1}:</div>
                       <div>Link ID: {link.id}</div>
-                      <div>Platform: {link.platform}</div>
+                      <div>Platform: {link.platform_name}</div>
                       <div>
                         URL:{" "}
                         <a

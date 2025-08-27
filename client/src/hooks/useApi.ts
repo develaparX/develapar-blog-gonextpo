@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 import { queryKeys } from '@/lib/queryKeys';
-import type { Article, Category, Tag, Product } from '@/services/api';
 
 // Articles Queries
 export function useArticles() {
@@ -9,6 +8,15 @@ export function useArticles() {
         queryKey: queryKeys.articles.lists(),
         queryFn: () => apiService.getAllArticles(),
         staleTime: 1000 * 60 * 5, // 5 minutes
+    });
+}
+
+export function usePaginatedArticles(page: number = 1, limit: number = 10) {
+    return useQuery({
+        queryKey: [...queryKeys.articles.lists(), 'paginated', { page, limit }],
+        queryFn: () => apiService.getPaginatedArticles({ page, limit }),
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        placeholderData: (previousData) => previousData, // Keep previous data while loading new page
     });
 }
 

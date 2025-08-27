@@ -833,8 +833,8 @@ func (ac *ArticleController) DeleteArticleHandler(ginCtx *gin.Context) {
 func (c *ArticleController) Route() {
 	// Public routes - Changed from singular to plural
 	publicRoutes := c.rg.Group("/articles")
-	publicRoutes.GET("/", c.GetAllArticleHandler)
-	publicRoutes.GET("/paginated", c.GetAllArticleWithPaginationHandler)
+	// publicRoutes.GET("/", c.GetAllArticleHandler)
+	publicRoutes.GET("/", c.GetAllArticleWithPaginationHandler)
 	publicRoutes.GET("/:slug", c.GetBySlugHandler)
 	publicRoutes.GET("/author/:user_id", c.GetByUserIdHandler)                                   // Changed from /u/ to /author/
 	publicRoutes.GET("/author/:user_id/paginated", c.GetByUserIdWithPaginationHandler)           // Changed from /u/ to /author/

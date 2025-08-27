@@ -69,7 +69,7 @@ export interface ProductCategory {
 
 export interface AffiliateLink {
     id: string;
-    platform: string;
+    platform_name: string;
     url: string;
     price?: number;
     currency?: string;
@@ -118,15 +118,33 @@ async function apiFetch<T>(endpoint: string): Promise<APIResponse<T>> {
     }
 }
 
+// Pagination parameters interface
+export interface PaginationParams {
+    page?: number;
+    limit?: number;
+}
+
+// Paginated response interface
+export interface PaginatedArticlesResponse {
+    articles: Article[];
+    message: string;
+}
+
 // API Service Class
 class ApiService {
     // Articles API
     async getAllArticles(): Promise<Article[]> {
-        const response = await apiFetch<{ articles: Article[]; message: string }>('/articles');
+        const response = await apiFetch<{ articles: Article[]; message: string }>('/articles/');
         if (response.success) {
             return response.data.articles || [];
         }
         throw new Error('Failed to fetch articles');
+    }
+
+    async getPaginatedArticles(params: PaginationParams = {}): Promise<APIResponse<PaginatedArticlesResponse>> {
+        const { page = 1, limit = 10 } = params;
+        const response = await apiFetch<PaginatedArticlesResponse>(`/articles/?page=${page}&limit=${limit}`);
+        return response;
     }
 
     async getArticlesByCategory(categoryName: string): Promise<Article[]> {
@@ -224,6 +242,7 @@ export const apiService = new ApiService();
 // Export individual functions for convenience
 export const {
     getAllArticles,
+    getPaginatedArticles,
     getArticlesByCategory,
     getArticlesByTag,
     getArticleBySlug,
