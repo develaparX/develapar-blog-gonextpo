@@ -9,7 +9,7 @@ import NotFoundPage from "./pages/NotFoundPage";
 import MainLayout from "./components/layout/MainLayout";
 import ArticleList from "./pages/ArticleList";
 import Dashboard from "./pages/dashboard/Dashboard";
-import AdminLayout from "./components/layout/AdminLayout";
+import AdminLayout from "./components/layout/DashboardLayout";
 import AddArticle from "./pages/AddArticle";
 import ArticleTagsPage from "./pages/ArticleTagsPage";
 import BookmarksPage from "./pages/BookmarksPage";
@@ -94,6 +94,10 @@ const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    path: "/d",
+    element: <Dashboard />,
   },
   {
     path: "*",

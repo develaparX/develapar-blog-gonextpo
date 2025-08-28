@@ -831,22 +831,24 @@ func (ac *ArticleController) DeleteArticleHandler(ginCtx *gin.Context) {
 }
 
 func (c *ArticleController) Route() {
-	// Public routes - Changed from singular to plural
-	publicRoutes := c.rg.Group("/articles")
-	// publicRoutes.GET("/", c.GetAllArticleHandler)
-	publicRoutes.GET("/", c.GetAllArticleWithPaginationHandler)
-	publicRoutes.GET("/:slug", c.GetBySlugHandler)
-	publicRoutes.GET("/author/:user_id", c.GetByUserIdHandler)                                   // Changed from /u/ to /author/
-	publicRoutes.GET("/author/:user_id/paginated", c.GetByUserIdWithPaginationHandler)           // Changed from /u/ to /author/
-	publicRoutes.GET("/category/:category_name", c.GetByCategory)                                // Changed from /c/:cat_name to /category/:category_name
-	publicRoutes.GET("/category/:category_name/paginated", c.GetByCategoryWithPaginationHandler) // Changed from /c/:cat_name to /category/:category_name
+	// Definisikan group HANYA SEKALI
+	articleRoutes := c.rg.Group("/articles")
 
-	// Protected routes - Changed from singular to plural
-	protectedRoutes := c.rg.Group("/articles")
-	protectedRoutes.Use(c.md.CheckToken("user", "admin")) // hanya butuh login
-	protectedRoutes.POST("/", c.CreateArticleHandler)
-	protectedRoutes.PUT("/:article_id", c.UpdateArticleHandler)
-	protectedRoutes.DELETE("/:article_id", c.DeleteArticleHandler)
+	// --- Public Routes ---
+	// Endpoint ini tidak memerlukan middleware
+	articleRoutes.GET("", c.GetAllArticleWithPaginationHandler)
+	articleRoutes.GET("/:slug", c.GetBySlugHandler)
+	// articleRoutes.GET("/author/:user_id", c.GetByUserIdHandler)
+	articleRoutes.GET("/author/:user_id", c.GetByUserIdWithPaginationHandler)
+	// articleRoutes.GET("/category/:category_name", c.GetByCategory)
+	articleRoutes.GET("/category/:category_name", c.GetByCategoryWithPaginationHandler)
+
+	// --- Protected Routes ---
+	// Terapkan middleware HANYA pada endpoint yang membutuhkannya
+	checkTokenMiddleware := c.md.CheckToken("user", "admin")
+	articleRoutes.POST("/", checkTokenMiddleware, c.CreateArticleHandler)
+	articleRoutes.PUT("/:article_id", checkTokenMiddleware, c.UpdateArticleHandler)
+	articleRoutes.DELETE("/:article_id", checkTokenMiddleware, c.DeleteArticleHandler)
 }
 
 func NewArticleController(aS service.ArticleService, md middleware.AuthMiddleware, rg *gin.RouterGroup, errorHandler middleware.ErrorHandler) *ArticleController {

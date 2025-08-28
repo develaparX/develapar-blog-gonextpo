@@ -134,7 +134,7 @@ export interface PaginatedArticlesResponse {
 class ApiService {
     // Articles API
     async getAllArticles(): Promise<Article[]> {
-        const response = await apiFetch<{ articles: Article[]; message: string }>('/articles/');
+        const response = await apiFetch<{ articles: Article[]; message: string }>('/articles');
         if (response.success) {
             return response.data.articles || [];
         }
@@ -143,7 +143,7 @@ class ApiService {
 
     async getPaginatedArticles(params: PaginationParams = {}): Promise<APIResponse<PaginatedArticlesResponse>> {
         const { page = 1, limit = 10 } = params;
-        const response = await apiFetch<PaginatedArticlesResponse>(`/articles/?page=${page}&limit=${limit}`);
+        const response = await apiFetch<PaginatedArticlesResponse>(`/articles?page=${page}&limit=${limit}`);
         return response;
     }
 

@@ -91,9 +91,15 @@ const ArticleList = () => {
                   <h2 className="text-2xl font-bold mb-2 hover:text-blue-600 transition cursor-pointer">
                     {article.title}
                   </h2>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-3">
-                    {article.content.slice(0, 150)}...
-                  </p>
+                  <div
+                    className="text-gray-600 text-sm mb-3 line-clamp-3"
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        article.content.length > 200
+                          ? article.content.slice(0, 200) + "..."
+                          : article.content,
+                    }}
+                  />
                   <div className="flex items-center justify-between">
                     <div className="text-gray-500 text-sm">
                       By{" "}
